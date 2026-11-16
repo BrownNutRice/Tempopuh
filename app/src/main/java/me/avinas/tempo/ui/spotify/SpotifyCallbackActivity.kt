@@ -10,6 +10,9 @@ import me.avinas.tempo.MainActivity
 import me.avinas.tempo.data.remote.spotify.SpotifyApi
 import me.avinas.tempo.data.remote.spotify.SpotifyAuthManager
 import me.avinas.tempo.data.repository.EnrichedMetadataRepository
+import me.avinas.tempo.data.local.dao.UserPreferencesDao
+import me.avinas.tempo.data.local.entities.UserPreferences
+import me.avinas.tempo.worker.SpotifyPollingWorker
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -30,6 +33,9 @@ class SpotifyCallbackActivity : ComponentActivity() {
     
     @Inject
     lateinit var enrichedMetadataRepository: EnrichedMetadataRepository
+
+    @Inject
+    lateinit var userPreferencesDao: UserPreferencesDao
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,7 +63,17 @@ class SpotifyCallbackActivity : ComponentActivity() {
                 
                 if (success) {
                     enrichedMetadataRepository.queueAllForSpotifyEnrichment()
-                    
+
+                    // Opt in to automatic API reconciliation after an explicit
+                    // successful OAuth connection. Keep local broadcasts and
+                    // MediaSession tracking enabled as independent live sources.
+                    val preferences = userPreferencesDao.getSync() ?: UserPreferences()
+                    if (!preferences.spotifyApiOnlyMode) {
+                        userPreferencesDao.upsert(preferences.copy(spotifyApiOnlyMode = true))
+                    }
+                    SpotifyPollingWorker.schedule(applicationContext)
+                    SpotifyPollingWorker.syncNow(applicationContext)
+
                     // History reconstruction is triggered from MainActivity, whose
                     // viewModelScope outlives this activity and won't get cancelled. It uses
                     // the "honest data only" path: liked tracks + yearly playlists.
