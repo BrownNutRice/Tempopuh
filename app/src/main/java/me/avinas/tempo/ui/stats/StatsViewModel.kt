@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import me.avinas.tempo.data.repository.RefreshCoordinator
+import me.avinas.tempo.data.repository.ListeningRepository
 import me.avinas.tempo.data.repository.SortBy
 import me.avinas.tempo.data.repository.StatsRepository
 import me.avinas.tempo.data.stats.StatItem
@@ -34,6 +35,7 @@ class StatsViewModel
     constructor(
         private val statsRepository: StatsRepository,
         private val refreshCoordinator: RefreshCoordinator,
+        private val listeningRepository: ListeningRepository,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(StatsUiState())
         val uiState: StateFlow<StatsUiState> = _uiState.asStateFlow()
@@ -53,13 +55,12 @@ class StatsViewModel
 
         private fun observeDataChanges() {
             viewModelScope.launch {
-                // Observe listening overview changes - this triggers when new events are added
-                statsRepository
-                    .observeListeningOverview(_uiState.value.selectedTimeRange, withLeeway = false)
-                    .collect { _ ->
-                        // Force refresh when new listening events are detected
-                        refreshTrigger.value = System.currentTimeMillis()
-                    }
+                // A single-row Room query is a cheap insertion trigger. Never
+                // compute all-time/longest-session aggregates just to discover
+                // that a listening event changed.
+                listeningRepository.recentEvents(1).collect {
+                    refreshTrigger.value = System.currentTimeMillis()
+                }
             }
 
             viewModelScope.launch {
