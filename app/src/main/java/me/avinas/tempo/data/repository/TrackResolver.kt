@@ -68,7 +68,9 @@ class TrackResolver @Inject constructor(
         query.youtubeId?.takeIf { it.isNotBlank() }?.let { id ->
             trackRepository.findByYoutubeId(id)?.let { return merge(it, query) }
         }
-        trackRepository.findByTitleAndArtist(query.title, query.artist)?.let { return merge(it, query) }
+        trackRepository.findByTitleAndArtist(query.title, query.artist)?.let {
+            if (identifiersCompatible(it, query)) return merge(it, query)
+        }
 
         // A name the user renamed away or merged into another row still means that song.
         // Without this, every later import of the old title re-created the duplicate the
@@ -78,9 +80,15 @@ class TrackResolver @Inject constructor(
         // Exact title first, alias second: a row that literally carries this title is the
         // better answer, which also means duplicates created before this step existed are
         // left alone rather than silently absorbed.
-        trackAliasDao.findAliasTargetTrack(query.title, query.artist)?.let { return merge(it, query) }
+        trackAliasDao.findAliasTargetTrack(query.title, query.artist)?.let {
+            if (identifiersCompatible(it, query)) return merge(it, query)
+        }
 
-        trackRepository.findByTitleAndArtistFuzzy(query.title, query.artist)?.let { return merge(it, query) }
+        trackRepository.findByTitleAndArtistFuzzy(query.title, query.artist)?.let {
+            // A fuzzy title hit is never stronger evidence than a conflicting
+            // streaming-service ID: remixes and re-recordings need distinct rows.
+            if (identifiersCompatible(it, query)) return merge(it, query)
+        }
 
         val track = Track(
             title = query.title,
@@ -97,6 +105,18 @@ class TrackResolver @Inject constructor(
         val newId = trackRepository.insert(track)
         return Resolution(newId, isNewTrack = true, track = track.copy(id = newId))
     }
+
+    /**
+     * Two recordings with different authoritative IDs must not share a track row,
+     * even when a fuzzy title/artist search says they look alike.
+     */
+    internal fun identifiersCompatible(existing: Track, query: Query): Boolean =
+        !((!existing.spotifyId.isNullOrBlank() && !query.spotifyId.isNullOrBlank()
+                && existing.spotifyId != query.spotifyId) ||
+          (!existing.musicbrainzId.isNullOrBlank() && !query.musicbrainzId.isNullOrBlank()
+                && existing.musicbrainzId != query.musicbrainzId) ||
+          (!existing.youtubeId.isNullOrBlank() && !query.youtubeId.isNullOrBlank()
+                && existing.youtubeId != query.youtubeId))
 
     /** Layer 4 for one track: gap-fill only, never overwrite. */
     private suspend fun merge(existing: Track, query: Query): Resolution {
