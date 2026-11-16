@@ -31,7 +31,7 @@ The app tracks **two different facts**:
    queue. Home/History/Stats coalesce refreshes for ~300–350 ms to avoid double
    querying the same event.
 6. Spotify API's *recently played* feed is separate: WorkManager pulls it
-   periodically and reconciles duplicates against live tracking. Imported
+   approximately every 20 minutes and reconciles duplicates against live tracking. Imported
    histories refresh statistics when their writes complete. API data may arrive
    late on Spotify's servers and does not contain observed listening duration.
 
