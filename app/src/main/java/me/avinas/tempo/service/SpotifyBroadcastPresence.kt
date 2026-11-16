@@ -3,6 +3,7 @@ package me.avinas.tempo.service
 import android.content.Context
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 /**
  * Shared, ephemeral playback presence from device broadcasts or Android media tracking.
@@ -39,22 +40,25 @@ object SpotifyBroadcastPresence {
     fun setEnabled(context: Context, enabled: Boolean) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit().putBoolean(ENABLED, enabled).apply()
-        if (!enabled && mutablePresence.value?.source == "Spotify broadcast") {
-            mutablePresence.value = null
+        if (!enabled) {
+            mutablePresence.update { current ->
+                current?.takeUnless { it.source == "Spotify broadcast" }
+            }
         }
     }
 
     internal fun publish(track: SpotifyBroadcastBridge.Track, playing: Boolean, positionMs: Long) {
-        val current = mutablePresence.value
-        val match = current != null && current.title == track.title &&
-            current.artist == track.artist &&
-            current.packageName == "com.spotify.music"
-        mutablePresence.value = Presence(
-            track.title, track.artist, track.album, playing,
-            positionMs, track.durationMs, System.currentTimeMillis(),
-            verifiedByApiAtMs = if (match) current?.verifiedByApiAtMs else null,
-            listenedMs = if (match) current?.listenedMs else null,
-        )
+        mutablePresence.update { current ->
+            val match = current != null && current.title == track.title &&
+                current.artist == track.artist &&
+                current.packageName == "com.spotify.music"
+            Presence(
+                track.title, track.artist, track.album, playing,
+                positionMs, track.durationMs, System.currentTimeMillis(),
+                verifiedByApiAtMs = if (match) current?.verifiedByApiAtMs else null,
+                listenedMs = if (match) current?.listenedMs else null,
+            )
+        }
     }
 
     /**
@@ -78,49 +82,45 @@ object SpotifyBroadcastPresence {
     ) {
         if (title.isBlank() || artist.isBlank()) return
         val now = System.currentTimeMillis()
-        val current = mutablePresence.value
-        val matchingLocal = current != null &&
-            current.source != "Spotify Web API" &&
-            !current.source.startsWith("Spotify Connect ·") &&
-            current.packageName == "com.spotify.music" &&
-            current.title.equals(title, ignoreCase = true) &&
-            current.artist.contains(artist, ignoreCase = true)
-        if (matchingLocal && now - current!!.updatedAtMs < 90_000L) {
-            mutablePresence.value = current.copy(
-                album = current.album ?: album,
-                durationMs = current.durationMs.takeIf { it > 0L } ?: durationMs,
-                verifiedByApiAtMs = now,
-            )
-            return
+        // Atomic compare-and-set: a delayed HTTP callback must not overwrite a
+        // new Spotify broadcast that arrived while the API response parsed.
+        mutablePresence.update { current ->
+            val isLocal = current != null &&
+                current.source != "Spotify Web API" &&
+                !current.source.startsWith("Spotify Connect ·")
+            val matchingLocal = isLocal && current != null &&
+                current.packageName == "com.spotify.music" &&
+                current.title.equals(title, ignoreCase = true) &&
+                current.artist.contains(artist, ignoreCase = true)
+            when {
+                matchingLocal && current != null && now - current.updatedAtMs < 90_000L ->
+                    current.copy(
+                        album = current.album ?: album,
+                        durationMs = current.durationMs.takeIf { it > 0L } ?: durationMs,
+                        verifiedByApiAtMs = now,
+                    )
+                isLocal && current != null && now - current.updatedAtMs < 90_000L ->
+                    current
+                else -> Presence(
+                    title = title,
+                    artist = artist,
+                    album = album,
+                    playing = playing,
+                    positionMs = positionMs.coerceAtLeast(0L),
+                    durationMs = durationMs.coerceAtLeast(0L),
+                    updatedAtMs = now,
+                    source = deviceName?.takeIf { it.isNotBlank() }
+                        ?.let { "Spotify Connect · $it" } ?: "Spotify Web API",
+                )
+            }
         }
-
-        if (current != null &&
-            now - current.updatedAtMs < 90_000L &&
-            current.source != "Spotify Web API" &&
-            !current.source.startsWith("Spotify Connect ·")
-        ) {
-            // Fresh device observations, including another local player, win.
-            return
-        }
-
-        mutablePresence.value = Presence(
-            title = title,
-            artist = artist,
-            album = album,
-            playing = playing,
-            positionMs = positionMs.coerceAtLeast(0L),
-            durationMs = durationMs.coerceAtLeast(0L),
-            updatedAtMs = now,
-            source = deviceName?.takeIf { it.isNotBlank() }
-                ?.let { "Spotify Connect · $it" } ?: "Spotify Web API",
-        )
     }
 
     internal fun clearApiIfInactive() {
-        if (mutablePresence.value?.source == "Spotify Web API" ||
-            mutablePresence.value?.source?.startsWith("Spotify Connect ·") == true
-        ) {
-            mutablePresence.value = null
+        mutablePresence.update { current ->
+            current?.takeUnless {
+                it.source == "Spotify Web API" || it.source.startsWith("Spotify Connect ·")
+            }
         }
     }
 
@@ -135,61 +135,62 @@ object SpotifyBroadcastPresence {
         listenedMs: Long? = null,
     ) {
         if (title.isBlank() || artist.isBlank()) return
-        val current = mutablePresence.value
         val now = System.currentTimeMillis()
-        val sameTrack = current?.packageName == packageName &&
-            current.title == title && current.artist == artist
-        if (packageName == "com.spotify.music" &&
-            current?.source == "Spotify broadcast" &&
-            now - current.updatedAtMs < 2_500L
-        ) {
-            // Preserve Spotify's fresher title/position, but update the actual
-            // accumulated session time from the local tracking service.
-            if (sameTrack && listenedMs != null) {
-                mutablePresence.value = current.copy(listenedMs = listenedMs.coerceAtLeast(0L))
+        // Broadcast, MediaSession and notification callbacks may come from
+        // different threads; preserve source priority and elapsed time atomically.
+        mutablePresence.update { current ->
+            val sameTrack = current?.packageName == packageName &&
+                current.title == title && current.artist == artist
+            if (packageName == "com.spotify.music" &&
+                current?.source == "Spotify broadcast" &&
+                now - current.updatedAtMs < 2_500L
+            ) {
+                if (sameTrack && listenedMs != null) {
+                    current.copy(listenedMs = listenedMs.coerceAtLeast(0L))
+                } else current
+            } else {
+                Presence(
+                    title = title,
+                    artist = artist,
+                    album = album,
+                    playing = playing,
+                    positionMs = positionMs.coerceAtLeast(0L),
+                    durationMs = durationMs.coerceAtLeast(0L),
+                    updatedAtMs = now,
+                    packageName = packageName,
+                    source = "Android media tracking",
+                    verifiedByApiAtMs = if (sameTrack) current?.verifiedByApiAtMs else null,
+                    listenedMs = listenedMs?.coerceAtLeast(0L)
+                        ?: if (sameTrack) current?.listenedMs else null,
+                )
             }
-            return
         }
-        mutablePresence.value = Presence(
-            title = title,
-            artist = artist,
-            album = album,
-            playing = playing,
-            positionMs = positionMs.coerceAtLeast(0L),
-            durationMs = durationMs.coerceAtLeast(0L),
-            updatedAtMs = now,
-            packageName = packageName,
-            source = "Android media tracking",
-            verifiedByApiAtMs = if (sameTrack) current?.verifiedByApiAtMs else null,
-            listenedMs = listenedMs?.coerceAtLeast(0L)
-                ?: if (sameTrack) current?.listenedMs else null,
-        )
     }
 
     internal fun clearForStoppedTrackingService() {
-        val current = mutablePresence.value ?: return
-        if (current.source == "Android media tracking" ||
-            current.source == "Spotify broadcast"
-        ) {
-            mutablePresence.value = null
+        mutablePresence.update { current ->
+            current?.takeUnless {
+                it.source == "Android media tracking" || it.source == "Spotify broadcast"
+            }
         }
     }
 
     internal fun clearLocalIfNoSession() {
-        if (mutablePresence.value?.source == "Android media tracking") {
-            mutablePresence.value = null
+        mutablePresence.update { current ->
+            current?.takeUnless { it.source == "Android media tracking" }
         }
     }
 
     internal fun clearForPackage(packageName: String) {
-        if (mutablePresence.value?.packageName == packageName) {
-            mutablePresence.value = null
+        mutablePresence.update { current ->
+            current?.takeUnless { it.packageName == packageName }
         }
     }
 
     internal fun clear() {
-        if (mutablePresence.value?.source == "Spotify broadcast") {
-            mutablePresence.value = null
+        mutablePresence.update { current ->
+            current?.takeUnless { it.source == "Spotify broadcast" }
         }
     }
+
 }
