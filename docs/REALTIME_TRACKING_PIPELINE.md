@@ -74,3 +74,16 @@ The app tracks **two different facts**:
 
 No Android APK workflow is required to review these commits. Builds and
 on-device verification must be performed explicitly by the app owner.
+
+
+## Privacy-conscious timing trace
+
+When an eligible playback session is finalized, Android Logcat contains a
+`Finalized listening session id=...` line with `listenedMs`,
+`positionCoverageMs`, `positionCallbacks`, `pauses` and `seeks`.
+It contains **no song title, artist or credential**. For the previous
+one-minute-per-song bug, compare `listenedMs` against the raw saved Room
+`playDuration` and the UI's rounded time label. If the first value is right,
+the problem is persistence or display; if it is wrong, inspect missing
+play/pause callbacks or device background restrictions. Actual behavior must
+be verified using a newly compiled APK.
