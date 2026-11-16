@@ -872,7 +872,7 @@ interface StatsDao {
 
     @Query(
         """
-        SELECT AVG(CASE WHEN completionPercentage = 0 AND was_skipped = 0 AND source LIKE '%.import%' THEN NULL ELSE completionPercentage END) 
+        SELECT AVG(CASE WHEN completionPercentage = 0 AND was_skipped = 0 AND (source LIKE '%.import%' OR source LIKE 'desktop:%') THEN NULL ELSE completionPercentage END) 
         FROM listening_events 
         WHERE timestamp >= :startTime AND timestamp <= :endTime
     """,
@@ -903,7 +903,7 @@ interface StatsDao {
         SELECT COUNT(*) 
         FROM listening_events 
         WHERE timestamp >= :startTime AND timestamp <= :endTime
-        AND (was_skipped = 1 OR (completionPercentage < 30 AND NOT (completionPercentage = 0 AND was_skipped = 0 AND source LIKE '%.import%')))
+        AND (was_skipped = 1 OR (completionPercentage < 30 AND NOT (completionPercentage = 0 AND was_skipped = 0 AND (source LIKE '%.import%' OR source LIKE 'desktop:%'))))
     """,
     )
     suspend fun getSkipsCount(
@@ -1052,9 +1052,9 @@ interface StatsDao {
             t.id as track_id,
             t.title,
             t.artist,
-            AVG(CASE WHEN le.completionPercentage = 0 AND le.was_skipped = 0 AND le.source LIKE '%.import%' THEN NULL ELSE le.completionPercentage END) as average_completion,
+            AVG(CASE WHEN le.completionPercentage = 0 AND le.was_skipped = 0 AND (le.source LIKE '%.import%' OR le.source LIKE 'desktop:%') THEN NULL ELSE le.completionPercentage END) as average_completion,
             SUM(CASE WHEN le.completionPercentage >= 80 THEN 1 ELSE 0 END) as full_listens,
-            SUM(CASE WHEN le.was_skipped = 1 OR (le.completionPercentage < 30 AND NOT (le.completionPercentage = 0 AND le.was_skipped = 0 AND le.source LIKE '%.import%')) THEN 1 ELSE 0 END) as skips,
+            SUM(CASE WHEN le.was_skipped = 1 OR (le.completionPercentage < 30 AND NOT (le.completionPercentage = 0 AND le.was_skipped = 0 AND (le.source LIKE '%.import%' OR le.source LIKE 'desktop:%'))) THEN 1 ELSE 0 END) as skips,
             COUNT(le.id) as total_plays
         FROM listening_events le
         INNER JOIN tracks t ON le.track_id = t.id
@@ -1078,9 +1078,9 @@ interface StatsDao {
             t.id as track_id,
             t.title,
             t.artist,
-            AVG(CASE WHEN le.completionPercentage = 0 AND le.was_skipped = 0 AND le.source LIKE '%.import%' THEN NULL ELSE le.completionPercentage END) as average_completion,
+            AVG(CASE WHEN le.completionPercentage = 0 AND le.was_skipped = 0 AND (le.source LIKE '%.import%' OR le.source LIKE 'desktop:%') THEN NULL ELSE le.completionPercentage END) as average_completion,
             SUM(CASE WHEN le.completionPercentage >= 80 THEN 1 ELSE 0 END) as full_listens,
-            SUM(CASE WHEN le.was_skipped = 1 OR (le.completionPercentage < 30 AND NOT (le.completionPercentage = 0 AND le.was_skipped = 0 AND le.source LIKE '%.import%')) THEN 1 ELSE 0 END) as skips,
+            SUM(CASE WHEN le.was_skipped = 1 OR (le.completionPercentage < 30 AND NOT (le.completionPercentage = 0 AND le.was_skipped = 0 AND (le.source LIKE '%.import%' OR le.source LIKE 'desktop:%'))) THEN 1 ELSE 0 END) as skips,
             COUNT(le.id) as total_plays
         FROM listening_events le
         INNER JOIN tracks t ON le.track_id = t.id
@@ -1105,7 +1105,7 @@ interface StatsDao {
             t.artist,
             SUM(CASE WHEN le.is_replay = 1 THEN 1 ELSE 0 END) as replay_count,
             COUNT(le.id) as total_plays,
-            AVG(CASE WHEN le.completionPercentage = 0 AND le.was_skipped = 0 AND le.source LIKE '%.import%' THEN NULL ELSE le.completionPercentage END) as average_completion
+            AVG(CASE WHEN le.completionPercentage = 0 AND le.was_skipped = 0 AND (le.source LIKE '%.import%' OR le.source LIKE 'desktop:%') THEN NULL ELSE le.completionPercentage END) as average_completion
         FROM listening_events le
         INNER JOIN tracks t ON le.track_id = t.id
         WHERE le.timestamp >= :startTime AND le.timestamp <= :endTime
@@ -1139,8 +1139,8 @@ interface StatsDao {
         """
         SELECT 
             CAST(strftime('%H', ${LocalTimeSql.LOCAL_DATETIME}) AS INTEGER) as hour,
-            AVG(CASE WHEN completionPercentage = 0 AND was_skipped = 0 AND source LIKE '%.import%' THEN NULL ELSE completionPercentage END) as avg_completion,
-            SUM(CASE WHEN was_skipped = 1 OR (completionPercentage < 30 AND NOT (completionPercentage = 0 AND was_skipped = 0 AND source LIKE '%.import%')) THEN 1 ELSE 0 END) as skip_count
+            AVG(CASE WHEN completionPercentage = 0 AND was_skipped = 0 AND (source LIKE '%.import%' OR source LIKE 'desktop:%') THEN NULL ELSE completionPercentage END) as avg_completion,
+            SUM(CASE WHEN was_skipped = 1 OR (completionPercentage < 30 AND NOT (completionPercentage = 0 AND was_skipped = 0 AND (source LIKE '%.import%' OR source LIKE 'desktop:%'))) THEN 1 ELSE 0 END) as skip_count
         FROM listening_events
         WHERE timestamp >= :startTime AND timestamp <= :endTime
         GROUP BY hour
@@ -1261,7 +1261,7 @@ interface StatsDao {
         WHERE 
             (:startTime IS NULL OR le.timestamp >= :startTime) AND
             (:endTime IS NULL OR le.timestamp <= :endTime) AND
-            (:includeSkips = 1 OR (le.was_skipped = 0 AND (le.completionPercentage >= 30 OR (le.completionPercentage = 0 AND le.source LIKE '%.import%')))) AND
+            (:includeSkips = 1 OR (le.was_skipped = 0 AND (le.completionPercentage >= 30 OR (le.completionPercentage = 0 AND (le.source LIKE '%.import%' OR le.source LIKE 'desktop:%'))))) AND
             (:searchQuery IS NULL OR :searchQuery = '' OR 
                 t.title LIKE '%' || :searchQuery || '%' OR 
                 t.artist LIKE '%' || :searchQuery || '%' OR 
@@ -1308,7 +1308,7 @@ interface StatsDao {
             le.source != 'fm.last.import' AND
             (:startTime IS NULL OR le.timestamp >= :startTime) AND
             (:endTime IS NULL OR le.timestamp <= :endTime) AND
-            (:includeSkips = 1 OR (le.was_skipped = 0 AND (le.completionPercentage >= 30 OR (le.completionPercentage = 0 AND le.source LIKE '%.import%')))) AND
+            (:includeSkips = 1 OR (le.was_skipped = 0 AND (le.completionPercentage >= 30 OR (le.completionPercentage = 0 AND (le.source LIKE '%.import%' OR le.source LIKE 'desktop:%'))))) AND
             (:searchQuery IS NULL OR :searchQuery = '' OR 
                 t.title LIKE '%' || :searchQuery || '%' OR 
                 t.artist LIKE '%' || :searchQuery || '%' OR 
@@ -1352,7 +1352,7 @@ interface StatsDao {
             le.source = 'fm.last.import' AND
             (:startTime IS NULL OR le.timestamp >= :startTime) AND
             (:endTime IS NULL OR le.timestamp <= :endTime) AND
-            (:includeSkips = 1 OR (le.was_skipped = 0 AND (le.completionPercentage >= 30 OR (le.completionPercentage = 0 AND le.source LIKE '%.import%')))) AND
+            (:includeSkips = 1 OR (le.was_skipped = 0 AND (le.completionPercentage >= 30 OR (le.completionPercentage = 0 AND (le.source LIKE '%.import%' OR le.source LIKE 'desktop:%'))))) AND
             (:searchQuery IS NULL OR :searchQuery = '' OR 
                 t.title LIKE '%' || :searchQuery || '%' OR 
                 t.artist LIKE '%' || :searchQuery || '%' OR 
@@ -1439,10 +1439,10 @@ interface StatsDao {
             :trackId as track_id,
             COUNT(*) as play_count,
             COALESCE(SUM(playDuration), 0) as total_listening_time_ms,
-            AVG(CASE WHEN completionPercentage = 0 AND was_skipped = 0 AND source LIKE '%.import%' THEN NULL ELSE completionPercentage END) as average_completion_percent,
+            AVG(CASE WHEN completionPercentage = 0 AND was_skipped = 0 AND (source LIKE '%.import%' OR source LIKE 'desktop:%') THEN NULL ELSE completionPercentage END) as average_completion_percent,
             SUM(CASE WHEN completionPercentage >= 80 THEN 1 ELSE 0 END) as full_plays_count,
             SUM(CASE WHEN completionPercentage >= 30 AND completionPercentage < 80 THEN 1 ELSE 0 END) as partial_plays_count,
-            SUM(CASE WHEN was_skipped = 1 OR (completionPercentage < 30 AND NOT (completionPercentage = 0 AND was_skipped = 0 AND source LIKE '%.import%')) THEN 1 ELSE 0 END) as skips_count,
+            SUM(CASE WHEN was_skipped = 1 OR (completionPercentage < 30 AND NOT (completionPercentage = 0 AND was_skipped = 0 AND (source LIKE '%.import%' OR source LIKE 'desktop:%'))) THEN 1 ELSE 0 END) as skips_count,
             SUM(CASE WHEN is_replay = 1 THEN 1 ELSE 0 END) as replay_count,
             MAX(timestamp) as last_played_timestamp,
             MIN(timestamp) as first_played_timestamp,
@@ -1455,7 +1455,7 @@ interface StatsDao {
     )
     suspend fun getTrackEngagementStats(trackId: Long): TrackEngagementStats?
 
-    @Query("SELECT COUNT(*) FROM listening_events WHERE track_id = :trackId AND (was_skipped = 1 OR (completionPercentage < 30 AND NOT (completionPercentage = 0 AND was_skipped = 0 AND source LIKE '%.import%')))")
+    @Query("SELECT COUNT(*) FROM listening_events WHERE track_id = :trackId AND (was_skipped = 1 OR (completionPercentage < 30 AND NOT (completionPercentage = 0 AND was_skipped = 0 AND (source LIKE '%.import%' OR source LIKE 'desktop:%'))))")
     suspend fun getTrackSkipCount(trackId: Long): Int
 
     @Query("SELECT COUNT(*) FROM listening_events WHERE track_id = :trackId AND is_replay = 1")
@@ -1464,7 +1464,7 @@ interface StatsDao {
     @Query("SELECT COUNT(*) FROM listening_events WHERE track_id = :trackId AND completionPercentage >= 80")
     suspend fun getTrackFullPlaysCount(trackId: Long): Int
 
-    @Query("SELECT AVG(CASE WHEN completionPercentage = 0 AND was_skipped = 0 AND source LIKE '%.import%' THEN NULL ELSE completionPercentage END) FROM listening_events WHERE track_id = :trackId")
+    @Query("SELECT AVG(CASE WHEN completionPercentage = 0 AND was_skipped = 0 AND (source LIKE '%.import%' OR source LIKE 'desktop:%') THEN NULL ELSE completionPercentage END) FROM listening_events WHERE track_id = :trackId")
     suspend fun getTrackAverageCompletion(trackId: Long): Float?
 
     @Query("SELECT AVG(CAST(pause_count AS FLOAT)) FROM listening_events WHERE track_id = :trackId")
