@@ -62,11 +62,21 @@ interface ListeningEventDao {
      * Get only timestamps and durations for session calculation (memory efficient).
      */
     @Query(
-        "SELECT timestamp, playDuration FROM listening_events WHERE timestamp >= :startTime AND timestamp <= :endTime ORDER BY timestamp ASC",
+        """
+        SELECT le.timestamp, le.playDuration, le.end_timestamp AS endTimestamp
+        FROM listening_events le
+        INNER JOIN tracks t ON t.id = le.track_id
+        WHERE le.timestamp >= :startTime AND le.timestamp <= :endTime
+            AND (:filterPodcasts = 0 OR t.content_type IS NULL OR t.content_type != 'PODCAST')
+            AND (:filterAudiobooks = 0 OR t.content_type IS NULL OR t.content_type != 'AUDIOBOOK')
+        ORDER BY le.timestamp ASC
+        """,
     )
     suspend fun getSessionPointsInRange(
         startTime: Long,
         endTime: Long,
+        filterPodcasts: Boolean,
+        filterAudiobooks: Boolean,
     ): List<me.avinas.tempo.data.stats.SessionPoint>
 
     /** Return the actual ID of an accepted, fingerprinted event after the
