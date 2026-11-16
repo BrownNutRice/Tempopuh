@@ -3,7 +3,7 @@
 This document describes **observed plays**, **estimated metadata**, and how Spotify
 sources are reconciled. The application is not an official Spotify client.
 
-## Choose a source
+## Cooperative sources — no exclusivity
 
 - **Android MediaSession / notification tracking** (default): near-real-time
   local playback, subject to Notification Access and Android battery restrictions.
@@ -13,11 +13,17 @@ sources are reconciled. The application is not an official Spotify client.
   MediaSession remains available as a fallback. Different event types may arrive
   out of order, so they are evaluated separately and fresh broadcasts temporarily
   take priority over MediaSession snapshots.
-- **Spotify API-only history sync**: uses Spotify OAuth + PKCE, retrieves the
-  recently played feed, and syncs at most every 15 minutes via Android WorkManager.
-  A manual **Sync Spotify history now** action is available after connection and
-  an immediate sync is scheduled when API-only mode is enabled. WorkManager can
-  be delayed by the OS; the API is not a live presence feed.
+- **Spotify API history sync**: uses Spotify OAuth + PKCE and automatically
+  imports the recently-played feed roughly every 15 minutes via WorkManager,
+  beginning immediately after a successful sign-in. It runs **alongside** local
+  broadcasts and MediaSession, not instead of them. A manual **Sync Spotify
+  history now** action is also available; WorkManager may be delayed by Android.
+- **Spotify Connect API verification**: while Tempo is open, a low-rate playback
+  snapshot (45 seconds) checks the current Spotify account device and verifies
+  matching local playback metadata. Recent local broadcasts are authoritative.
+  An API snapshot may display remote Spotify Connect playback when there is no
+  newer local status; it never creates listening-history events. Existing OAuth
+  users must reconnect once to grant `user-read-playback-state`.
 
 Spotify may require your account to be approved for your Spotify Developer app.
 The OAuth redirect URI used by this fork is `tempo://spotify-callback`.
@@ -41,9 +47,11 @@ The OAuth redirect URI used by this fork is `tempo://spotify-callback`.
 4. **Track identity**: authoritative Spotify, MusicBrainz and YouTube IDs
    that disagree must never be silently merged just because titles match.
    The shared track resolver applies this safeguard to automatic imports.
-5. **Cross-source duplicates**: the Spotify API importer now uses the same
-   authority-ranked ListeningEventDao reconciliation as other importers.
-   An existing higher-fidelity live play should win over an API import.
+5. **Cross-source duplicates**: the Spotify API importer uses the shared
+   authority-ranked ListeningEventDao. Reconciliation compares Spotify
+   `played_at` (the end of a play) against the observed local session end,
+   rather than comparing the API end to a local session start. A higher-fidelity
+   locally observed play wins over an API history import.
 
 ## Data already imported
 
@@ -67,6 +75,13 @@ intentionally avoided.
   exports, not playlists or popularity rankings.
 - A currently playing track can appear before its completed listening event
   is saved; current presence and completed history are different concepts.
+
+## Google Drive backups
+
+The original authentication and Drive backup code is unchanged. To avoid
+“Google Sign-In not configured” in fork-built APKs, follow
+[Google Drive setup](GOOGLE_DRIVE_SETUP.md), including your Web OAuth Client ID
+and Android signing SHA-1. We cannot embed upstream signing keys.
 
 ## Remaining limitations
 
