@@ -452,6 +452,7 @@ class HistoryViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.e(TAG, "Error loading history", e)
                 _uiState.update { 
                     it.copy(
