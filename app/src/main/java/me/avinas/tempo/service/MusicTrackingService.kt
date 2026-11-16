@@ -1192,18 +1192,25 @@ class MusicTrackingService : NotificationListenerService() {
         val controller = synchronized(activeControllers) {
             activeControllers["com.spotify.music"]
         } ?: return false
-        val metadata = controller.metadata ?: return false
-        val title = metadata.getString(MediaMetadata.METADATA_KEY_TITLE)
-            ?: metadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE)
-            ?: return false
-        val artist = metadata.getString(MediaMetadata.METADATA_KEY_ARTIST)
-            ?: return false
-        return TrustedSpotifyBroadcastMatch.matches(
-            sessionTitle = title,
-            sessionArtist = artist,
-            broadcastTitle = proposed.title,
-            broadcastArtist = proposed.artist,
-        )
+        return try {
+            val metadata = controller.metadata ?: return false
+            val title = metadata.getString(MediaMetadata.METADATA_KEY_TITLE)
+                ?: metadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE)
+                ?: return false
+            val artist = metadata.getString(MediaMetadata.METADATA_KEY_ARTIST)
+                ?: return false
+            TrustedSpotifyBroadcastMatch.matches(
+                sessionTitle = title,
+                sessionArtist = artist,
+                broadcastTitle = proposed.title,
+                broadcastArtist = proposed.artist,
+            )
+        } catch (e: Exception) {
+            // A just-destroyed MediaSession can fail its binder call while
+            // a broadcast is arriving. Fall back instead of crashing tracking.
+            Log.w(TAG, "Could not verify Spotify broadcast against MediaSession", e)
+            false
+        }
     }
 
     private fun startSpotifyBroadcastTracking() {
