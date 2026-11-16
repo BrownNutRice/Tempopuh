@@ -4607,6 +4607,7 @@ class MusicTrackingService : NotificationListenerService() {
 
         spotifyBroadcastBridge?.stop()
         spotifyBroadcastBridge = null
+        SpotifyBroadcastPresence.clearForStoppedTrackingService()
 
         // Unregister battery state receiver
         batteryStateReceiver?.let {
