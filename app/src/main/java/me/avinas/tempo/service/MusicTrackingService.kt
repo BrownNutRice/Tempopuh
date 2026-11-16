@@ -4472,6 +4472,28 @@ class MusicTrackingService : NotificationListenerService() {
         val currentVolume = getCurrentMusicStreamVolume()
         val isPausedForBattery = shouldPauseForBattery()
 
+        // Publish the existing notification-tracking session as a fallback for
+        // players that do not expose MediaSession callbacks (or Spotify broadcast).
+        // This is independent of foreground-notification throttling.
+        val presenceSession = if (!currentTrack.isNullOrBlank()) {
+            playbackStates.values.firstOrNull {
+                it.title == currentTrack && it.artist == currentArtist
+            }
+        } else null
+        if (presenceSession != null) {
+            SpotifyBroadcastPresence.publishFromLocal(
+                packageName = presenceSession.packageName,
+                title = presenceSession.title,
+                artist = presenceSession.artist,
+                album = presenceSession.album,
+                playing = presenceSession.isPlaying,
+                positionMs = presenceSession.lastRecordedPosition,
+                durationMs = presenceSession.estimatedDurationMs ?: 0L,
+            )
+        } else if (playbackStates.isEmpty()) {
+            SpotifyBroadcastPresence.clearLocalIfNoSession()
+        }
+
         // Create notification content identifier for comparison.
         // Include isPausedForBattery so the "🪫" notification always appears immediately
         // when battery drops and disappears immediately when it recovers — the debounce
