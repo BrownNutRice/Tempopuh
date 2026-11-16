@@ -1230,13 +1230,20 @@ class MusicTrackingService : NotificationListenerService() {
         positionMs: Long,
     ) {
                 lastSpotifyBroadcastAtMs = android.os.SystemClock.elapsedRealtime()
-                // The broadcast is the freshest event: don't read a possibly stale
-                // MediaController snapshot and overwrite play/pause or track changes.
+                // Broadcast length is documented in seconds, but some Spotify
+                // versions emit milliseconds. Trust Android's catalog duration
+                // when available; this avoids treating a 5-second clip as an
+                // 83-minute track. Do not copy its potentially stale play/pause.
+                val controllerDurationMs = synchronized(activeControllers) {
+                    activeControllers["com.spotify.music"]
+                }?.metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION)
+                    ?.takeIf { it in 1L..86_400_000L }
+                val reliableDurationMs = controllerDurationMs ?: track.durationMs
                 val metadata = MediaMetadata.Builder()
                     .putString(MediaMetadata.METADATA_KEY_TITLE, track.title)
                     .putString(MediaMetadata.METADATA_KEY_ARTIST, track.artist)
                     .putString(MediaMetadata.METADATA_KEY_ALBUM, track.album)
-                    .putLong(MediaMetadata.METADATA_KEY_DURATION, track.durationMs)
+                    .putLong(MediaMetadata.METADATA_KEY_DURATION, reliableDurationMs)
                     .build()
                 val playbackState = PlaybackState.Builder()
                     .setState(
