@@ -1179,6 +1179,7 @@ class MusicTrackingService : NotificationListenerService() {
 
     /** Additional Spotify-only event source; shares the regular listening-session pipeline. */
     private var spotifyBroadcastBridge: SpotifyBroadcastBridge? = null
+    private var lastSpotifyBroadcastAtMs = 0L
 
     private fun startSpotifyBroadcastTracking() {
         spotifyBroadcastBridge = SpotifyBroadcastBridge(
@@ -1202,6 +1203,7 @@ class MusicTrackingService : NotificationListenerService() {
         playing: Boolean,
         positionMs: Long,
     ) {
+                lastSpotifyBroadcastAtMs = android.os.SystemClock.elapsedRealtime()
                 // The broadcast is the freshest event: don't read a possibly stale
                 // MediaController snapshot and overwrite play/pause or track changes.
                 val metadata = MediaMetadata.Builder()
@@ -3797,6 +3799,13 @@ class MusicTrackingService : NotificationListenerService() {
     }
 
     private fun processMediaControllerState(controller: MediaController) {
+        // Android may dispatch an older MediaSession snapshot immediately after
+        // a fresher Spotify device broadcast. Favor the latter briefly, but fall
+        // back to MediaSession if Spotify stops broadcasting.
+        if (controller.packageName == "com.spotify.music" &&
+            SpotifyBroadcastPresence.enabled(this) &&
+            android.os.SystemClock.elapsedRealtime() - lastSpotifyBroadcastAtMs < 2_500L
+        ) return
         processPlaybackMetadata(controller.packageName, controller.metadata, controller.playbackState)
     }
 
