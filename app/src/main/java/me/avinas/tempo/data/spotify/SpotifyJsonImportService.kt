@@ -39,7 +39,6 @@ class SpotifyJsonImportService @Inject constructor(
     companion object {
         private const val TAG = "SpotifyJsonImport"
         private const val BATCH_SIZE = 50
-        private const val DEFAULT_COMPLETION_PERCENTAGE = 80
         private const val MAX_FILE_SIZE_BYTES = 500L * 1024 * 1024
         private const val MAX_MS_PLAYED = 86_400_000L
         private const val MAX_STRING_LENGTH = 500
@@ -671,28 +670,21 @@ class SpotifyJsonImportService @Inject constructor(
         return if (isNewTrack) ProcessResult.NewTrack else ProcessResult.ExistingTrack
     }
 
-    private fun estimateDuration(entry: ParsedEntry): Long {
-        return if (entry.msPlayed > 0) entry.msPlayed else 210_000L
-    }
-
     private fun createListeningEvent(trackId: Long, entry: ParsedEntry): ListeningEvent {
-        val estimatedDuration = estimateDuration(entry)
-
-        val completionPercentage = if (entry.wasSkipped) {
-            40
-        } else {
-            DEFAULT_COMPLETION_PERCENTAGE
-        }
-
+        // Spotify's data export reports milliseconds LISTENED, not the catalog track
+        // duration. Do not mark all imported tracks 80% completed or claim their
+        // duration was exactly ms_played; this can inflate full-play statistics.
+        // A zero completion here means "unknown" (the legacy DB column is non-null).
+        val listenedMs = entry.msPlayed.coerceAtLeast(0L)
         return ListeningEvent(
             track_id = trackId,
-            timestamp = entry.endTimeMillis - estimatedDuration,
-            playDuration = estimatedDuration,
-            completionPercentage = completionPercentage,
+            timestamp = (entry.endTimeMillis - listenedMs).coerceAtLeast(0L),
+            playDuration = listenedMs,
+            completionPercentage = 0,
             source = IMPORT_SOURCE,
             wasSkipped = entry.wasSkipped,
             isReplay = false,
-            estimatedDurationMs = estimatedDuration,
+            estimatedDurationMs = null,
             pauseCount = 0,
             sessionId = null,
             endTimestamp = entry.endTimeMillis
