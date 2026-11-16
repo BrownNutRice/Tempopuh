@@ -659,6 +659,17 @@ fun SettingsScreen(
                             )
                         }
 
+                        if (spotifyConnected && uiState.spotifyApiOnlyMode) {
+                            SettingsOption(
+                                title = "Sync Spotify history now",
+                                subtitle = "Fetch recently played tracks immediately; Spotify may not yet have reported the latest play.",
+                                onClick = {
+                                    me.avinas.tempo.worker.SpotifyPollingWorker.syncNow(context)
+                                    Toast.makeText(context, "Spotify sync requested", Toast.LENGTH_SHORT).show()
+                                },
+                            )
+                        }
+
                         SettingsSwitch(
                             title = "Spotify API-only history sync",
                             subtitle = "Import recent plays from Spotify's API; updates are delayed and this is not real-time presence. Broadcast tracking is disabled when enabled.",
