@@ -104,3 +104,13 @@ Uses the exact same protocol as the Tempo Desktop app:
 ## License
 
 Part of the Tempo project. See root LICENSE file.
+
+
+### HTTP request authenticity
+
+Current Tempo Android builds require `X-Tempo-Timestamp`, `X-Tempo-Nonce`
+and `X-Tempo-Signature` on authenticated companion HTTP requests. The
+extension's current `signRequest` implementation sends all three. Earlier
+extensions that signed only the body must be rebuilt/updated; Tempo rejects
+that replayable legacy signature format. Keep the pairing token private and
+re-pair if the token or browser profile may have been exposed.
