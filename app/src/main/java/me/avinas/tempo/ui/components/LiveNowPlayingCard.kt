@@ -109,6 +109,25 @@ fun LiveNowPlayingCard(modifier: Modifier = Modifier) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                // Unlike library totals, this value is live and provisional.
+                // It is driven by observed playback-position progress and the
+                // monotonic UI clock, not by repeated database queries.
+                if (current.listenedMs != null) {
+                    val liveListenedMs = (current.listenedMs +
+                        if (current.playing) ageMs else 0L).coerceAtLeast(0L)
+                    Text(
+                        text = "Listening this session · ${liveListenedMs / 60_000}:" +
+                            (liveListenedMs / 1000 % 60).toString().padStart(2, '0'),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        text = "Live estimate · saved to statistics after playback ends",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 if (current.durationMs > 0L) {
                     val elapsed = if (current.playing) ageMs else 0L
                     val position = (current.positionMs + elapsed)
