@@ -317,15 +317,18 @@ class DesktopSatelliteServer @Inject constructor(
             val timestamp = session.headers[TIMESTAMP_HEADER].orEmpty()
             val nonce = session.headers[NONCE_HEADER].orEmpty()
 
-            val signedMessage = if (timestamp.isNotBlank() && nonce.isNotBlank()) {
-                if (!validateTimestamp(timestamp)) return null
-                if (!validateNonce(nonce)) return null
-                String(bodyBytes, Charsets.UTF_8) + "\n" + timestamp + "\n" + nonce
-            } else {
-                String(bodyBytes, Charsets.UTF_8)
-            }
+            // All shipped extension clients sign requests with a timestamp
+            // and unique nonce. Refuse the legacy body-only HMAC path: anyone
+            // recording one request could replay it while a token remained valid.
+            if (timestamp.isBlank() || nonce.isBlank()) return null
+            if (!validateTimestamp(timestamp)) return null
+            val signedMessage = String(bodyBytes, Charsets.UTF_8) +
+                "\n" + timestamp + "\n" + nonce
 
+            // Authenticate BEFORE caching the nonce. Invalid unauthenticated
+            // traffic must not fill the replay cache or consume valid nonces.
             if (!isValidSignature(headerToken, signedMessage.toByteArray(Charsets.UTF_8), signature)) return null
+            if (!validateNonce(nonce)) return null
             return headerToken
         }
 
@@ -710,9 +713,12 @@ class DesktopSatelliteServer @Inject constructor(
         private fun validateNonce(nonce: String): Boolean {
             if (nonce.isBlank() || nonce.length > 64) return false
             val now = System.currentTimeMillis() / 1000
-            if (nonceCache.size > MAX_NONCE_CACHE_SIZE) {
+            if (nonceCache.size >= MAX_NONCE_CACHE_SIZE) {
                 val cutoff = now - NONCE_TTL_SECONDS
                 nonceCache.entries.removeAll { it.value < cutoff }
+                // Under heavy legitimate traffic, refuse new nonces until
+                // entries expire instead of permitting unbounded RAM growth.
+                if (nonceCache.size >= MAX_NONCE_CACHE_SIZE) return false
             }
             val existing = nonceCache.putIfAbsent(nonce, now)
             return existing == null
