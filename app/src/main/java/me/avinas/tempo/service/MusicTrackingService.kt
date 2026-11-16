@@ -1184,6 +1184,24 @@ class MusicTrackingService : NotificationListenerService() {
         spotifyBroadcastBridge = SpotifyBroadcastBridge(
             context = this,
             onPlayback = { track, playing, positionMs ->
+                // MediaSession callbacks also mutate playbackStates on the main thread.
+                // Serialize broadcast updates on that same thread to avoid races.
+                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                    if (!SpotifyBroadcastPresence.enabled(this)) return@post
+                    processSpotifyBroadcastEvent(track, playing, positionMs)
+                }
+            },
+            onQueueChanged = {
+                android.os.Handler(android.os.Looper.getMainLooper()).post { rescanActiveMediaSessions() }
+            },
+        ).also { it.start() }
+    }
+
+    private fun processSpotifyBroadcastEvent(
+        track: SpotifyBroadcastBridge.Track,
+        playing: Boolean,
+        positionMs: Long,
+    ) {
                 // The broadcast is the freshest event: don't read a possibly stale
                 // MediaController snapshot and overwrite play/pause or track changes.
                 val metadata = MediaMetadata.Builder()
@@ -1200,9 +1218,6 @@ class MusicTrackingService : NotificationListenerService() {
                     ).build()
                 processPlaybackMetadata("com.spotify.music", metadata, playbackState)
                 updateServiceLifecycle()
-            },
-            onQueueChanged = { rescanActiveMediaSessions() },
-        ).also { it.start() }
     }
 
     override fun onCreate() {
