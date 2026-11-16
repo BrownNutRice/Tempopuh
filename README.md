@@ -1,242 +1,126 @@
 # Tempo
 
 <p align="center">
-  <img src="TempoICON.png" width="120" alt="Tempo Icon" />
+  <img src="TempoICON.png" width="108" alt="Tempo app icon" />
 </p>
 
 <p align="center">
-  <a href="https://play.google.com/store/apps/details?id=me.avinas.tempo">
-    <img alt="Get it on Google Play" src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" height="60" />
-  </a>
+  <strong>A local-first music journal for Android.</strong><br />
+  Track your listening, explore your habits, and keep your history under your control.
 </p>
 
-<div align="center">
+<p align="center">
+  <a href="https://github.com/matchalattewithbanana/Tempo/actions/workflows/ci.yml"><img alt="Android CI" src="https://github.com/matchalattewithbanana/Tempo/actions/workflows/ci.yml/badge.svg" /></a>
+  <a href="LICENSE"><img alt="License: modified AGPL-3.0" src="https://img.shields.io/badge/license-modified_AGPL--3.0-blue" /></a>
+  <a href="https://developer.android.com"><img alt="Android 8.0+" src="https://img.shields.io/badge/Android-8.0%2B-3DDC84" /></a>
+</p>
 
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.2.10-purple.svg?style=flat&logo=kotlin)](https://kotlinlang.org) 
-[![Android](https://img.shields.io/badge/Android-16-green.svg?style=flat&logo=android)](https://developer.android.com) 
-[![Version](https://img.shields.io/badge/Version-4.8.7-orange.svg?style=flat)](Changelog.md)
-[![License](https://img.shields.io/badge/License-AGPLv3%20Custom-blue.svg)](LICENSE) 
-[![Status](https://img.shields.io/badge/Status-Active_Development-success.svg)]()
+> **About this fork:** This repository builds on [avinaxhroy/Tempo](https://github.com/avinaxhroy/Tempo). The [upstream Google Play listing](https://play.google.com/store/apps/details?id=me.avinas.tempo) is **not** a distribution channel for this fork's APKs. Fork-specific behavior may differ from the upstream release.
 
-</div>
+## Overview
 
-Tempo is a local-first music journal and scrobbler for Android. It follows playback across Spotify, YouTube Music, and your other players and keeps the full history on your phone. You get timeline trends, heatmaps, and exportable stat cards for tracks, artists, and albums — built on device, ready to share.
+Tempo records music playback observed on your Android device and organizes completed listens into a searchable history. Your primary library and listening statistics are stored locally in Room.
 
----
+### What you can do
+
+- **Track listening:** Android notification and MediaSession tracking for supported music players; optional Spotify Device Broadcast Status for faster Spotify playback changes.
+- **Explore statistics:** listening time, play counts, charts, heatmaps, artist/album details, and optional listening challenges.
+- **Import your history:** Spotify extended streaming-history JSON, Last.fm, YouTube Music Takeout, Deezer, Musicolet, and supported backup formats. Data quality depends on each export.
+- **Create and share:** listening summaries, Spotlight stories, and themed statistics cards.
+- **Use a browser companion:** the optional Chrome/Firefox extension can record web playback and sync to the Android app over a paired local network connection.
+- **Keep control:** local export/restore, optional Google Drive backups, and data/analytics settings.
+
+Not every player exposes reliable playback position or pause events. Imported history can also lack observed listening duration or completion; Tempo should not interpret missing values as full plays.
 
 ## Screenshots
 
 <p align="center">
-  <img src="Screenshots/S1.png" width="23%" alt="Home Screen" />
-  <img src="Screenshots/S2.png" width="23%" alt="User Reviews" />
-  <img src="Screenshots/S3.png" width="23%" alt="Spotlight Screen" />
-  <img src="Screenshots/S4.png" width="23%" alt="Leaderboard and Stats" />
-</p>
-<p align="center">
-  <img src="Screenshots/S5.png" width="23%" alt="Artist Details" />
-  <img src="Screenshots/S6.png" width="23%" alt="Share Stats Card" />
-  <img src="Screenshots/S7.png" width="23%" alt="Levels and Challenges" />
-  <img src="Screenshots/S8.png" width="23%" alt="Widgets Preview" />
+  <img src="Screenshots/S1.png" width="23%" alt="Home" />
+  <img src="Screenshots/S3.png" width="23%" alt="Spotlight" />
+  <img src="Screenshots/S5.png" width="23%" alt="Artist details" />
+  <img src="Screenshots/S8.png" width="23%" alt="Widgets" />
 </p>
 
----
+## How tracking works
 
-## Features
+**Local tracking is primary.** Notification access and Android MediaSession provide playback observations. If enabled in both Spotify and Tempo, Spotify Device Broadcast Status supplies additional local metadata and play/pause events. A shared playback session reconciles those signals; completed listens are saved after meeting the configured minimum duration.
 
-### Playback tracking
-- Captures playback via Android `NotificationListenerService` from Spotify, YouTube Music, Apple Music, Poweramp, Tidal, SoundCloud, and any other player you add in **Settings → Manage apps**.
-- Tracks only apps it recognizes as music players, so voice notes, calls, voicemail and video stay out of your journal. Unrecognized apps are listed in Manage apps to allow in one tap, and a **Track unrecognized apps** switch opts back into tracking everything.
-- Filters non-music media events like podcasts, audiobooks, and system alerts.
-- Pauses tracking when media volume is muted, with an optional battery-saver cutoff below 20% battery.
-- Caps repeated loops of short tracks at three times track duration to avoid inflated counts.
-- Survives OEM background process kills via synchronous service shutdown flushes and periodic WorkManager reconciliation.
+**Spotify API history sync is secondary.** For connected and authorized accounts, a WorkManager job requests recently played tracks approximately every **20 minutes**, subject to Android background scheduling, network access, and Spotify API availability. It reconciles with locally observed plays instead of replacing live tracking. The API does **not** report observed listening duration. Tempo no longer makes continuous foreground playback-state API requests.
 
-### Analytics and history
-- Aggregates play counts, total listening time, heatmaps, and timeline trends for tracks, artists, and albums.
-- Calculates a Listening Quality Score (LQS) weighted by completion rates, repeat loops, and skip counts.
-- Visualizes acoustic properties (energy, valence, danceability) from track metadata to map mood distribution.
-- Home screen listening overview sheet displays hourly play volume, period comparisons, and one-tap card export.
-- History view includes persistent text search, source filtering, and custom date range pickers.
-- In-place search drawer on the rankings screen filters songs, artists, and albums with global position badges.
+The **Now Playing** card on Home, Profile, and Settings displays provisional playback information. A live playing timer is not a committed database statistic until the play is finalized. This is **not Discord Rich Presence**.
 
-### Spotlight cards and export
-- Renders export cards on Compose Canvas:
-  - 24-hour radial activity distribution (Circadian Rhythm).
-  - Weekday versus weekend comparison (Weekly Pulse).
-  - Inactive tracks with days elapsed since last playback (Forgotten Favorite).
-  - Monthly listening summaries.
-- Six visual export themes (Midnight, Glass, ASCII, Minimum, Daylight, Glitch), including scanlines, chromatic aberration, and artwork blur in Glitch mode.
+See [Tracking and import accuracy](docs/TRACKING_AND_IMPORT_ACCURACY.md) and [Real-time tracking pipeline](docs/REALTIME_TRACKING_PIPELINE.md) for source precedence, limitations, and troubleshooting.
 
-### Library management
-- Merge duplicate or split albums, preserving track history and scrobble archives under a single target album.
-- Split misassigned tracks from artist profiles into new or existing artist entries.
-- Propagate artist renames across track credits, multi-artist strings, and cached aggregates in a single database transaction.
-- Normalizes artist names with Unicode NFKC and script-aware diacritic folding, so Japanese, Korean, Cyrillic, Indic, and Thai names don't split into duplicate records.
+## Install or build
 
-### Data imports
-- Imports full Last.fm scrobble history. Recent plays stay in the fast query set, older plays move to an indexed archive.
-- Ingests Google Takeout multi-part ZIP exports and localized YouTube Music `watch-history.json` files.
-- Rebuilds a timeline from a Musicolet backup ZIP, which stores a play count per song per month rather than a time per play. Decrypts the backup's Blowfish-encrypted databases on device, spreads each month's counts across that month, and keeps the exact last-played time Musicolet does store. Re-importing the same backup changes nothing.
-- Fetches track audio attributes from Spotify Web API, with an optional API polling mode to reduce battery draw when notification listening is turned off.
-- Resolves album cover art, release details, and genre tags from MusicBrainz.
+**Requirements:** Android 8.0+ (API 26) for the app; JDK 21 and Android SDK 36 for source builds. Use a recent Android Studio version with compatible Android Gradle Plugin support.
 
-### Browser companion extension
-- Manifest V3 companion for Chrome and Firefox logging web playback from YouTube Music, Spotify Web, SoundCloud, Bandcamp, Apple Music Web, Deezer, and Tidal Web.
-- Measures listen time directly from HTML media element playback positions rather than wall-clock timers.
-- Queues plays locally in IndexedDB during network disconnections.
-- Syncs to the phone over local Wi-Fi via `POST /api/plays`, authenticated with HMAC-SHA256 signatures.
-
-### Privacy and backup
-- Audit what the app can send at **Settings → Your Data → What we collect**. Each event lists the exact fields attached.
-- Tap **diagnostics report** to share versions, library counts, detection health, and background-work status with a bug report. The app sends nothing automatically.
-- Stores listening events, metadata, and computed statistics locally in Room SQLite databases.
-- Secures authentication keys and API credentials in Android `EncryptedSharedPreferences`.
-- Supports automated local database exports as well as Google Drive backups via Android Credential Manager.
-- Reports only anonymous crash, error, and feature-use counts. No account, no identifiers, never your listening history. On by default, off in one tap at **Settings → Your Data**. Source builds report nothing. See [docs/ANALYTICS.md](docs/ANALYTICS.md).
-
----
-
-## Building from source
-
-### Prerequisites
-- Android Studio Ladybug (2024.2.1) or newer
-- JDK 17
-- Android SDK 36
-
-### Build the Android app
-
-1. Clone the repository:
+1. Clone **this fork** and enter the project:
    ```bash
-   git clone https://github.com/avinaxhroy/Tempo.git
+   git clone https://github.com/matchalattewithbanana/Tempo.git
    cd Tempo
    ```
-
-2. (Optional) Supply API keys in `local.properties` at the project root:
+2. Add optional developer configuration in the project-root `local.properties`:
    ```properties
    SPOTIFY_CLIENT_ID=your_spotify_client_id
    LASTFM_API_KEY=your_lastfm_api_key
-   GOOGLE_WEB_CLIENT_ID=your_google_client_id
+   GOOGLE_WEB_CLIENT_ID=your_google_web_oauth_client_id
    ```
-
-   Analytics is deliberately absent from that list: leaving `ANALYTICS_ENDPOINT` unset means the app reports nothing at all, which is the intended state for a build from source. See [docs/ANALYTICS.md](docs/ANALYTICS.md) if you want to point a build at your own PostHog project.
-
-3. Build the debug APK:
+3. Run tests and build a debug APK:
    ```bash
-   ./gradlew assembleDebug
+   ./gradlew :app:testDebugUnitTest
+   ./gradlew :app:assembleDebug
    ```
+4. Find the APK at `app/build/outputs/apk/debug/app-debug.apk`.
 
-4. Run unit tests:
-   ```bash
-   ./gradlew test
-   ```
+The GitHub Actions [debug APK workflow](.github/workflows/build-apk.yml) is also available for manual builds. Its signing certificate may differ from local or previously installed APKs. **Back up your data before changing signing keys or uninstalling.**
 
-### Build the browser extension
+### Spotify account integration
 
-1. Enter the extension directory and install dependencies:
-   ```bash
-   cd browser-extension
-   npm install
-   ```
+Spotify OAuth uses a public client ID with PKCE. If your build does not supply one, Tempo can accept a client ID at runtime. Register the redirect URI `tempo://spotify-callback` with the matching Spotify Developer application. Access is subject to Spotify's current developer-app restrictions and permissions.
 
-2. Compile extension bundles for Chrome and Firefox:
-   ```bash
-   npm run build
-   ```
+Enable **Device Broadcast Status** under Spotify's playback settings *and* in Tempo for local Spotify broadcasts, if supported by your installed Spotify version. MediaSession and notification tracking remain the fallback.
 
-3. Load the unpacked build from `browser-extension/dist` via `chrome://extensions` or Firefox's `about:debugging`.
+### Google Drive backup setup
 
----
+Google sign-in does not work automatically in a fork-built APK. Configure the Google Cloud OAuth consent screen, Drive API, a Web OAuth client ID, and the **Android OAuth client registered to the actual APK signing SHA-1**. For reproducible GitHub builds, use a persistent signing key.
 
-## Tech stack
+See [Google Drive setup](docs/GOOGLE_DRIVE_SETUP.md). The repository deliberately does not include upstream credentials or signing keys.
 
-| Layer | Technologies |
-| :--- | :--- |
-| **Language** | Kotlin 2.2.10 |
-| **UI** | Jetpack Compose (Material 3, Compose BOM 2025.12.01) |
-| **Architecture** | MVVM, Clean Architecture, Hilt DI |
-| **Persistence** | Room SQLite 2.8.4, DataStore, EncryptedSharedPreferences |
-| **Background jobs** | WorkManager 2.11.0, Foreground Services |
-| **Networking** | Retrofit 3.0.0, OkHttp 4.12.0, Moshi |
-| **Visualizations & Widgets** | Jetpack Glance 1.1.1, Vico 2.0.0, MPAndroidChart 3.1.0 |
-| **Image loading** | Coil 3.3.0 |
-| **Sync server** | Embedded NanoHTTPD, ZXing QR pairing, CameraX |
-| **Browser extension** | TypeScript 5.4, Manifest V3 (Chrome & Firefox), esbuild |
-| **Target platforms** | Android 8.0+ (Min SDK 26, Target SDK 36, Compile SDK 36) |
+### Browser extension
 
----
+The optional companion has a [separate README](browser-extension/README.md). To develop it:
+
+```bash
+cd browser-extension
+npm ci
+npm run build
+npm run typecheck
+npm run smoke
+```
+
+Load the generated Chrome/Firefox extension from `browser-extension/dist` following the companion guide.
+
+## Privacy and data
+
+Listening history is kept locally unless you explicitly export, back up, or pair a browser companion. Optional analytics, if configured in a distribution, are documented in [Analytics and consent](docs/ANALYTICS.md); source builds with an empty analytics endpoint do not send analytics. Review [Privacy](PRIVACY.md) for details.
+
+## Documentation
+
+| Guide | Contents |
+| --- | --- |
+| [Tracking and import accuracy](docs/TRACKING_AND_IMPORT_ACCURACY.md) | Recording sources, duplicate handling and historical data quality |
+| [Real-time tracking pipeline](docs/REALTIME_TRACKING_PIPELINE.md) | Session timing, persistence and device test checklist |
+| [Google Drive setup](docs/GOOGLE_DRIVE_SETUP.md) | OAuth, signing, backup setup |
+| [Analytics](docs/ANALYTICS.md) | App-health data and consent |
+| [Performance audit](docs/PERFORMANCE_AUDIT.md) | Earlier engineering findings and fixes |
+| [Browser companion](browser-extension/README.md) | Browser extension setup and pairing |
+| [Changelog](Changelog.md) | Upstream historical release notes |
 
 ## Contributing
 
-To contribute bug fixes, translations, or docs improvements:
+Read [CONTRIBUTION.md](CONTRIBUTION.md) before submitting changes. For playback fixes, include the player, Android version, expected versus actual session timing, and a reproduction scenario. Run unit tests and relevant instrumented tests where possible.
 
-1. Open an issue before submitting large architectural changes or new feature proposals.
-2. Follow existing code architecture and confirm `./gradlew test` passes.
-3. Submit a pull request with a concise summary of the change, reproduction steps for fixes, and screenshots for visual updates.
+## License and attribution
 
-Review [CONTRIBUTION.md](CONTRIBUTION.md) for contribution guidelines and coding standards.
-
----
-
-## License
-
-Tempo is licensed under a modified AGPLv3. You may inspect the source code, compile and run the app for personal use, audit security, and contribute improvements back to the upstream repository. Commercial distribution, monetization, closed-source distribution, and rebranding are prohibited.
-
-See [LICENSE](LICENSE) for the full license text.
-
-
-### Spotify Device Broadcast Status (Android)
-
-Tempo supports Spotify's opt-in on-device playback broadcasts, in addition to
-its existing NotificationListener, MediaSession and Spotify API tracking. While
-Tempo's listening service runs, it receives track metadata, play/pause state
-and queue-change events from Spotify's Android app. These are local Android
-broadcast intents; Tempo does **not** broadcast audio to other devices.
-
-To enable this, open **Spotify for Android → Settings → Playback → Device
-Broadcast Status**, and turn it on. The setting may be unavailable on some
-Spotify versions; Tempo will continue using its existing tracking sources.
-
-Broadcast playback events use the same listening-session logic as MediaSession
-events, avoiding a separate listening-history path. The receiver is active only
-while Tempo's tracking service is alive, and is unregistered when it stops.
-Spotify broadcasts are unauthenticated on older Android versions and are not a
-security-sensitive source of truth. Test song changes, pause/resume and skips on
-your own device when using a newly built APK.
-
-
-### Spotify tracking controls (this fork)
-
-Open **Tempo → Settings** to configure Spotify. Use **Spotify API · Connect account**
-to open the OAuth login page. When building without a bundled Spotify Client ID,
-enter the 32-character Client ID of your Spotify Developer app. In the Spotify
-Developer Dashboard register exactly `tempo://spotify-callback` as a redirect
-URI. Spotify uses PKCE authorization; you never enter a Spotify password in Tempo.
-
-For developer-mode apps, Spotify currently requires a Premium subscription
-for the app owner and limits accounts to the developer allowlist. See Spotify's
-developer documentation for the current quota restrictions.
-
-Tempo combines **three cooperative tracking sources**, not mutually exclusive modes:
-- **Spotify Device Broadcast Status**: Local, event-driven Spotify metadata and
-  playback state, with the same switch enabled in Spotify's Playback settings.
-- **Spotify API history sync**: With an authorized Spotify account, Tempo
-  automatically imports recently-played records approximately every 15 minutes
-  and can sync on demand. Cross-source reconciliation favors accurate local
-  playback timing rather than inventing completion percentages.
-- **Android MediaSession/notifications**: Always remain the local fallback when
-  broadcasts are late, missing or disabled.
-
-**Now Playing** appears on Home, Profile and Settings, with source details and
-a locally estimated progress bar. While Tempo is in the foreground, an optional
-Spotify playback-state API snapshot checks the current Spotify Connect device
-approximately every 45 seconds; it verifies matching local metadata but does
-not override fresher device playback. Old OAuth grants must be refreshed using
-**Settings → Reconnect Spotify / update permissions** to access this endpoint.
-
-Google Drive backups use the unmodified original Tempo Drive implementation.
-Fork APKs need their own OAuth and signing setup: see
-[Google Drive setup](docs/GOOGLE_DRIVE_SETUP.md) before building.
-
-The Now Playing card is **local to Tempo** and is not Discord Rich Presence.
-Historical play counts are generally finalized when songs end or the session
-closes, so the history screen can lag behind currently playing content.
+Tempo originates from [avinaxhroy/Tempo](https://github.com/avinaxhroy/Tempo). This fork retains the project's [LICENSE](LICENSE), which contains modifications and restrictions beyond standard AGPL-3.0 terms. Review that file before redistribution or commercial use. All third-party trademarks remain with their respective owners.
