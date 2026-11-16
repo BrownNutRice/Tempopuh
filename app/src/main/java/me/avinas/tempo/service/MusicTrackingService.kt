@@ -1198,8 +1198,12 @@ class MusicTrackingService : NotificationListenerService() {
             ?: return false
         val artist = metadata.getString(MediaMetadata.METADATA_KEY_ARTIST)
             ?: return false
-        return title.trim().equals(proposed.title, ignoreCase = true) &&
-            artist.trim().equals(proposed.artist, ignoreCase = true)
+        return TrustedSpotifyBroadcastMatch.matches(
+            sessionTitle = title,
+            sessionArtist = artist,
+            broadcastTitle = proposed.title,
+            broadcastArtist = proposed.artist,
+        )
     }
 
     private fun startSpotifyBroadcastTracking() {
