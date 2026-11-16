@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
+import android.os.Handler
+import android.os.HandlerThread
 import android.os.Process
 import android.util.Log
 
@@ -34,6 +36,7 @@ internal class SpotifyBroadcastBridge(
     }
 
     private var registered = false
+    private var receiverThread: HandlerThread? = null
     private var track: Track? = null
     private var playing: Boolean? = null
     private var positionMs = 0L
@@ -98,14 +101,20 @@ internal class SpotifyBroadcastBridge(
             addAction(QUEUE)
         }
         try {
+            // Parse events and update the session pipeline off the main UI thread.
+            val thread = HandlerThread("TempoSpotifyBroadcast").also { it.start() }
+            receiverThread = thread
+            val scheduler = Handler(thread.looper)
             // Cross-app broadcasts must be exported on recent Android versions.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                context.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
+                context.registerReceiver(receiver, filter, null, scheduler, Context.RECEIVER_EXPORTED)
             } else {
-                context.registerReceiver(receiver, filter)
+                context.registerReceiver(receiver, filter, null, scheduler)
             }
             registered = true
         } catch (e: Exception) {
+            receiverThread?.quitSafely()
+            receiverThread = null
             Log.w(TAG, "Spotify broadcasts unavailable; MediaSession tracking remains active", e)
         }
     }
@@ -118,6 +127,8 @@ internal class SpotifyBroadcastBridge(
             Log.w(TAG, "Error unregistering Spotify receiver", e)
         } finally {
             registered = false
+            receiverThread?.quitSafely()
+            receiverThread = null
             SpotifyBroadcastPresence.clear()
         }
     }
