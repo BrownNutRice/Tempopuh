@@ -21,6 +21,8 @@ import me.avinas.tempo.data.repository.TrackRepository
 import me.avinas.tempo.data.repository.TrackResolver
 import me.avinas.tempo.data.repository.StatsRepository
 import me.avinas.tempo.data.repository.RefreshCoordinator
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -41,6 +43,11 @@ class SpotifyImportService @Inject constructor(
     private val statsRepository: StatsRepository,
     private val refreshCoordinator: RefreshCoordinator,
 ) {
+    // One manual sync and one periodic job can arrive together. Serialize the
+    // full import (including track creation and cursor movement), not just the
+    // insert transaction, so both calls cannot independently create tracks.
+    private val importMutex = Mutex()
+
     companion object {
         private const val TAG = "SpotifyImportService"
         
@@ -92,6 +99,14 @@ class SpotifyImportService @Inject constructor(
         limit: Int = 50,
         afterCursor: Long? = null,
         onProgress: ((imported: Int, total: Int) -> Unit)? = null
+    ): ImportResult = importMutex.withLock {
+        importRecentlyPlayedLocked(limit, afterCursor, onProgress)
+    }
+
+    private suspend fun importRecentlyPlayedLocked(
+        limit: Int,
+        afterCursor: Long?,
+        onProgress: ((imported: Int, total: Int) -> Unit)?
     ): ImportResult {
         // A Spotify account must be connected; Spotify itself controls API allowlisting.
         if (!isAvailable()) {
@@ -137,6 +152,9 @@ class SpotifyImportService @Inject constructor(
             
             val items = recentlyPlayed.items
             Log.i(TAG, "Fetched ${items.size} recently played tracks from Spotify")
+            if (items.size >= 50) {
+                Log.w(TAG, "Spotify returned a full 50-item window; very long offline gaps may exceed Spotify's accessible recent-history window")
+            }
             
             if (items.isEmpty()) {
                 return ImportResult(0, 0, 0, emptyList(), recentlyPlayed.cursors?.after)
