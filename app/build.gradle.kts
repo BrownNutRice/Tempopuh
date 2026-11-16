@@ -75,7 +75,7 @@ android {
         buildConfigField(
             "String",
             "MUSICBRAINZ_USER_AGENT",
-            "\"Tempo/$versionName (https://github.com/avinaxhroy/Tempo; avinashroy.bh@gmail.com)\"",
+            "\"Tempo/$versionName (https://github.com/matchalattewithbanana/Tempo)\"",
         )
         buildConfigField("Long", "MUSICBRAINZ_RATE_LIMIT_MS", "1000L")
         buildConfigField("String", "LASTFM_API_KEY", "\"${localProperties.getProperty("LASTFM_API_KEY", "")}\"")
