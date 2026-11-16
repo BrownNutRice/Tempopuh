@@ -174,11 +174,11 @@ class MusicTrackingService : NotificationListenerService() {
         private const val REPLAY_THRESHOLD_MS = 5 * 60 * 1000L
 
         // Polling intervals adjusted by song duration and playback progress
-        private const val POLL_INTERVAL_SONG_START_MS = 3_000L // First 30s: poll every 3s (skip detection)
-        private const val POLL_INTERVAL_SONG_MIDDLE_MS = 8_000L // Middle: poll every 8s (battery efficient)
-        private const val POLL_INTERVAL_SONG_END_MS = 4_000L // Last 30s: poll every 4s (completion detection)
-        private const val POLL_INTERVAL_SHORT_TRACK_MS = 5_000L // Tracks <90s: always poll every 5s
-        private const val POLL_INTERVAL_UNKNOWN_DURATION_MS = 6_000L // Unknown duration: balanced polling
+        private const val POLL_INTERVAL_SONG_START_MS = 1_500L // First 30s: poll every 3s (skip detection)
+        private const val POLL_INTERVAL_SONG_MIDDLE_MS = 2_500L // Middle: poll every 8s (battery efficient)
+        private const val POLL_INTERVAL_SONG_END_MS = 1_500L // Last 30s: poll every 4s (completion detection)
+        private const val POLL_INTERVAL_SHORT_TRACK_MS = 2_000L // Tracks <90s: always poll every 5s
+        private const val POLL_INTERVAL_UNKNOWN_DURATION_MS = 2_000L // Unknown duration: balanced polling
 
         // Song phase thresholds
         private const val SONG_START_PHASE_MS = 30_000L // First 30 seconds
@@ -877,7 +877,7 @@ class MusicTrackingService : NotificationListenerService() {
                 .AtomicBoolean(false)
 
         /** Position progress rather than wall-clock time. */
-        fun calculateCurrentPlayDuration(): Long {
+        @Synchronized fun calculateCurrentPlayDuration(): Long {
             // Use accumulated position-based duration.
             // This represents actual audio playback time, not wall-clock time.
             // No fixed cap: long-form content allowed by the user's tracking rules
@@ -888,7 +888,7 @@ class MusicTrackingService : NotificationListenerService() {
         }
 
         /** Applies a MediaSession position update; `newPosition` is in ms. */
-        fun updatePosition(
+        @Synchronized fun updatePosition(
             newPosition: Long,
             isCurrentlyPlaying: Boolean,
         ) {
@@ -921,7 +921,9 @@ class MusicTrackingService : NotificationListenerService() {
                 }
             }
 
-            if (isCurrentlyPlaying && newPosition > lastRecordedPosition) {
+            // Final pause callbacks still carry the position played *before* pause.
+            // Resuming must not count seek distance or a previously paused interval.
+            if (isPlaying && newPosition > lastRecordedPosition) {
                 // Position advanced - accumulate the delta
                 val delta = newPosition - lastRecordedPosition
 
@@ -997,13 +999,14 @@ class MusicTrackingService : NotificationListenerService() {
             lastRecordedPosition = newPosition
             lastKnownPosition = newPosition
             lastPositionUpdateTime = now
-            isPlaying = isCurrentlyPlaying
+            // Do not change isPlaying here. Callers must invoke resume()/pause()
+            // so pause counts, pause duration, and state transitions are retained.
         }
 
         /**
          * Pause playback and track pause count.
          */
-        fun pause() {
+        @Synchronized fun pause() {
             if (isPlaying) {
                 isPlaying = false
                 pauseCount++
@@ -1015,7 +1018,7 @@ class MusicTrackingService : NotificationListenerService() {
         /**
          * Resume playback - just update state, position tracking handles the rest.
          */
-        fun resume() {
+        @Synchronized fun resume() {
             if (!isPlaying) {
                 val now = System.currentTimeMillis()
 
@@ -1708,7 +1711,17 @@ class MusicTrackingService : NotificationListenerService() {
 
         try {
             // Initialize tracking manager for batched event saving
-            trackingManager = MusicTrackingManager(listeningRepository, serviceScope, offlineStore)
+            trackingManager = MusicTrackingManager(
+                listeningRepository, serviceScope, offlineStore,
+                onPersisted = { saved ->
+                    if (saved.isNotEmpty()) {
+                        (statsRepository as? RoomStatsRepository)?.onNewListeningEvent(
+                            saved.maxOf { it.timestamp }
+                        )
+                        refreshCoordinator.notifyNewTrackRecorded()
+                    }
+                },
+            )
 
             // Initialize session persistence for recovery.
             // Capture the unclean-shutdown flag BEFORE marking the service active:
@@ -2139,6 +2152,21 @@ class MusicTrackingService : NotificationListenerService() {
      * Poll all active MediaSession controllers for position updates.
      * Updates the corresponding PlaybackSession with accurate position data.
      */
+    private fun extrapolatedPlaybackPosition(
+        state: PlaybackState?,
+        durationMs: Long? = null,
+    ): Long {
+        if (state == null) return -1L
+        return PlaybackPositionEstimator.estimate(
+            positionMs = state.position,
+            lastPositionUpdateElapsedMs = state.lastPositionUpdateTime,
+            observedElapsedMs = android.os.SystemClock.elapsedRealtime(),
+            speed = state.playbackSpeed,
+            playing = state.state == PlaybackState.STATE_PLAYING,
+            durationMs = durationMs,
+        )
+    }
+
     private fun pollMediaSessionPositions() {
         // ConcurrentHashMap provides weakly consistent iteration that won't throw
         // ConcurrentModificationException. Create a copy to avoid issues with
@@ -2153,11 +2181,32 @@ class MusicTrackingService : NotificationListenerService() {
                 val playbackState = controller.playbackState ?: return@forEach
                 val session = playbackStates[packageName] ?: return@forEach
 
-                val currentPosition = playbackState.position
+                val currentPosition = extrapolatedPlaybackPosition(
+                    playbackState, session.estimatedDurationMs
+                )
                 val isPlaying = playbackState.state == PlaybackState.STATE_PLAYING
 
-                // Update position tracking
+                // Only poll a live controller as a fallback. A newer Spotify
+                // broadcast may have the correct pause/position while this
+                // controller still exposes an older snapshot.
+                if (packageName == "com.spotify.music" &&
+                    SpotifyBroadcastPresence.enabled(this@MusicTrackingService) &&
+                    android.os.SystemClock.elapsedRealtime() - lastSpotifyBroadcastAtMs < 2_500L
+                ) return@forEach
+
                 session.updatePosition(currentPosition, isPlaying)
+                if (isPlaying && !session.isPlaying) session.resume()
+                else if (!isPlaying && session.isPlaying) session.pause()
+                SpotifyBroadcastPresence.publishFromLocal(
+                    packageName = packageName,
+                    title = session.title,
+                    artist = session.artist,
+                    album = session.album,
+                    playing = session.isPlaying,
+                    positionMs = currentPosition.coerceAtLeast(0L),
+                    durationMs = session.estimatedDurationMs ?: 0L,
+                    listenedMs = session.calculateCurrentPlayDuration(),
+                )
 
                 // Log periodically for debugging (every ~30 seconds of accumulated play time)
                 if (isPlaying && session.accumulatedPositionMs > 0 && session.accumulatedPositionMs % 30000 < 10000) {
@@ -3531,11 +3580,8 @@ class MusicTrackingService : NotificationListenerService() {
                     }
                 Log.i(TAG, "Queued listening event: $eventDetails")
 
-                // Invalidate stats cache to trigger real-time updates
-                (statsRepository as? RoomStatsRepository)?.onNewListeningEvent(event.timestamp)
-
-                // Notify active ViewModels about the new event
-                refreshCoordinator.notifyNewTrackRecorded()
+                // The manager refreshes statistics only AFTER the event is
+                // actually committed to Room (rather than while it sits queued).
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to queue listening event, falling back to direct insert", e)
@@ -3544,8 +3590,8 @@ class MusicTrackingService : NotificationListenerService() {
             try {
                 val result = trackingManager.saveEventImmediate(event)
                 if (result.getOrDefault(0L) > 0L) {
-                    (statsRepository as? RoomStatsRepository)?.onNewListeningEvent(event.timestamp)
-                    refreshCoordinator.notifyNewTrackRecorded()
+                    Log.d(TAG, "Fallback event written to Room")
+                    // onPersisted handles refresh for successful direct inserts.
                 }
             } catch (fallbackError: Exception) {
                 Log.e(TAG, "Direct insert also failed", fallbackError)
@@ -3870,7 +3916,7 @@ class MusicTrackingService : NotificationListenerService() {
         }
 
         // Get current playback position for replay detection
-        val currentPosition = playbackState?.position ?: 0L
+        val currentPosition = extrapolatedPlaybackPosition(playbackState, duration)
 
         val isPlaying = state == PlaybackState.STATE_PLAYING
         SpotifyBroadcastPresence.publishFromLocal(
