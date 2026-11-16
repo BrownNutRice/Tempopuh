@@ -1177,6 +1177,36 @@ class MusicTrackingService : NotificationListenerService() {
     /** Receiver unregistered on service teardown. */
     private var batteryStateReceiver: BatteryStateReceiver? = null
 
+    /** Additional Spotify-only event source; shares the regular listening-session pipeline. */
+    private var spotifyBroadcastBridge: SpotifyBroadcastBridge? = null
+
+    private fun startSpotifyBroadcastTracking() {
+        spotifyBroadcastBridge = SpotifyBroadcastBridge(
+            context = this,
+            onPlayback = { track, playing, positionMs ->
+                val controller = activeControllers["com.spotify.music"]
+                if (controller?.metadata != null) {
+                    processMediaControllerState(controller)
+                } else {
+                    val metadata = MediaMetadata.Builder()
+                        .putString(MediaMetadata.METADATA_KEY_TITLE, track.title)
+                        .putString(MediaMetadata.METADATA_KEY_ARTIST, track.artist)
+                        .putString(MediaMetadata.METADATA_KEY_ALBUM, track.album)
+                        .putLong(MediaMetadata.METADATA_KEY_DURATION, track.durationMs)
+                        .build()
+                    val playbackState = PlaybackState.Builder()
+                        .setState(
+                            if (playing) PlaybackState.STATE_PLAYING else PlaybackState.STATE_PAUSED,
+                            positionMs,
+                            if (playing) 1f else 0f,
+                        ).build()
+                    processPlaybackMetadata("com.spotify.music", metadata, playbackState)
+                }
+            },
+            onQueueChanged = { rescanActiveMediaSessions() },
+        ).also { it.start() }
+    }
+
     override fun onCreate() {
         super.onCreate()
         Log.i(TAG, "MusicTrackingService created")
@@ -1211,6 +1241,7 @@ class MusicTrackingService : NotificationListenerService() {
         recoverPersistedSessions()
 
         initializeMediaSessionManager()
+        startSpotifyBroadcastTracking()
 
         // Register dynamically so the receiver only fires while this service runs, and arm it
         // after registering: ACTION_BATTERY_CHANGED is sticky, so Android delivers it immediately
@@ -3753,8 +3784,14 @@ class MusicTrackingService : NotificationListenerService() {
     }
 
     private fun processMediaControllerState(controller: MediaController) {
-        val packageName = controller.packageName
+        processPlaybackMetadata(controller.packageName, controller.metadata, controller.playbackState)
+    }
 
+    private fun processPlaybackMetadata(
+        packageName: String,
+        metadata: MediaMetadata?,
+        playbackState: PlaybackState?,
+    ) {
         if (shouldPauseForBattery()) {
             Log.d(TAG, "Tracking paused (low battery) — ignoring MediaController update from $packageName")
             val session = playbackStates.remove(packageName)
@@ -3765,9 +3802,6 @@ class MusicTrackingService : NotificationListenerService() {
             updateTrackingNotification(null, null)
             return
         }
-
-        val metadata = controller.metadata
-        val playbackState = controller.playbackState
 
         val state = playbackState?.state
 
@@ -4466,6 +4500,9 @@ class MusicTrackingService : NotificationListenerService() {
         autoSaveJob?.cancel()
         positionPollingJob?.cancel()
         strandedReapJob?.cancel()
+
+        spotifyBroadcastBridge?.stop()
+        spotifyBroadcastBridge = null
 
         // Unregister battery state receiver
         batteryStateReceiver?.let {
