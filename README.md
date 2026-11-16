@@ -216,17 +216,26 @@ For developer-mode apps, Spotify currently requires a Premium subscription
 for the app owner and limits accounts to the developer allowlist. See Spotify's
 developer documentation for the current quota restrictions.
 
-Choose **one listening-history source** at a time:
-- **Spotify Device Broadcast Status**: Fast local Spotify app events; also enable
-  Spotify → Settings → Playback → Device Broadcast Status. Requires Tempo's
-  tracking service running. A Now Playing card appears on the Tempo Settings screen
-  when Spotify emits events.
-- **Spotify API-only history sync**: Uses Spotify authorization and periodic
-  recently-played sync, including Spotify Connect playback. It does not provide
-  real-time presence; recent tracks can arrive later. Enabling this disables local
-  broadcast mode to avoid duplicate sessions.
-- **Default MediaSession/notification tracking**: Android fallback for local
-  playback when broadcasts are unavailable.
+Tempo combines **three cooperative tracking sources**, not mutually exclusive modes:
+- **Spotify Device Broadcast Status**: Local, event-driven Spotify metadata and
+  playback state, with the same switch enabled in Spotify's Playback settings.
+- **Spotify API history sync**: With an authorized Spotify account, Tempo
+  automatically imports recently-played records approximately every 15 minutes
+  and can sync on demand. Cross-source reconciliation favors accurate local
+  playback timing rather than inventing completion percentages.
+- **Android MediaSession/notifications**: Always remain the local fallback when
+  broadcasts are late, missing or disabled.
+
+**Now Playing** appears on Home, Profile and Settings, with source details and
+a locally estimated progress bar. While Tempo is in the foreground, an optional
+Spotify playback-state API snapshot checks the current Spotify Connect device
+approximately every 45 seconds; it verifies matching local metadata but does
+not override fresher device playback. Old OAuth grants must be refreshed using
+**Settings → Reconnect Spotify / update permissions** to access this endpoint.
+
+Google Drive backups use the unmodified original Tempo Drive implementation.
+Fork APKs need their own OAuth and signing setup: see
+[Google Drive setup](docs/GOOGLE_DRIVE_SETUP.md) before building.
 
 The Now Playing card is **local to Tempo** and is not Discord Rich Presence.
 Historical play counts are generally finalized when songs end or the session
