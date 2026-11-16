@@ -470,7 +470,7 @@ interface ListeningEventDao {
     /**
      * Get average completion percentage for a track.
      */
-    @Query("SELECT AVG(completionPercentage) FROM listening_events WHERE track_id = :trackId")
+    @Query("SELECT AVG(CASE WHEN completionPercentage = 0 AND was_skipped = 0 AND source LIKE '%.import%' THEN NULL ELSE completionPercentage END) FROM listening_events WHERE track_id = :trackId")
     suspend fun getAverageCompletionForTrack(trackId: Long): Float?
 
     /**
@@ -548,7 +548,7 @@ interface ListeningEventDao {
     /**
      * Get average completion for a time range.
      */
-    @Query("SELECT AVG(completionPercentage) FROM listening_events WHERE timestamp >= :startTime AND timestamp <= :endTime")
+    @Query("SELECT AVG(CASE WHEN completionPercentage = 0 AND was_skipped = 0 AND source LIKE '%.import%' THEN NULL ELSE completionPercentage END) FROM listening_events WHERE timestamp >= :startTime AND timestamp <= :endTime")
     suspend fun getAverageCompletion(
         startTime: Long,
         endTime: Long,
