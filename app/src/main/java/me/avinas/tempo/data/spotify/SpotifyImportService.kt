@@ -310,9 +310,7 @@ class SpotifyImportService @Inject constructor(
                 // Album info
                 albumTitle = spotifyTrack.album.name,
                 releaseDate = spotifyTrack.album.releaseDate,
-                releaseYear = try { spotifyTrack.album.releaseDate.take(4).toIntOrNull() } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
+                releaseYear = spotifyTrack.album.releaseDate.take(4).toIntOrNull(),
                 releaseType = spotifyTrack.album.albumType,
                 // Album art with source tracking
                 albumArtUrl = spotifyTrack.album.mediumImageUrl,
