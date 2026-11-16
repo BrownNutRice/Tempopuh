@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import me.avinas.tempo.ui.components.DeepOceanBackground
+import me.avinas.tempo.ui.components.LiveNowPlayingCard
 import me.avinas.tempo.ui.components.TimePeriodSelector
 import me.avinas.tempo.ui.stats.StatsShareDialog
 import me.avinas.tempo.ui.stats.StatsTab
@@ -132,6 +133,10 @@ fun HomeScreen(
                         )
                     }
                     
+                    item(key = "now_playing") {
+                        LiveNowPlayingCard(modifier = Modifier.padding(horizontal = 16.dp))
+                    }
+
                     if (uiState.hasData) {
                         item(key = "hero") {
                             
