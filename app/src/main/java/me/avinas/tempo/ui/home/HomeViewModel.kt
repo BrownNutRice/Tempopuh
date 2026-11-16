@@ -96,7 +96,7 @@ class HomeViewModel @Inject constructor(
         // produces one data reload instead of two full multi-query fetches.
         viewModelScope.launch {
             reactiveReload
-                .debounce(1_500)
+                .debounce(350)
                 .collect { loadData() }
         }
 
