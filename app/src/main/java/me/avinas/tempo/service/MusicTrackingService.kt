@@ -3808,6 +3808,7 @@ class MusicTrackingService : NotificationListenerService() {
         playbackState: PlaybackState?,
     ) {
         if (shouldPauseForBattery()) {
+            SpotifyBroadcastPresence.clearForPackage(packageName)
             Log.d(TAG, "Tracking paused (low battery) — ignoring MediaController update from $packageName")
             val session = playbackStates.remove(packageName)
             if (session != null) {
@@ -3822,6 +3823,7 @@ class MusicTrackingService : NotificationListenerService() {
 
         // Handle stopped/ended states - save the session and remove it
         if (state == PlaybackState.STATE_STOPPED || state == PlaybackState.STATE_NONE) {
+            SpotifyBroadcastPresence.clearForPackage(packageName)
             val session = playbackStates.remove(packageName)
             if (session != null) {
                 Log.d(TAG, "Playback stopped/ended for '$packageName', saving listening event for '${session.title}'")
@@ -3871,6 +3873,15 @@ class MusicTrackingService : NotificationListenerService() {
         val currentPosition = playbackState?.position ?: 0L
 
         val isPlaying = state == PlaybackState.STATE_PLAYING
+        SpotifyBroadcastPresence.publishFromLocal(
+            packageName = packageName,
+            title = title,
+            artist = artist,
+            album = album,
+            playing = isPlaying,
+            positionMs = currentPosition,
+            durationMs = duration,
+        )
 
         // CRITICAL: Use synchronized block to prevent race condition when
         // notification and MediaSession callbacks fire simultaneously for the same track.
