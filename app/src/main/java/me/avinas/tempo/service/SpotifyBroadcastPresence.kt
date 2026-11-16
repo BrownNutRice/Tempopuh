@@ -166,6 +166,15 @@ object SpotifyBroadcastPresence {
         )
     }
 
+    internal fun clearForStoppedTrackingService() {
+        val current = mutablePresence.value ?: return
+        if (current.source == "Android media tracking" ||
+            current.source == "Spotify broadcast"
+        ) {
+            mutablePresence.value = null
+        }
+    }
+
     internal fun clearLocalIfNoSession() {
         if (mutablePresence.value?.source == "Android media tracking") {
             mutablePresence.value = null
