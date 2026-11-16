@@ -62,6 +62,11 @@ class TrackResolver @Inject constructor(
         query.spotifyId?.takeIf { it.isNotBlank() }?.let { id ->
             trackRepository.findBySpotifyId(id)?.let {
                 if (identifiersCompatible(it, query)) return merge(it, query)
+                // Spotify ID is UNIQUE in tracks. Creating a new row with
+                // the same ID would make INSERT IGNORE return -1 and corrupt
+                // event foreign keys. Preserve the existing canonical row but
+                // refuse the conflicting secondary metadata instead.
+                return Resolution(it.id, isNewTrack = false, track = it)
             }
         }
         query.musicbrainzId?.takeIf { it.isNotBlank() }?.let { id ->
@@ -72,6 +77,11 @@ class TrackResolver @Inject constructor(
         query.youtubeId?.takeIf { it.isNotBlank() }?.let { id ->
             trackRepository.findByYoutubeId(id)?.let {
                 if (identifiersCompatible(it, query)) return merge(it, query)
+                // Youtube ID is UNIQUE in tracks. Creating a new row with
+                // the same ID would make INSERT IGNORE return -1 and corrupt
+                // event foreign keys. Preserve the existing canonical row but
+                // refuse the conflicting secondary metadata instead.
+                return Resolution(it.id, isNewTrack = false, track = it)
             }
         }
         trackRepository.findByTitleAndArtist(query.title, query.artist)?.let {
