@@ -39,6 +39,10 @@ class HistoryContentCorrectionTest {
         } },
         fake<ListeningRepository> { name, args -> when (name) {
             "deleteByTrackId" -> { deletedPlays.add(args[0] as Long); Unit }
+            // History now observes one Room row as its inexpensive invalidation
+            // signal. Keep the test double aligned with that dependency rather
+            // than throwing IllegalStateException at ViewModel construction.
+            "recentEvents" -> emptyFlow<List<ListeningEvent>>()
             else -> error(name)
         } },
         fake<TrackRepository> { name, args -> when (name) {
