@@ -77,6 +77,7 @@ import me.avinas.tempo.ui.components.BadgeShareCard
 import me.avinas.tempo.ui.components.CachedAsyncImage
 import me.avinas.tempo.ui.components.CelebrationParticlesCanvas
 import me.avinas.tempo.ui.components.DeepOceanBackground
+import me.avinas.tempo.ui.components.LiveNowPlayingCard
 import me.avinas.tempo.ui.components.FrostedIconButton
 import me.avinas.tempo.ui.components.GlassCard
 import me.avinas.tempo.ui.components.GlassCardVariant
@@ -700,6 +701,13 @@ fun ProfileScreen(
                                     )
                                     Spacer(modifier = Modifier.height(20.dp))
                                 }
+                            }
+
+                            item(key = "now_playing") {
+                                Box(modifier = contentModifier) {
+                                    LiveNowPlayingCard()
+                                }
+                                Spacer(modifier = Modifier.height(18.dp))
                             }
 
                             item(key = "stats_tabs") {
