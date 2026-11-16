@@ -24,6 +24,11 @@ interface ListeningEventDao {
         // using the tight [DUPLICATE_TOLERANCE_MS] so legitimate back-to-back plays
         // are never merged.
         const val RECONCILIATION_WINDOW_MS = 60_000L
+        // A local play may start several minutes before Spotify's 'played_at'
+        // (which is the end time). Search a bounded wider range for Spotify
+        // reconciliation, then compare observed END times precisely below.
+        const val SPOTIFY_API_LOOKBACK_MS = 15 * 60_000L
+        const val SPOTIFY_END_TOLERANCE_MS = 45_000L
     }
 
     @Query("SELECT * FROM listening_events WHERE id = :id")
@@ -205,8 +210,11 @@ interface ListeningEventDao {
         // track so they claim the slot and lower-authority siblings are dropped.
         val byTrack = layer1Survivors.groupBy { it.track_id }
         for ((trackId, trackEvents) in byTrack) {
-            val minTs = trackEvents.minOf { it.timestamp } - RECONCILIATION_WINDOW_MS
-            val maxTs = trackEvents.maxOf { it.timestamp } + RECONCILIATION_WINDOW_MS
+            val spotifyCrossSource = trackEvents.any { it.source.contains("spotify") }
+            val searchPadding =
+                if (spotifyCrossSource) SPOTIFY_API_LOOKBACK_MS else RECONCILIATION_WINDOW_MS
+            val minTs = trackEvents.minOf { it.timestamp } - searchPadding
+            val maxTs = trackEvents.maxOf { it.timestamp } + searchPadding
             val existing = getEventsForReconciliation(trackId, minTs, maxTs)
 
             // Existing refs not yet marked for deletion.
@@ -305,6 +313,26 @@ interface ListeningEventDao {
         incoming: ListeningEvent,
     ): Boolean {
         val sameSource = slot.source == incoming.source
+        val apiVsLive =
+            (slot.source == "com.spotify.music.import" && incoming.source == "com.spotify.music") ||
+            (incoming.source == "com.spotify.music.import" && slot.source == "com.spotify.music")
+        if (apiVsLive) {
+            val localEndMs = if (slot.source == "com.spotify.music.import") {
+                incoming.endTimestamp ?: incoming.playDuration
+                    .takeIf { it > 0L }?.let { incoming.timestamp + it }
+            } else {
+                slot.endTimestamp ?: slot.playDuration
+                    .takeIf { it > 0L }?.let { slot.timestamp + it }
+            }
+            val apiPlayedAt = if (slot.source == "com.spotify.music.import") {
+                slot.timestamp
+            } else {
+                incoming.timestamp
+            }
+            if (localEndMs != null) {
+                return kotlin.math.abs(localEndMs - apiPlayedAt) <= SPOTIFY_END_TOLERANCE_MS
+            }
+        }
         val window: Long =
             if (sameSource) {
                 DUPLICATE_TOLERANCE_MS
