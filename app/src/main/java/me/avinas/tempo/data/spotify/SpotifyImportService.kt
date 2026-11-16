@@ -205,11 +205,7 @@ class SpotifyImportService @Inject constructor(
             }
             if (!reachedBoundary && pageCount >= MAX_PAGES_PER_SYNC) incomplete = true
             if (incomplete) {
-                Log.w(TAG, "Recent history exceeded accessible/capped pages; preserving cursor and retrying later")
-                return ImportResult.error(
-                    "Recent Spotify history may exceed the accessible page window. " +
-                        "Import your Spotify extended history export to recover older plays."
-                )
+                Log.w(TAG, "Spotify history pagination incomplete. Importing accessible items but NOT advancing cursor.")
             }
             val items = allItems.sortedBy { it.playedAtMillis }
             Log.i(TAG, "Fetched ${items.size} unique recent tracks in $pageCount Spotify page(s)")
@@ -222,7 +218,13 @@ class SpotifyImportService @Inject constructor(
             var eventsCreated = 0
             var duplicatesSkipped = 0
             val errors = mutableListOf<String>()
-            
+            if (incomplete) {
+                errors.add(
+                    "Spotify's history window is incomplete; imported available items only. " +
+                        "Use the extended-history export to recover older plays."
+                )
+            }
+
             items.forEachIndexed { index, playHistory ->
                 try {
                     val result = processPlayHistoryItem(playHistory)
@@ -252,7 +254,7 @@ class SpotifyImportService @Inject constructor(
             val newCursor = latestSeen?.let { latest ->
                 maxOf(latest, afterCursor ?: 0L).toString()
             }
-            if (newCursor != null && errors.isEmpty()) {
+            if (newCursor != null && errors.isEmpty() && !incomplete) {
                 saveCursor(newCursor)
             }
             
