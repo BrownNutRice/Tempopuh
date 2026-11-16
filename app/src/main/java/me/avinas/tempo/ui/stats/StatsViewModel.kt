@@ -84,7 +84,7 @@ class StatsViewModel
             viewModelScope.launch {
                 refreshTrigger
                     .filter { it > 0 }
-                    .debounce(500) // Wait 500ms before triggering refresh
+                    .debounce(300) // Coalesce rapid writes without adding visible lag
                     .distinctUntilChanged()
                     .collect { _ ->
                         // Invalidate cache and reload data
