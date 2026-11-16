@@ -182,3 +182,23 @@ Review [CONTRIBUTION.md](CONTRIBUTION.md) for contribution guidelines and coding
 Tempo is licensed under a modified AGPLv3. You may inspect the source code, compile and run the app for personal use, audit security, and contribute improvements back to the upstream repository. Commercial distribution, monetization, closed-source distribution, and rebranding are prohibited.
 
 See [LICENSE](LICENSE) for the full license text.
+
+
+### Spotify Device Broadcast Status (Android)
+
+Tempo supports Spotify's opt-in on-device playback broadcasts, in addition to
+its existing NotificationListener, MediaSession and Spotify API tracking. While
+Tempo's listening service runs, it receives track metadata, play/pause state
+and queue-change events from Spotify's Android app. These are local Android
+broadcast intents; Tempo does **not** broadcast audio to other devices.
+
+To enable this, open **Spotify for Android → Settings → Playback → Device
+Broadcast Status**, and turn it on. The setting may be unavailable on some
+Spotify versions; Tempo will continue using its existing tracking sources.
+
+Broadcast playback events use the same listening-session logic as MediaSession
+events, avoiding a separate listening-history path. The receiver is active only
+while Tempo's tracking service is alive, and is unregistered when it stops.
+Spotify broadcasts are unauthenticated on older Android versions and are not a
+security-sensitive source of truth. Test song changes, pause/resume and skips on
+your own device when using a newly built APK.
