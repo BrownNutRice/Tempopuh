@@ -1739,7 +1739,15 @@ class MusicTrackingService : NotificationListenerService() {
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize tracking components", e)
             // Create fallback instances
-            trackingManager = MusicTrackingManager(listeningRepository, serviceScope, offlineStore)
+            trackingManager = MusicTrackingManager(
+                listeningRepository, serviceScope, offlineStore,
+                onPersisted = { saved ->
+                    if (saved.isNotEmpty()) {
+                        (statsRepository as? RoomStatsRepository)?.onNewListeningEvent(saved.maxOf { it.timestamp })
+                        refreshCoordinator.notifyNewTrackRecorded()
+                    }
+                },
+            )
             sessionPersistence = SessionPersistence(applicationContext)
             durationEstimator = SmartDurationEstimator()
         }
@@ -3470,23 +3478,18 @@ class MusicTrackingService : NotificationListenerService() {
             }
         }
 
-        // Get duration from smart estimator if not available
-        val estimatedDuration =
-            session.estimatedDurationMs ?: run {
-                val estimate = durationEstimator.estimateDuration(session.title, session.artist, session.album)
-                estimate.durationMs
-            }
-
-        // Calculate completion percentage using smart estimator
-        val completionPct =
+        // Completion is unknown when the player never supplied a reliable
+        // track duration. Guessing a typical 3.5-minute song can mislabel
+        // genuine listens as full plays or skips.
+        val reliableDuration = session.estimatedDurationMs?.takeIf { it > 0L }
+        val completionPct = if (reliableDuration != null) {
             durationEstimator.calculateCompletionPercent(
-                playDuration,
-                estimatedDuration,
-                isStillPlaying = false,
+                playDuration, reliableDuration, isStillPlaying = false
             )
+        } else 0
 
-        // Determine if this was a skip
-        val wasSkipped = session.wasSkipped() || completionPct < SKIP_COMPLETION_THRESHOLD
+        val wasSkipped = session.wasSkipped() ||
+            (reliableDuration != null && completionPct < SKIP_COMPLETION_THRESHOLD)
 
         // Check if this is a replay (same track played within 5 minutes)
         val isReplay =
@@ -3532,7 +3535,7 @@ class MusicTrackingService : NotificationListenerService() {
                 source = session.packageName,
                 wasSkipped = wasSkipped,
                 isReplay = isReplay,
-                estimatedDurationMs = estimatedDuration,
+                estimatedDurationMs = reliableDuration,
                 pauseCount = session.pauseCount,
                 sessionId = session.sessionId,
                 endTimestamp = currentTime,
@@ -4535,6 +4538,7 @@ class MusicTrackingService : NotificationListenerService() {
                 playing = presenceSession.isPlaying,
                 positionMs = presenceSession.lastRecordedPosition,
                 durationMs = presenceSession.estimatedDurationMs ?: 0L,
+                listenedMs = presenceSession.calculateCurrentPlayDuration(),
             )
         } else if (playbackStates.isEmpty()) {
             SpotifyBroadcastPresence.clearLocalIfNoSession()
