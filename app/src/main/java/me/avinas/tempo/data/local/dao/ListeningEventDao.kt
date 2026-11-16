@@ -569,6 +569,41 @@ interface ListeningEventDao {
         endTime: Long,
     ): Float?
 
+    /**
+     * Historical Spotify /recently-played never reported listening duration.
+     * Older builds incorrectly invented play minutes and completion for this
+     * exact source. Preview the count before any user-authorized correction.
+     */
+    @Query("""
+        SELECT COUNT(*) FROM listening_events
+        WHERE source = 'com.spotify.music.import'
+          AND (playDuration > 0 OR completionPercentage != 0 OR was_skipped = 1)
+    """)
+    suspend fun countUnverifiableSpotifyApiPlays(): Int
+
+    @Query("""
+        SELECT COUNT(*) FROM listening_events
+        WHERE source LIKE '%reconstructed%'
+    """)
+    suspend fun countReconstructedHistoryPlays(): Int
+
+    /**
+     * Opt-in lossless-for-play-count repair: keep IDs, track links, timestamps,
+     * and source; clear only API fields that the endpoint never supplied.
+     * Clear fingerprint so future reconciliation can rebuild it; legacy null
+     * fingerprints remain supported by the temporal-dedup layer.
+     */
+    @Query("""
+        UPDATE listening_events
+        SET playDuration = 0,
+            completionPercentage = 0,
+            was_skipped = 0,
+            content_fingerprint = NULL
+        WHERE source = 'com.spotify.music.import'
+          AND (playDuration > 0 OR completionPercentage != 0 OR was_skipped = 1)
+    """)
+    suspend fun clearUnverifiableSpotifyApiEstimates(): Int
+
     @Query("SELECT COUNT(*) FROM listening_events")
     suspend fun getCount(): Int
 
