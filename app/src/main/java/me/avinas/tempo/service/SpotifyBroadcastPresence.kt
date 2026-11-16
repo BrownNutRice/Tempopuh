@@ -43,7 +43,7 @@ object SpotifyBroadcastPresence {
 
     internal fun publish(track: SpotifyBroadcastBridge.Track, playing: Boolean, positionMs: Long) {
         val current = mutablePresence.value
-        val match = current?.title == track.title &&
+        val match = current != null && current.title == track.title &&
             current.artist == track.artist &&
             current.packageName == "com.spotify.music"
         mutablePresence.value = Presence(
