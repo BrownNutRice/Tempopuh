@@ -671,8 +671,8 @@ fun SettingsScreen(
                         }
 
                         SettingsSwitch(
-                            title = "Spotify API-only history sync",
-                            subtitle = "Import recent plays from Spotify's API; updates are delayed and this is not real-time presence. Broadcast tracking is disabled when enabled.",
+                            title = "Spotify API history sync",
+                            subtitle = "Automatic Spotify history reconciliation (about every 15 minutes) alongside local broadcasts and MediaSession. Requires Spotify login.",
                             checked = uiState.spotifyApiOnlyMode,
                             onCheckedChange = { enabled ->
                                 if (enabled && !spotifyConnected) {
@@ -682,10 +682,6 @@ fun SettingsScreen(
                                         Toast.LENGTH_LONG
                                     ).show()
                                 } else {
-                                    if (enabled) {
-                                        SpotifyBroadcastPresence.setEnabled(context, false)
-                                        spotifyBroadcastEnabled = false
-                                    }
                                     viewModel.toggleSpotifyApiOnlyMode(enabled)
                                 }
                             },
@@ -698,9 +694,6 @@ fun SettingsScreen(
                             subtitle = "Real-time local Spotify playback updates. Turn on the matching switch in Spotify > Settings > Playback. Requires Tempo tracking service.",
                             checked = spotifyBroadcastEnabled,
                             onCheckedChange = { enabled ->
-                                if (enabled && uiState.spotifyApiOnlyMode) {
-                                    viewModel.toggleSpotifyApiOnlyMode(false)
-                                }
                                 SpotifyBroadcastPresence.setEnabled(context, enabled)
                                 spotifyBroadcastEnabled = enabled
                             },
