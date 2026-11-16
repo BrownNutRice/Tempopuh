@@ -165,6 +165,8 @@ class MusicTrackingManager(
         if (id > 0L) {
             updateMetrics { it.copy(eventsSaved = it.eventsSaved + 1) }
             notifyPersisted(listOf(event))
+        } else if (id == 0L) {
+            updateMetrics { it.copy(duplicatesSkipped = it.duplicatesSkipped + 1) }
         }
         return Result.success(id)
     }
@@ -322,10 +324,12 @@ class MusicTrackingManager(
                 val savedEvents = ArrayList<ListeningEvent>(candidates.size)
                 candidates.forEachIndexed { index, pending ->
                     val id = ids.getOrNull(index) ?: -1L
-                    if (id <= 0L) {
-                        if (shouldPersistEvent(pending.event)) {
-                            handleFailedEvent(pending)
-                        }
+                    if (id == 0L) {
+                        // Room rejected this as a genuine cross-source duplicate.
+                        // Retrying would only create a durable queue of duplicates.
+                        updateMetrics { it.copy(duplicatesSkipped = it.duplicatesSkipped + 1) }
+                    } else if (id < 0L) {
+                        if (shouldPersistEvent(pending.event)) handleFailedEvent(pending)
                     } else if (shouldPersistEvent(pending.event)) {
                         successCount++
                         savedEvents.add(pending.event)
@@ -502,8 +506,11 @@ class MusicTrackingManager(
                             listeningRepository.insert(pending.event)
                         }
                     }
-                if (id == -1L) {
+                if (id <= 0L) {
+                    // -1: session was saved earlier; 0: persisted play from
+                    // another source already occupies the same listening slot.
                     offlineQueue.remove(pending.key())
+                    updateMetrics { it.copy(duplicatesSkipped = it.duplicatesSkipped + 1) }
                     continue
                 }
                 if (id > 0L) {
