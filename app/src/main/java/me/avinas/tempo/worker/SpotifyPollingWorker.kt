@@ -32,6 +32,7 @@ class SpotifyPollingWorker @AssistedInject constructor(
     companion object {
         private const val TAG = "SpotifyPollingWorker"
         private const val WORK_NAME = "spotify_polling"
+        private const val SYNC_NOW_NAME = "spotify_sync_now"
         
         /**
          * Schedule periodic polling when Spotify-API-Only mode is enabled.
@@ -65,10 +66,28 @@ class SpotifyPollingWorker @AssistedInject constructor(
         }
 
         /**
+         * Queue an immediate sync after a user enables Spotify API-only mode.
+         * Periodic WorkManager tasks can otherwise wait up to 15 minutes.
+         */
+        fun syncNow(context: Context) {
+            val request = OneTimeWorkRequestBuilder<SpotifyPollingWorker>()
+                .setConstraints(
+                    Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+                )
+                .build()
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                SYNC_NOW_NAME,
+                ExistingWorkPolicy.KEEP,
+                request
+            )
+        }
+
+        /**
          * Cancel the periodic polling when mode is disabled.
          */
         fun cancel(context: Context) {
             WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+            WorkManager.getInstance(context).cancelUniqueWork(SYNC_NOW_NAME)
             Log.i(TAG, "Spotify polling cancelled")
         }
         
