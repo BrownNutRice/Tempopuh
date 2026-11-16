@@ -48,6 +48,8 @@ class SettingsViewModel
     constructor(
         @param:ApplicationContext private val context: Context,
         private val database: AppDatabase,
+        private val statsRepository: me.avinas.tempo.data.repository.StatsRepository,
+        private val refreshCoordinator: me.avinas.tempo.data.repository.RefreshCoordinator,
         private val importExportManager: ImportExportManager,
         private val profileIdentityManager: ProfileIdentityManager,
         private val userPreferencesDao: me.avinas.tempo.data.local.dao.UserPreferencesDao,
@@ -73,6 +75,9 @@ class SettingsViewModel
 
         private val _profileImageMessage = MutableStateFlow<String?>(null)
         val profileImageMessage: StateFlow<String?> = _profileImageMessage.asStateFlow()
+
+        private val _historyQuality = MutableStateFlow(HistoryQualityUiState())
+        val historyQuality: StateFlow<HistoryQualityUiState> = _historyQuality.asStateFlow()
 
         // Keys
         private val NOTIF_DAILY_KEY = booleanPreferencesKey("notif_daily_summary")
@@ -540,7 +545,67 @@ class SettingsViewModel
         fun clearProfileImageMessage() {
             _profileImageMessage.value = null
         }
+
+        fun scanHistoryQuality() {
+            viewModelScope.launch {
+                _historyQuality.value = HistoryQualityUiState(isLoading = true)
+                try {
+                    val dao = database.listeningEventDao()
+                    val api = withContext(Dispatchers.IO) { dao.countUnverifiableSpotifyApiPlays() }
+                    val reconstructed = withContext(Dispatchers.IO) { dao.countReconstructedHistoryPlays() }
+                    _historyQuality.value = HistoryQualityUiState(
+                        apiEstimatedCount = api,
+                        reconstructedCount = reconstructed,
+                    )
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    _historyQuality.value = HistoryQualityUiState(error = e.message ?: "Unable to scan history")
+                }
+            }
+        }
+
+        /**
+         * Only call from the explicit backed-up + confirmed Settings dialog.
+         * Do not delete any songs or events: only nullify invented API
+         * listening minutes/completion and invalidate saved-stat aggregates.
+         */
+        fun repairHistoryAfterBackupConfirmation() {
+            viewModelScope.launch {
+                _historyQuality.value = _historyQuality.value.copy(isLoading = true)
+                try {
+                    val updated = withContext(Dispatchers.IO) {
+                        database.listeningEventDao().clearUnverifiableSpotifyApiEstimates()
+                    }
+                    statsRepository.invalidateCache()
+                    refreshCoordinator.notifyNewTrackRecorded()
+                    val reconstructed = withContext(Dispatchers.IO) {
+                        database.listeningEventDao().countReconstructedHistoryPlays()
+                    }
+                    _historyQuality.value = HistoryQualityUiState(
+                        apiEstimatedCount = 0,
+                        reconstructedCount = reconstructed,
+                        repairedCount = updated,
+                    )
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    _historyQuality.value = _historyQuality.value.copy(
+                        isLoading = false, error = e.message ?: "Unable to repair history"
+                    )
+                }
+            }
+        }
     }
+
+@Immutable
+data class HistoryQualityUiState(
+    val isLoading: Boolean = false,
+    val apiEstimatedCount: Int = 0,
+    val reconstructedCount: Int = 0,
+    val repairedCount: Int? = null,
+    val error: String? = null,
+)
 
 @Immutable
 data class SettingsUiState(
