@@ -1,6 +1,12 @@
 package me.avinas.tempo.ui.settings
 
 import android.content.Context
+import android.content.Intent
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import dagger.Lazy
+import me.avinas.tempo.data.remote.spotify.SpotifyAuthManager
+import me.avinas.tempo.data.remote.spotify.SpotifyTokenStorage
 import android.net.Uri
 import androidx.compose.runtime.Immutable
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -50,6 +56,8 @@ class SettingsViewModel
         private val analyticsDailyLedger: me.avinas.tempo.data.analytics.AnalyticsDailyLedger,
         private val analyticsFeatureLedger: me.avinas.tempo.data.analytics.AnalyticsFeatureLedger,
         private val coverArtSourcePreference: CoverArtSourcePreference,
+        private val spotifyAuthManager: Lazy<SpotifyAuthManager>,
+        private val spotifyTokenStorage: Lazy<SpotifyTokenStorage>,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(SettingsUiState())
         val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
@@ -418,6 +426,23 @@ class SettingsViewModel
          * When enabled: Spotify listening data is fetched from API instead of notifications.
          * When disabled (default): All apps including Spotify use notification tracking.
          */
+        suspend fun spotifyAccountInfo(): Pair<Boolean, String> = withContext(Dispatchers.IO) {
+            val auth = spotifyAuthManager.get()
+            Pair(auth.isConnected(), spotifyTokenStorage.get().getCustomClientId().orEmpty())
+        }
+
+        suspend fun startSpotifyAuthorization(clientId: String): Intent? = withContext(Dispatchers.IO) {
+            val auth = spotifyAuthManager.get()
+            val storage = spotifyTokenStorage.get()
+            val value = clientId.trim()
+            if (auth.isConnected()) return@withContext null
+            if (value.isNotEmpty() && !value.matches(Regex("[0-9a-fA-F]{32}"))) {
+                return@withContext null
+            }
+            storage.setCustomClientId(value)
+            if (auth.isConfigured()) auth.startLoginFlow() else null
+        }
+
         fun toggleSpotifyApiOnlyMode(enabled: Boolean) {
             viewModelScope.launch {
                 val currentPrefs =
