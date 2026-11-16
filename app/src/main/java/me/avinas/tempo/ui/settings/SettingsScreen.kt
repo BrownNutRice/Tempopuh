@@ -42,6 +42,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.avinas.tempo.R
 import me.avinas.tempo.service.SpotifyBroadcastPresence
+import me.avinas.tempo.ui.components.LiveNowPlayingCard
 import me.avinas.tempo.data.importexport.ImportConflictStrategy
 import me.avinas.tempo.data.importexport.ImportExportResult
 import me.avinas.tempo.data.local.entities.AlbumArtSource
@@ -89,7 +90,6 @@ fun SettingsScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     var spotifyBroadcastEnabled by remember { mutableStateOf(SpotifyBroadcastPresence.enabled(context)) }
-    val spotifyPresence by SpotifyBroadcastPresence.presence.collectAsState()
     var spotifyConnected by remember { mutableStateOf(false) }
     var spotifyClientId by remember { mutableStateOf("") }
     var spotifyAccountLoaded by remember { mutableStateOf(false) }
@@ -699,52 +699,9 @@ fun SettingsScreen(
                             },
                         )
 
-                        if (spotifyBroadcastEnabled) {
-                            val presence = spotifyPresence
-                            GlassCard {
-                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(
-                                        "NOW PLAYING · SPOTIFY BROADCAST",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = SpotifyGreen,
-                                    )
-                                    if (presence == null) {
-                                        Text(
-                                            "Waiting for Spotify… Play a track in Spotify and keep Tempo tracking enabled.",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = TextSecondary,
-                                        )
-                                    } else {
-                                        Text(
-                                            presence.title,
-                                            style = MaterialTheme.typography.titleMedium,
-                                            color = TextPrimary,
-                                            maxLines = 2,
-                                        )
-                                        Text(
-                                            listOfNotNull(presence.artist, presence.album)
-                                                .filter { it.isNotBlank() }
-                                                .joinToString(" · "),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = TextSecondary,
-                                            maxLines = 2,
-                                        )
-                                        Text(
-                                            if (presence.playing) "▶ Playing" else "Ⅱ Paused",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = SpotifyGreen,
-                                        )
-                                        if (presence.durationMs > 0L) {
-                                            val position = presence.positionMs.coerceIn(0L, presence.durationMs)
-                                            LinearProgressIndicator(
-                                                progress = { position.toFloat() / presence.durationMs.toFloat() },
-                                                modifier = Modifier.fillMaxWidth(),
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        // Uses either Spotify broadcast or the regular Android
+                        // tracking fallback, even when broadcast mode is disabled.
+                        LiveNowPlayingCard(modifier = Modifier.padding(horizontal = 16.dp))
 
                         HorizontalDivider(color = GlassBorderSoft)
 
