@@ -21,6 +21,7 @@ import me.avinas.tempo.data.repository.TrackRepository
 import me.avinas.tempo.data.repository.TrackResolver
 import me.avinas.tempo.data.repository.StatsRepository
 import me.avinas.tempo.data.repository.RefreshCoordinator
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
@@ -183,7 +184,9 @@ class SpotifyImportService @Inject constructor(
                     }
                     onProgress?.invoke(index + 1, items.size)
                     
-                } catch (e: Exception) {
+                } catch (e: CancellationException) {
+     throw e
+ } catch (e: Exception) {
                     Log.e(TAG, "Error processing Spotify play", e)
                     errors.add("Failed to import a Spotify play")
                 }
@@ -213,7 +216,9 @@ class SpotifyImportService @Inject constructor(
                 errors = errors,
                 newCursor = newCursor
             )
-        } catch (e: Exception) {
+        } catch (e: CancellationException) {
+     throw e
+ } catch (e: Exception) {
             Log.e(TAG, "Import failed", e)
             ImportResult.error("Import failed: ${e.message}")
         }
@@ -251,7 +256,9 @@ class SpotifyImportService @Inject constructor(
         if (resolution.track.primaryArtistId == null) {
             try {
                 artistLinkingService.linkArtistsForTrack(resolution.track)
-            } catch (e: Exception) {
+            } catch (e: CancellationException) {
+     throw e
+ } catch (e: Exception) {
                 Log.w(TAG, "Unable to link imported Spotify artists", e)
             }
         }
@@ -303,7 +310,9 @@ class SpotifyImportService @Inject constructor(
                 // Album info
                 albumTitle = spotifyTrack.album.name,
                 releaseDate = spotifyTrack.album.releaseDate,
-                releaseYear = try { spotifyTrack.album.releaseDate.take(4).toIntOrNull() } catch (e: Exception) { null },
+                releaseYear = try { spotifyTrack.album.releaseDate.take(4).toIntOrNull() } catch (e: CancellationException) {
+     throw e
+ } catch (e: Exception) { null },
                 releaseType = spotifyTrack.album.albumType,
                 // Album art with source tracking
                 albumArtUrl = spotifyTrack.album.mediumImageUrl,
@@ -326,7 +335,9 @@ class SpotifyImportService @Inject constructor(
             
             enrichedMetadataDao.upsertFromAutomaticEnrichment(metadata)
             Log.d(TAG, "Created enriched metadata for track $trackId (spotify: ${spotifyTrack.id})")
-        } catch (e: Exception) {
+        } catch (e: CancellationException) {
+     throw e
+ } catch (e: Exception) {
             Log.e(TAG, "Failed to create enriched metadata for track $trackId", e)
             // Non-fatal - track is still imported, metadata can be enriched later
         }
@@ -345,7 +356,9 @@ class SpotifyImportService @Inject constructor(
                 )
             )
             Log.d(TAG, "Saved import cursor: $cursor")
-        } catch (e: Exception) {
+        } catch (e: CancellationException) {
+     throw e
+ } catch (e: Exception) {
             Log.w(TAG, "Failed to save import cursor", e)
         }
     }
@@ -360,7 +373,9 @@ class SpotifyImportService @Inject constructor(
             // spotifyImportCursor is the actual cursor from Spotify API
             // It's stored as a String but represents a Unix timestamp
             prefs?.spotifyImportCursor?.toLongOrNull()
-        } catch (e: Exception) {
+        } catch (e: CancellationException) {
+     throw e
+ } catch (e: Exception) {
             Log.w(TAG, "Failed to get saved cursor", e)
             null
         }
