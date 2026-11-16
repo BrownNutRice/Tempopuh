@@ -454,6 +454,7 @@ class SettingsViewModel
                 // Schedule or cancel the polling worker based on mode
                 if (enabled) {
                     SpotifyPollingWorker.schedule(context)
+                    SpotifyPollingWorker.syncNow(context)
                 } else {
                     SpotifyPollingWorker.cancel(context)
                 }
