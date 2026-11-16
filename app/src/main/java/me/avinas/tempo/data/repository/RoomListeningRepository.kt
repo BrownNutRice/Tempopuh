@@ -3,6 +3,7 @@ package me.avinas.tempo.data.repository
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import me.avinas.tempo.data.local.EventFingerprint
 import me.avinas.tempo.data.local.dao.EnrichedMetadataDao
 import me.avinas.tempo.data.local.dao.ListeningEventDao
 import me.avinas.tempo.data.local.dao.ManualContentMarkDao
@@ -27,8 +28,28 @@ class RoomListeningRepository @Inject constructor(
     override fun recentEvents(limit: Int): Flow<List<ListeningEvent>> = dao.recentEvents(limit)
     override fun eventsInRange(startTime: Long, endTime: Long): Flow<List<ListeningEvent>> = dao.eventsInRange(startTime, endTime)
 
-    override suspend fun insert(event: ListeningEvent): Long = dao.insert(event)
-    override suspend fun insertAll(events: List<ListeningEvent>): List<Long> = dao.insertAll(events)
+    /**
+     * Local tracking and historical import must pass through the SAME
+     * authority-ranked deduplication transaction. Otherwise an API-first play
+     * followed by the device's final live event creates two listening events.
+     *
+     *  > 0: accepted Room row ID, 0: duplicate (already recorded), exception:
+     *        genuine DB failure. No fake IDs or delete-on-duplicate behavior.
+     * A tiny batch (at most 10 finished plays) is cheaper than repairing
+     * inflated statistics after the fact.
+     */
+    private suspend fun insertReconciled(event: ListeningEvent): Long {
+        val fingerprint = event.contentFingerprint ?: EventFingerprint.compute(event)
+        val candidate = event.copy(contentFingerprint = fingerprint)
+        val outcome = dao.insertAllBatchedWithDedup(listOf(candidate))
+        if (outcome.inserted == 0) return 0L
+        return dao.findIdByFingerprint(fingerprint)
+            ?: error("New listening event could not be resolved by its fingerprint")
+    }
+
+    override suspend fun insert(event: ListeningEvent): Long = insertReconciled(event)
+    override suspend fun insertAll(events: List<ListeningEvent>): List<Long> =
+        events.map { insertReconciled(it) }
     override suspend fun delete(event: ListeningEvent) = dao.delete(event)
     override suspend fun deleteById(id: Long): Int = dao.deleteById(id)
     override suspend fun deleteByTrackId(trackId: Long) = dao.deleteByTrackId(trackId)
