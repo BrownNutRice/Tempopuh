@@ -54,8 +54,8 @@ class SpotifyImportService @Inject constructor(
         
         // Rate limit protection
         private const val CURSOR_OVERLAP_MS = 30 * 60 * 1000L
-        private const val MAX_PAGES_PER_SYNC = 6
-        private const val PAGE_SIZE = 50
+        private const val MAX_PAGES_PER_SYNC = SpotifyRecentHistoryPagingPolicy.MAX_PAGES
+        private const val PAGE_SIZE = SpotifyRecentHistoryPagingPolicy.PAGE_LIMIT
         
         // Source identifier for imported events
         const val IMPORT_SOURCE = "com.spotify.music.import"
@@ -186,22 +186,22 @@ class SpotifyImportService @Inject constructor(
                         allItems.add(entry)
                     }
                 }
-                if (lowerBound != null && oldest <= lowerBound) {
+                val decision = SpotifyRecentHistoryPagingPolicy.afterPage(
+                    count = records.size,
+                    oldestValidPlayedAt = oldest,
+                    requestedBefore = before,
+                    lowerBound = lowerBound,
+                    pagesFetched = pageCount,
+                )
+                if (decision.complete) {
                     reachedBoundary = true
                     break
                 }
-                if (records.size < PAGE_SIZE) {
-                    reachedBoundary = true
-                    break
-                }
-                // A non-decreasing page boundary indicates that the server is
-                // repeating the same page or the cursor has stalled. Stop rather
-                // than spinning and silently declaring a complete import.
-                if (before != null && oldest >= before) {
+                if (decision.incomplete) {
                     incomplete = true
                     break
                 }
-                before = oldest
+                before = decision.nextBefore
             }
             if (!reachedBoundary && pageCount >= MAX_PAGES_PER_SYNC) incomplete = true
             if (incomplete) {
@@ -210,6 +210,9 @@ class SpotifyImportService @Inject constructor(
             val items = allItems.sortedBy { it.playedAtMillis }
             Log.i(TAG, "Fetched ${items.size} unique recent tracks in $pageCount Spotify page(s)")
             if (items.isEmpty()) {
+                if (incomplete) {
+                    return ImportResult.error("Spotify recently-played pages were malformed or inaccessible")
+                }
                 return ImportResult(0, 0, 0, emptyList(), latestSeen?.toString())
             }
 
