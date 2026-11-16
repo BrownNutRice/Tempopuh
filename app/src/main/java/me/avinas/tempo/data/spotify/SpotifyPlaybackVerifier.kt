@@ -28,6 +28,11 @@ class SpotifyPlaybackVerifier @Inject constructor(
     @Volatile private var retryAfterElapsedMs = 0L
     @Volatile private var scopeUnavailable = false
 
+    fun resetAfterSpotifyLogin() {
+        scopeUnavailable = false
+        retryAfterElapsedMs = 0L
+    }
+
     suspend fun refresh() = withContext(Dispatchers.IO) {
         if (!authManager.isConnected() || scopeUnavailable) return@withContext
         if (SystemClock.elapsedRealtime() < retryAfterElapsedMs) return@withContext
