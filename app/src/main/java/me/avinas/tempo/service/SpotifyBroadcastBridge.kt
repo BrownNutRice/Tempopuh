@@ -66,7 +66,7 @@ internal class SpotifyBroadcastBridge(
                         title = title,
                         artist = artist,
                         album = intent.getStringExtra("album"),
-                        durationMs = intent.getIntExtra("length", 0).coerceAtLeast(0) * 1000L,
+                        durationMs = intent.getIntExtra("length", 0).coerceAtLeast(0).toLong(),
                     )
                     positionMs = 0L
                 }
