@@ -23,7 +23,10 @@ object SpotifyBroadcastPresence {
         val updatedAtMs: Long,
         val packageName: String = "com.spotify.music",
         val source: String = "Spotify broadcast",
-        val verifiedByApiAtMs: Long? = null
+        val verifiedByApiAtMs: Long? = null,
+        // Live, *uncommitted* listening time for this local session. Null for
+        // API-only/remote playback; never mix it into historical DB totals.
+        val listenedMs: Long? = null,
     )
 
     private val mutablePresence = MutableStateFlow<Presence?>(null)
@@ -50,6 +53,7 @@ object SpotifyBroadcastPresence {
             track.title, track.artist, track.album, playing,
             positionMs, track.durationMs, System.currentTimeMillis(),
             verifiedByApiAtMs = if (match) current?.verifiedByApiAtMs else null,
+            listenedMs = if (match) current?.listenedMs else null,
         )
     }
 
@@ -128,14 +132,24 @@ object SpotifyBroadcastPresence {
         playing: Boolean,
         positionMs: Long,
         durationMs: Long,
+        listenedMs: Long? = null,
     ) {
         if (title.isBlank() || artist.isBlank()) return
         val current = mutablePresence.value
         val now = System.currentTimeMillis()
+        val sameTrack = current?.packageName == packageName &&
+            current.title == title && current.artist == artist
         if (packageName == "com.spotify.music" &&
             current?.source == "Spotify broadcast" &&
             now - current.updatedAtMs < 2_500L
-        ) return
+        ) {
+            // Preserve Spotify's fresher title/position, but update the actual
+            // accumulated session time from the local tracking service.
+            if (sameTrack && listenedMs != null) {
+                mutablePresence.value = current.copy(listenedMs = listenedMs.coerceAtLeast(0L))
+            }
+            return
+        }
         mutablePresence.value = Presence(
             title = title,
             artist = artist,
@@ -146,11 +160,9 @@ object SpotifyBroadcastPresence {
             updatedAtMs = now,
             packageName = packageName,
             source = "Android media tracking",
-            verifiedByApiAtMs = if (
-                current?.title == title &&
-                current?.artist == artist &&
-                current?.packageName == packageName
-            ) current.verifiedByApiAtMs else null,
+            verifiedByApiAtMs = if (sameTrack) current?.verifiedByApiAtMs else null,
+            listenedMs = listenedMs?.coerceAtLeast(0L)
+                ?: if (sameTrack) current?.listenedMs else null,
         )
     }
 
