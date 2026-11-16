@@ -9,6 +9,42 @@ import com.squareup.moshi.JsonClass
  * Documentation: https://developer.spotify.com/documentation/web-api/reference
  */
 
+/**
+ * Small, forward-compatible model for /me/player. Episodes, ads and unknown
+ * item types are intentionally excluded from the local music presence.
+ */
+@JsonClass(generateAdapter = true)
+data class SpotifyPlaybackSnapshot(
+    @param:Json(name = "is_playing") val isPlaying: Boolean = false,
+    @param:Json(name = "progress_ms") val progressMs: Long? = null,
+    @param:Json(name = "currently_playing_type") val currentlyPlayingType: String? = null,
+    val item: SpotifyPlaybackItem? = null,
+    val device: SpotifyPlaybackDevice? = null,
+    val timestamp: Long? = null,
+)
+
+@JsonClass(generateAdapter = true)
+data class SpotifyPlaybackItem(
+    val id: String? = null,
+    val name: String? = null,
+    val artists: List<SpotifyPlaybackArtist>? = null,
+    val album: SpotifyPlaybackAlbum? = null,
+    @param:Json(name = "duration_ms") val durationMs: Long? = null,
+)
+
+@JsonClass(generateAdapter = true)
+data class SpotifyPlaybackArtist(val name: String? = null)
+
+@JsonClass(generateAdapter = true)
+data class SpotifyPlaybackAlbum(val name: String? = null)
+
+@JsonClass(generateAdapter = true)
+data class SpotifyPlaybackDevice(
+    val name: String? = null,
+    val type: String? = null,
+    @param:Json(name = "is_active") val isActive: Boolean = false,
+)
+
 // Search Response
 
 @JsonClass(generateAdapter = true)
