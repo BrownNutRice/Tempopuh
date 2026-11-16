@@ -27,7 +27,7 @@ interface SpotifyApi {
         // - user-top-read: Access user's top tracks/artists (4 weeks, 6 months, all time)
         // - user-library-read: Access user's saved/liked tracks with exact timestamps
         // - playlist-read-private: Access user's playlists (including "Your Top Songs" yearly wraps)
-        const val SCOPES = "user-read-private user-read-recently-played user-top-read user-library-read playlist-read-private"
+        const val SCOPES = "user-read-private user-read-recently-played user-top-read user-library-read playlist-read-private user-read-playback-state"
         
         const val REDIRECT_URI = "tempo://spotify-callback"
     }
@@ -118,6 +118,13 @@ interface SpotifyApi {
         @Path("id") artistId: String,
         @Query("market") market: String = "US"
     ): Response<SpotifyArtistTopTracksResponse>
+
+    // Account-wide Spotify Connect playback state. This is a low-frequency
+    // verification hint, not a replacement for fast local broadcasts.
+    @GET("me/player")
+    suspend fun getPlaybackState(
+        @Header("Authorization") authorization: String
+    ): Response<SpotifyPlaybackSnapshot>
 
     // Recently Played (Import Feature)
 
