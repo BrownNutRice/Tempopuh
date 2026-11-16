@@ -102,7 +102,9 @@ fun LiveNowPlayingCard(modifier: Modifier = Modifier) {
                     )
                     Spacer(modifier = Modifier.weight(1f))
                     Text(
-                        text = current.source,
+                        text = if (current.verifiedByApiAtMs != null &&
+                            nowMs - current.verifiedByApiAtMs < 3 * 60_000L
+                        ) "${current.source} · API verified" else current.source,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
