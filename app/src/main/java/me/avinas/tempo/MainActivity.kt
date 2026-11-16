@@ -44,6 +44,10 @@ import me.avinas.tempo.utils.OemBackgroundHelper
 import me.avinas.tempo.worker.ServiceHealthWorker
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import me.avinas.tempo.data.remote.spotify.SpotifyAuthManager
+import me.avinas.tempo.data.local.dao.UserPreferencesDao
+import me.avinas.tempo.worker.SpotifyPollingWorker
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
@@ -58,6 +62,12 @@ class MainActivity : AppCompatActivity() {
     @javax.inject.Inject
     lateinit var analyticsDailyReporter: me.avinas.tempo.data.analytics.AnalyticsDailyReporter
     
+    @javax.inject.Inject
+    lateinit var spotifyAuthManager: SpotifyAuthManager
+
+    @javax.inject.Inject
+    lateinit var userPreferencesDao: UserPreferencesDao
+
     private val navigationTrigger = mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,6 +75,31 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
 
         checkNavigationIntent(intent)
+
+        // Repair the periodic Spotify sync after upgrades, process death or a
+        // reboot. Only an authorized account with API sync enabled is scheduled.
+        // WorkManager's unique job avoids duplicate periodic timers.
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                if (spotifyAuthManager.isConnected() &&
+                    userPreferencesDao.getSync()?.spotifyApiOnlyMode == true
+                ) {
+                    if (!SpotifyPollingWorker.isScheduled(applicationContext)) {
+                        SpotifyPollingWorker.schedule(applicationContext)
+                    }
+                    // Refresh when the user opens Tempo, but don't hammer Spotify
+                    // if they repeatedly move between activities.
+                    val syncPrefs = getSharedPreferences("spotify_sync_cadence", MODE_PRIVATE)
+                    val now = System.currentTimeMillis()
+                    if (now - syncPrefs.getLong("last_requested_at", 0L) > 5 * 60_000L) {
+                        syncPrefs.edit().putLong("last_requested_at", now).apply()
+                        SpotifyPollingWorker.syncNow(applicationContext)
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.w("TempoSpotifySync", "Unable to restore scheduled sync", e)
+            }
+        }
 
         // Request notification permission on Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
