@@ -57,4 +57,46 @@ class PlaybackSessionLiveAccountingTest {
         )
         assertEquals(90_000L, session.calculateCurrentPlayDuration())
     }
+
+    @Test fun `pausing freezes monotonic listening time until resumed`() {
+        val session = MusicTrackingService.PlaybackSession(
+            packageName = "player", title = "Song", artist = "Artist",
+            album = null, isPlaying = true,
+        )
+        Thread.sleep(25)
+        session.pause()
+        val pausedMs = session.calculateCurrentPlayDuration()
+        Thread.sleep(25)
+        assertEquals("Paused time cannot count as listening time", pausedMs,
+            session.calculateCurrentPlayDuration())
+        session.resume()
+        Thread.sleep(25)
+        session.pause()
+        assertTrue(session.calculateCurrentPlayDuration() > pausedMs)
+        assertEquals(2, session.pauseCount)
+    }
+
+    @Test fun `track coverage comes from position not elapsed listening time`() {
+        val session = MusicTrackingService.PlaybackSession(
+            packageName = "player", title = "Half-song", artist = "Artist",
+            album = null, estimatedDurationMs = 100_000L, isPlaying = true,
+            lastRecordedPosition = 0L, hasReceivedInitialPosition = true,
+            lastPositionUpdateTime = System.currentTimeMillis() - 120_000L,
+        )
+        session.updatePosition(50_000L, true)
+        assertEquals("Observed position covers 50% of this recording", 50,
+            session.calculateCompletionPercent())
+        assertTrue("Fifty seconds of media position must not fabricate fifty seconds of listening",
+            session.calculateCurrentPlayDuration() < 10_000L)
+        session.pause()
+    }
+
+    @Test fun `unknown completion remains unknown without position evidence`() {
+        val session = MusicTrackingService.PlaybackSession(
+            packageName = "player", title = "Unmeasured", artist = "Artist",
+            album = null, estimatedDurationMs = 200_000L, isPlaying = true,
+        )
+        assertEquals(0, session.calculateCompletionPercent())
+        session.pause()
+    }
 }
