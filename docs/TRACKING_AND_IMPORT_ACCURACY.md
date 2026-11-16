@@ -14,16 +14,14 @@ sources are reconciled. The application is not an official Spotify client.
   out of order, so they are evaluated separately and fresh broadcasts temporarily
   take priority over MediaSession snapshots.
 - **Spotify API history sync**: uses Spotify OAuth + PKCE and automatically
-  imports the recently-played feed roughly every 15 minutes via WorkManager,
+  imports the recently-played feed roughly every 20 minutes via WorkManager,
   beginning immediately after a successful sign-in. It runs **alongside** local
   broadcasts and MediaSession, not instead of them. A manual **Sync Spotify
   history now** action is also available; WorkManager may be delayed by Android.
-- **Spotify Connect API verification**: while Tempo is open, a low-rate playback
-  snapshot (45 seconds) checks the current Spotify account device and verifies
-  matching local playback metadata. Recent local broadcasts are authoritative.
-  An API snapshot may display remote Spotify Connect playback when there is no
-  newer local status; it never creates listening-history events. Existing OAuth
-  users must reconnect once to grant `user-read-playback-state`.
+- **Spotify Connect API snapshot**: an on-demand endpoint remains available for
+  optional diagnostics, but Tempo no longer polls it every 45 seconds while the
+  app is open. Continuous local playback tracking never depends on Spotify's
+  playback-state API. Already-granted OAuth scopes are not silently changed.
 
 Spotify may require your account to be approved for your Spotify Developer app.
 The OAuth redirect URI used by this fork is `tempo://spotify-callback`.
