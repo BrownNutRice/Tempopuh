@@ -876,6 +876,14 @@ class MusicTrackingService : NotificationListenerService() {
             java.util.concurrent.atomic
                 .AtomicBoolean(false)
 
+        // PlaybackState.position can remain frozen for the whole song, and some
+        // notification-only players never expose it. Keep a monotonic stopwatch
+        // as a fallback, excluding observed pauses. This is *not* added to the
+        // position-based total, so mixed sources cannot double-count playback.
+        private var wallClockPlayedMs: Long = 0L
+        private var lastResumeMonotonicMs: Long = System.nanoTime() / 1_000_000L
+        private var observedPositionProgress: Boolean = false
+
         /** Position progress rather than wall-clock time. */
         @Synchronized fun calculateCurrentPlayDuration(): Long {
             // Use accumulated position-based duration.
@@ -884,7 +892,20 @@ class MusicTrackingService : NotificationListenerService() {
             // (ALWAYS_MUSIC, no-limit apps) must count in full. Runaway values are
             // guarded by MAX_REASONABLE_DELTA_MS in updatePosition() and the
             // 3x-estimated-duration checks in validatePlayDuration()/insert paths.
-            return accumulatedPositionMs
+            val elapsedSinceResume = if (isPlaying) {
+                ((System.nanoTime() / 1_000_000L) - lastResumeMonotonicMs)
+                    .coerceAtLeast(0L)
+            } else 0L
+            val monotonicPlayedMs = (wallClockPlayedMs + elapsedSinceResume)
+                .coerceAtLeast(0L)
+            // If position tracking works, trust its seek-aware accounting. If
+            // it freezes, allow the observed playing-time clock to catch up
+            // within a small callback/polling tolerance.
+            return if (observedPositionProgress) {
+                maxOf(accumulatedPositionMs, (monotonicPlayedMs - 3_000L).coerceAtLeast(0L))
+            } else {
+                maxOf(accumulatedPositionMs, monotonicPlayedMs)
+            }
         }
 
         /** Applies a MediaSession position update; `newPosition` is in ms. */
@@ -939,6 +960,7 @@ class MusicTrackingService : NotificationListenerService() {
                         Log.w("PlaybackSession", "ANOMALY: Large delta ${delta}ms capped to ${safeDelta}ms for '$title'")
                     }
                     accumulatedPositionMs += safeDelta
+                    if (safeDelta > 0L) observedPositionProgress = true
 
                     // Cap total accumulation to prevent runaway values. Use the same
                     // 3x bound as the save-time sanity cap (insertListeningEvent) so the
@@ -1008,6 +1030,8 @@ class MusicTrackingService : NotificationListenerService() {
          */
         @Synchronized fun pause() {
             if (isPlaying) {
+                wallClockPlayedMs += ((System.nanoTime() / 1_000_000L) -
+                    lastResumeMonotonicMs).coerceAtLeast(0L)
                 isPlaying = false
                 pauseCount++
                 lastPauseTimestamp = System.currentTimeMillis()
@@ -1030,6 +1054,7 @@ class MusicTrackingService : NotificationListenerService() {
                 }
 
                 isPlaying = true
+                lastResumeMonotonicMs = System.nanoTime() / 1_000_000L
                 // Reset position update time so we don't accumulate the pause gap
                 lastPositionUpdateTime = now
                 lastPauseTimestamp = null
@@ -4255,6 +4280,24 @@ class MusicTrackingService : NotificationListenerService() {
             "IGNORE" -> {
                 // Not playing and not same track - nothing to do
             }
+        }
+
+        // The callback path must update live time after applying position and
+        // pause/resume transitions. The notification was updated earlier with
+        // the previous count, and position polling stops when paused.
+        playbackStates[packageName]?.takeIf {
+            it.title == title && it.artist == artist
+        }?.let { active ->
+            SpotifyBroadcastPresence.publishFromLocal(
+                packageName = packageName,
+                title = active.title,
+                artist = active.artist,
+                album = active.album,
+                playing = active.isPlaying,
+                positionMs = active.lastRecordedPosition,
+                durationMs = active.estimatedDurationMs ?: 0L,
+                listenedMs = active.calculateCurrentPlayDuration(),
+            )
         }
     }
 
