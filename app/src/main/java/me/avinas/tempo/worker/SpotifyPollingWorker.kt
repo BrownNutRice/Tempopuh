@@ -9,6 +9,7 @@ import me.avinas.tempo.data.local.dao.UserPreferencesDao
 import me.avinas.tempo.data.spotify.SpotifyImportService
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -18,8 +19,8 @@ import java.util.concurrent.TimeUnit
  * SpotifyPollingWorker periodically fetches recently played tracks from Spotify
  * when Spotify history sync is enabled.
  * 
- * This worker requests a 20-minute cadence (WorkManager minimum is 15 minutes) and uses cursor-based
- * pagination to only fetch new plays since the last poll.
+ * This worker requests a 20-minute cadence (WorkManager minimum is 15 minutes) and uses a bounded, cursor-based recent-playback request. Spotify's
+ * 50-item response window may omit plays after long offline gaps.
  */
 @HiltWorker
 class SpotifyPollingWorker @AssistedInject constructor(
@@ -136,12 +137,19 @@ class SpotifyPollingWorker @AssistedInject constructor(
                 
                 // Retry on transient errors, fail on auth errors
                 if (error.contains("session expired", ignoreCase = true) ||
-                    error.contains("not connected", ignoreCase = true)) {
+                    error.contains("not connected", ignoreCase = true) ||
+                    error.contains("authenticate", ignoreCase = true) ||
+                    error.contains("API error: 401", ignoreCase = true) ||
+                    error.contains("API error: 403", ignoreCase = true)) {
                     Result.failure() // Don't retry auth issues
                 } else {
                     Result.retry() // Retry network issues, etc.
                 }
             }
+        } catch (e: CancellationException) {
+            // Cancellation is intentional on disconnect/disable or worker stop.
+            // Do not turn it into a retrying background request.
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Polling failed with exception", e)
             Result.retry()
