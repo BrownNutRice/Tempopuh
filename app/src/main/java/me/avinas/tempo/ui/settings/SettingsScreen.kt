@@ -684,17 +684,49 @@ fun SettingsScreen(
 
                         if (spotifyBroadcastEnabled) {
                             val presence = spotifyPresence
-                            Text(
-                                text = if (presence == null) {
-                                    "Now Playing · Waiting for a Spotify broadcast"
-                                } else {
-                                    val state = if (presence.playing) "Playing" else "Paused"
-                                    "Now Playing · $state: ${presence.title} — ${presence.artist}"
-                                },
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                                color = TextSecondary,
-                                style = MaterialTheme.typography.bodySmall,
-                            )
+                            GlassCard {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(
+                                        "NOW PLAYING · SPOTIFY BROADCAST",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = SpotifyGreen,
+                                    )
+                                    if (presence == null) {
+                                        Text(
+                                            "Waiting for Spotify… Play a track in Spotify and keep Tempo tracking enabled.",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = TextSecondary,
+                                        )
+                                    } else {
+                                        Text(
+                                            presence.title,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = TextPrimary,
+                                            maxLines = 2,
+                                        )
+                                        Text(
+                                            listOfNotNull(presence.artist, presence.album)
+                                                .filter { it.isNotBlank() }
+                                                .joinToString(" · "),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = TextSecondary,
+                                            maxLines = 2,
+                                        )
+                                        Text(
+                                            if (presence.playing) "▶ Playing" else "Ⅱ Paused",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = SpotifyGreen,
+                                        )
+                                        if (presence.durationMs > 0L) {
+                                            val position = presence.positionMs.coerceIn(0L, presence.durationMs)
+                                            LinearProgressIndicator(
+                                                progress = { position.toFloat() / presence.durationMs },
+                                                modifier = Modifier.fillMaxWidth(),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
 
                         HorizontalDivider(color = GlassBorderSoft)
