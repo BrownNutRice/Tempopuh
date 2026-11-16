@@ -64,7 +64,7 @@ android {
         )
         buildConfigField("Long", "MUSICBRAINZ_RATE_LIMIT_MS", "1000L")
         buildConfigField("String", "LASTFM_API_KEY", "\"${localProperties.getProperty("LASTFM_API_KEY", "")}\"")
-        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${localProperties.getProperty("GOOGLE_WEB_CLIENT_ID", "")}\"")
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${providers.environmentVariable("GOOGLE_WEB_CLIENT_ID").orNull ?: localProperties.getProperty("GOOGLE_WEB_CLIENT_ID", "")}\"")
 
         // Anonymous app-health analytics. The endpoint is deliberately NOT committed: a blank
         // endpoint makes AnalyticsGate report the build as unconfigured, so anyone building
