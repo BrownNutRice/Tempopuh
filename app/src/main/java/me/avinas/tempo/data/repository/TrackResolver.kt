@@ -60,13 +60,19 @@ class TrackResolver @Inject constructor(
         // tracks, and a WHERE musicbrainz_id = '' lookup collides with the first track that
         // also has an empty mbid — clubbing every empty-mbid scrobble onto one track row.
         query.spotifyId?.takeIf { it.isNotBlank() }?.let { id ->
-            trackRepository.findBySpotifyId(id)?.let { return merge(it, query) }
+            trackRepository.findBySpotifyId(id)?.let {
+                if (identifiersCompatible(it, query)) return merge(it, query)
+            }
         }
         query.musicbrainzId?.takeIf { it.isNotBlank() }?.let { id ->
-            trackRepository.findByMusicBrainzId(id)?.let { return merge(it, query) }
+            trackRepository.findByMusicBrainzId(id)?.let {
+                if (identifiersCompatible(it, query)) return merge(it, query)
+            }
         }
         query.youtubeId?.takeIf { it.isNotBlank() }?.let { id ->
-            trackRepository.findByYoutubeId(id)?.let { return merge(it, query) }
+            trackRepository.findByYoutubeId(id)?.let {
+                if (identifiersCompatible(it, query)) return merge(it, query)
+            }
         }
         trackRepository.findByTitleAndArtist(query.title, query.artist)?.let {
             if (identifiersCompatible(it, query)) return merge(it, query)
