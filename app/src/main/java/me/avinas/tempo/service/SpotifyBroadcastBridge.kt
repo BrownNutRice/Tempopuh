@@ -40,7 +40,7 @@ internal class SpotifyBroadcastBridge(
     private var track: Track? = null
     private var playing: Boolean? = null
     private var positionMs = 0L
-    private var lastSentAt = 0L
+    private val lastSentAtByAction = mutableMapOf<String, Long>()
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -58,8 +58,11 @@ internal class SpotifyBroadcastBridge(
 
             val now = System.currentTimeMillis()
             val sentAt = intent.getLongExtra("timeSent", now)
-            if (sentAt < now - 120_000L || sentAt > now + 30_000L || sentAt < lastSentAt) return
-            lastSentAt = sentAt
+            // Metadata and playback broadcasts can be delivered out of order.
+            // Only discard stale events within the SAME action type.
+            if (sentAt < now - 120_000L || sentAt > now + 30_000L) return
+            if (sentAt < (lastSentAtByAction[action] ?: 0L)) return
+            lastSentAtByAction[action] = sentAt
 
             when (action) {
                 METADATA -> {
