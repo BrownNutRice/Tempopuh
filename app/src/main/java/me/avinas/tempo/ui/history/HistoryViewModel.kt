@@ -163,7 +163,7 @@ class HistoryViewModel @Inject constructor(
     private fun observeRefreshEvents() {
         viewModelScope.launch {
             refreshCoordinator.refreshEvents
-                .debounce(1_500)
+                .debounce(300)
                 .collect {
                     if (_uiState.value.page == 0 && !suppressObserverRefresh) {
                         loadHistory()
