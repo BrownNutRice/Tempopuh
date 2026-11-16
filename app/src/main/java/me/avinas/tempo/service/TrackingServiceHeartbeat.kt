@@ -28,6 +28,7 @@ object TrackingServiceHeartbeat {
 
     fun markServiceCreated(context: Context, now: Long = System.currentTimeMillis()) {
         prefs(context).edit()
+            .putBoolean(KEY_LISTENER_CONNECTED, false)
             .putLong(KEY_LAST_SERVICE_CREATED_AT, now)
             .putLong(KEY_LAST_SERVICE_ALIVE_AT, now)
             .apply()
@@ -107,20 +108,29 @@ object TrackingServiceHeartbeat {
         fun shouldRequestRebind(now: Long = System.currentTimeMillis()): Boolean {
             if (!hasEverStarted()) return true
 
-            val aliveIsFresh = lastServiceAliveAt > 0L && now - lastServiceAliveAt <= HEARTBEAT_STALE_MS
-            val lastDisconnectWins = lastListenerDisconnectedAt > lastListenerConnectedAt
-            val disconnectedTooLong = lastDisconnectWins &&
-                now - lastListenerDisconnectedAt > DISCONNECTED_GRACE_MS
-
-            if (disconnectedTooLong) return true
-            if (!listenerConnected && now - lastServiceCreatedAt > DISCONNECTED_GRACE_MS) return true
+            val aliveIsFresh = lastServiceAliveAt > 0L &&
+                now - lastServiceAliveAt in 0L..HEARTBEAT_STALE_MS
+            // A foreground service can remain alive after its notification listener binder dies.
+            // Do not mistake that process heartbeat for an active listener connection.
+            val connectedThisLifetime = listenerConnected &&
+                lastListenerConnectedAt >= lastServiceCreatedAt &&
+                lastListenerConnectedAt > lastListenerDisconnectedAt
+            if (!connectedThisLifetime &&
+                now - lastServiceCreatedAt > DISCONNECTED_GRACE_MS
+            ) return true
 
             return !aliveIsFresh
         }
 
         fun shouldForceRestartAfterRebind(now: Long = System.currentTimeMillis()): Boolean {
+            // The service's periodic "alive" heartbeat is not proof that rebind worked.
+            // Only a NEW onListenerConnected callback can clear the failed-rebind condition.
+            val reconnected = listenerConnected &&
+                lastListenerConnectedAt >= lastRebindRequestedAt &&
+                lastListenerConnectedAt >= lastServiceCreatedAt &&
+                lastListenerConnectedAt > lastListenerDisconnectedAt
             return lastRebindRequestedAt > 0L &&
-                lastRebindRequestedAt > lastServiceAliveAt &&
+                !reconnected &&
                 now - lastRebindRequestedAt >= FORCE_RESTART_AFTER_REBIND_MS
         }
     }

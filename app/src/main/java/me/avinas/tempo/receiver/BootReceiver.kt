@@ -5,6 +5,8 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
+import android.service.notification.NotificationListenerService
 import android.provider.Settings
 import android.util.Log
 import dagger.hilt.android.EntryPointAccessors
@@ -13,6 +15,7 @@ import me.avinas.tempo.data.analytics.RecoveryAction
 import me.avinas.tempo.data.analytics.RevivedBy
 import me.avinas.tempo.di.AnalyticsEntryPoint
 import me.avinas.tempo.service.MusicTrackingService
+import me.avinas.tempo.service.TrackingServiceHeartbeat
 
 /**
  * Re-enables MusicTrackingService after boot completes.
@@ -83,19 +86,29 @@ class BootReceiver : BroadcastReceiver() {
             } else {
                 Log.d(TAG, "MusicTrackingService component already enabled (state=$currentState)")
             }
+
+            // The component can be enabled yet remain unbound after a boot/OEM kill.
+            // Ask NotificationManager to reconnect it; never launch a restricted FGS
+            // from the boot receiver.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                NotificationListenerService.requestRebind(componentName)
+                TrackingServiceHeartbeat.markRebindRequested(context)
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to check/enable service after boot", e)
         }
     }
 
     private fun isNotificationListenerEnabled(context: Context): Boolean {
-        val packageName = context.packageName
+        val component = ComponentName(context, MusicTrackingService::class.java)
         val flat =
             Settings.Secure.getString(
                 context.contentResolver,
                 "enabled_notification_listeners",
             )
-        return flat?.contains(packageName) == true
+        return flat?.split(':')?.any {
+            ComponentName.unflattenFromString(it) == component
+        } == true
     }
 
     /**

@@ -49,28 +49,19 @@ class ServiceHealthWorker @AssistedInject constructor(
         /**
          * Schedule periodic health checks for the tracking service.
          *
-         * The interval is deliberately matched to
-         * [TrackingServiceHeartbeat.HEARTBEAT_STALE_MS] (30 minutes): a heartbeat is only ever
-         * considered stale once it is that old, so checking every 15 minutes — the platform
-         * minimum, which this used to do — woke the whole process twice as often as the check
-         * could possibly have anything to report. The work itself is trivial, but each run starts
-         * the process and builds the Hilt graph, which is the real cost.
+         * A disconnected listener needs recovery even while the tracking process is still
+         * alive. Check at WorkManager's minimum 15-minute interval; this is a best-effort
+         * safety net, not a real-time scheduling guarantee. The work is lightweight.
          *
-         * `setRequiresBatteryNotLow(true)` replaces the previous explicit "run even on low
-         * battery": restarting a dead listener is a repair, not time-critical, and it should not
-         * be starting a process while the battery is already low. A still-dead listener is picked
-         * up by the next run once the battery recovers.
+         * Do not require battery-not-low: that constraint can permanently suppress
+         * recovery during a long low-battery playback session, exactly when users
+         * rely on background tracking.
          */
         fun schedule(context: Context) {
-            val constraints = Constraints.Builder()
-                .setRequiresBatteryNotLow(true)
-                .build()
-
             val workRequest = PeriodicWorkRequestBuilder<ServiceHealthWorker>(
-                30, TimeUnit.MINUTES,
+                15, TimeUnit.MINUTES,
                 5, TimeUnit.MINUTES // Flex interval
             )
-                .setConstraints(constraints)
                 .setBackoffCriteria(
                     BackoffPolicy.EXPONENTIAL,
                     WorkRequest.MIN_BACKOFF_MILLIS,
@@ -81,7 +72,7 @@ class ServiceHealthWorker @AssistedInject constructor(
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
                 WORK_NAME,
                 // UPDATE, not KEEP: KEEP would leave every existing install on the old
-                // 15-minute cadence, so the change would only reach new installs.
+                // previous cadence, so the change would only reach new installs.
                 ExistingPeriodicWorkPolicy.UPDATE,
                 workRequest
             )
@@ -105,7 +96,7 @@ class ServiceHealthWorker @AssistedInject constructor(
         // Self-heal: if the listener component is stuck DISABLED (e.g. a previous
         // restart attempt died mid-toggle), re-enable it so tracking can recover
         // without a reinstall. The health check runs about every 30 minutes even if
-        // the app is never opened, so the kill window is bounded.
+        // the app is never opened; actual run time can still be delayed by Android.
         try {
             val state = applicationContext.packageManager.getComponentEnabledSetting(componentName)
             if (state == android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED) {

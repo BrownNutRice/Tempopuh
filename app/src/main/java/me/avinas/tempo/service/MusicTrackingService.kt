@@ -728,6 +728,7 @@ class MusicTrackingService : NotificationListenerService() {
 
     // MediaSession management
     private var mediaSessionManager: MediaSessionManager? = null
+    private var activeSessionsChangedListener: MediaSessionManager.OnActiveSessionsChangedListener? = null
 
     // Map of package name to MediaController - ConcurrentHashMap for thread-safe iteration
     private val activeControllers = java.util.concurrent.ConcurrentHashMap<String, MediaController>()
@@ -736,6 +737,11 @@ class MusicTrackingService : NotificationListenerService() {
 
     // Track current playback state per app - ConcurrentHashMap for thread-safe operations
     private val playbackStates = java.util.concurrent.ConcurrentHashMap<String, PlaybackSession>()
+
+    // Notification removals may arrive stripped of their original MediaStyle metadata. Match
+    // their stable key instead of ending a play for any unrelated alert from the same app.
+    private val observedMediaNotificationKeys =
+        java.util.concurrent.ConcurrentHashMap<String, MutableSet<String>>()
 
     // Lock for complex session operations that span multiple map operations
     // Use this for operations that need to read, decide, and write atomically
@@ -1424,6 +1430,12 @@ class MusicTrackingService : NotificationListenerService() {
             serviceScope.launch {
                 while (isActive) {
                     TrackingServiceHeartbeat.markServiceAlive(applicationContext)
+                    // Some OEMs silently drop MediaSession observers while keeping the
+                    // foreground service alive. Reconcile controllers periodically even when
+                    // there is no active play; otherwise new background plays can be missed.
+                    withContext(Dispatchers.Main) {
+                        if (isListenerConnected) rescanActiveMediaSessions()
+                    }
                     // Backstop for sessions whose app vanished without a removal callback. Runs on
                     // the timer that already exists so the sweep costs no extra wakeups; it is a
                     // no-op loop over an empty map the rest of the time.
@@ -2387,9 +2399,16 @@ class MusicTrackingService : NotificationListenerService() {
         serviceScope.launch {
             delay(500) // Wait for system to fully register the listener
             withContext(Dispatchers.Main) {
+                if (!isListenerConnected) return@withContext
+                observedMediaNotificationKeys.clear()
+                // Resolve controller play/pause state before interpreting a possibly stale
+                // media notification. In particular, a paused notification must not
+                // start a fresh running timer when the app comes back from background.
+                rescanActiveMediaSessions()
                 try {
                     activeNotifications?.forEach { sbn ->
                         if (isMusicNotification(sbn)) {
+                            rememberMediaNotification(sbn)
                             processNotificationPosted(sbn)
                         }
                     }
@@ -2399,8 +2418,9 @@ class MusicTrackingService : NotificationListenerService() {
                     Log.e(TAG, "Error scanning active notifications", e)
                 }
 
-                // Also rescan active MediaSessions in case they were missed
-                // during initial initialization
+                // onCreate may try before NotificationManager binds the listener,
+                // so an initial SecurityException must not permanently disable
+                // MediaSession tracking for this service lifetime.
                 rescanActiveMediaSessions()
 
                 // Update lifecycle after initial scan using the correct context
@@ -2414,6 +2434,12 @@ class MusicTrackingService : NotificationListenerService() {
             isListenerConnected = false
         }
         TrackingServiceHeartbeat.markListenerDisconnected(this)
+        observedMediaNotificationKeys.clear()
+        releaseMediaSessionObservation()
+        // Without a connected listener we cannot know whether the player is still
+        // playing; stop the monotonic clocks rather than counting an unobserved gap.
+        playbackStates.values.forEach { it.pause() }
+        serviceScope.launch { saveSessionsToPersistence() }
 
         super.onListenerDisconnected()
         Log.w(TAG, "NotificationListener disconnected - attempting reconnect")
@@ -2425,6 +2451,7 @@ class MusicTrackingService : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         sbn ?: return
         if (!isMusicNotification(sbn)) return
+        rememberMediaNotification(sbn)
         TrackingServiceHeartbeat.markNotificationCallback(this)
 
         Log.d(TAG, "Music notification posted: ${sbn.packageName}")
@@ -2435,23 +2462,36 @@ class MusicTrackingService : NotificationListenerService() {
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {
         sbn ?: return
 
-        // Do NOT gate this on isMusicNotification(sbn).
-        //
-        // A removed notification frequently arrives without the transport category and
-        // EXTRA_MEDIA_SESSION that made it look like media when it was posted. Re-running that
-        // check here therefore returned false, the removal was skipped, and the session stayed in
-        // playbackStates forever. Because updateServiceLifecycle() deliberately keeps showing the
-        // last paused session, that stranded entry pinned the foreground notification to a
-        // finished Viber voice note — surviving even a force-stop of the source app, which is
-        // exactly what users reported.
-        //
-        // If we are holding a session for the package, the removal is ours to process.
-        if (!playbackStates.containsKey(sbn.packageName) && !isMusicNotification(sbn)) return
+        // Do not treat every alert removed by a music app as its playback ending.
+        // Removal notifications can be stripped of MediaStyle fields, so remember the key
+        // when posted and recognize that exact notification on removal.
+        val packageKeys = observedMediaNotificationKeys[sbn.packageName]
+        val wasObservedMedia = packageKeys?.remove(sbn.key) == true
+        if (!wasObservedMedia && !isMusicNotification(sbn)) return
+        if (packageKeys?.isEmpty() == true) {
+            observedMediaNotificationKeys.remove(sbn.packageName, packageKeys)
+        }
+        if (packageKeys?.isNotEmpty() == true) return
+
         TrackingServiceHeartbeat.markNotificationCallback(this)
+        // Some players briefly replace their notification while their media session keeps
+        // playing. The session callback, not an unrelated notification, ends the play.
+        val controllerPlaying = try {
+            activeControllers[sbn.packageName]?.playbackState?.state == PlaybackState.STATE_PLAYING
+        } catch (e: Exception) {
+            false
+        }
+        if (controllerPlaying) return
 
         Log.d(TAG, "Music notification removed: ${sbn.packageName}")
         processNotificationRemoved(sbn)
         updateServiceLifecycle()
+    }
+
+    private fun rememberMediaNotification(sbn: StatusBarNotification) {
+        observedMediaNotificationKeys.computeIfAbsent(sbn.packageName) {
+            java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+        }.add(sbn.key)
     }
 
     /**
@@ -2514,6 +2554,14 @@ class MusicTrackingService : NotificationListenerService() {
         val packageName = sbn.packageName
         val notification = sbn.notification
         val extras = notification.extras
+        val controllerState = try {
+            activeControllers[packageName]?.playbackState?.state
+        } catch (e: Exception) {
+            null
+        }
+        if (controllerState == PlaybackState.STATE_STOPPED ||
+            controllerState == PlaybackState.STATE_NONE
+        ) return
 
         val rawTitle = extras.getCharSequence(EXTRA_TITLE)?.toString()?.trim()
         // Skip notifications with empty titles - metadata hasn't fully arrived yet
@@ -2645,9 +2693,12 @@ class MusicTrackingService : NotificationListenerService() {
                     updateTrackingNotification(title, artist)
                 }
 
-                // Might be a play/pause update
-                if (!session.isPlaying) {
-                    session.resume()
+                // A notification refresh does not prove that a paused player resumed.
+                // Prefer its actual MediaSession state when available.
+                when (controllerState) {
+                    PlaybackState.STATE_PAUSED -> session.pause()
+                    PlaybackState.STATE_PLAYING -> session.resume()
+                    null -> if (!session.isPlaying) session.resume() // notification-only source
                 }
                 return
             }
@@ -2697,7 +2748,8 @@ class MusicTrackingService : NotificationListenerService() {
                         title = title,
                         artist = artist,
                         album = album,
-                        isPlaying = true,
+                        isPlaying = controllerState == null ||
+                            controllerState == PlaybackState.STATE_PLAYING,
                         estimatedDurationMs = cachedDuration,
                         accumulatedPositionMs = 0,
                         lastRecordedPosition = 0,
@@ -3668,18 +3720,18 @@ class MusicTrackingService : NotificationListenerService() {
         }
 
         try {
-            mediaSessionManager = getSystemService(Context.MEDIA_SESSION_SERVICE) as MediaSessionManager
-
+            val manager = getSystemService(Context.MEDIA_SESSION_SERVICE) as MediaSessionManager
             val componentName = ComponentName(this, MusicTrackingService::class.java)
-            mediaSessionManager?.addOnActiveSessionsChangedListener(
-                { controllers -> onActiveSessionsChanged(controllers) },
-                componentName,
-            )
-
+            val listener = MediaSessionManager.OnActiveSessionsChangedListener { controllers ->
+                onActiveSessionsChanged(controllers)
+            }
+            manager.addOnActiveSessionsChangedListener(listener, componentName)
+            mediaSessionManager = manager
+            activeSessionsChangedListener = listener
             isMediaSessionManagerInitialized = true
 
             // Process currently active sessions
-            val activeSessions = mediaSessionManager?.getActiveSessions(componentName)
+            val activeSessions = manager.getActiveSessions(componentName)
             onActiveSessionsChanged(activeSessions)
 
             Log.i(TAG, "MediaSessionManager initialized with ${activeSessions?.size ?: 0} active sessions")
@@ -3690,10 +3742,34 @@ class MusicTrackingService : NotificationListenerService() {
         }
     }
 
+    private fun releaseMediaSessionObservation() {
+        activeSessionsChangedListener?.let { listener ->
+            try {
+                mediaSessionManager?.removeOnActiveSessionsChangedListener(listener)
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not remove MediaSession observer", e)
+            }
+        }
+        activeSessionsChangedListener = null
+        isMediaSessionManagerInitialized = false
+        mediaSessionManager = null
+        activeControllers.forEach { (packageName, controller) ->
+            packageSpecificCallbacks[packageName]?.let { callback ->
+                try {
+                    controller.unregisterCallback(callback)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Could not unregister MediaSession callback for $packageName", e)
+                }
+            }
+        }
+        activeControllers.clear()
+        packageSpecificCallbacks.clear()
+    }
+
     private fun rescanActiveMediaSessions() {
         if (!isMediaSessionManagerInitialized) {
-            Log.d(TAG, "MediaSessionManager not initialized, skipping rescan")
-            return
+            initializeMediaSessionManager()
+            if (!isMediaSessionManagerInitialized) return
         }
         try {
             val componentName = ComponentName(this, MusicTrackingService::class.java)
@@ -3706,7 +3782,9 @@ class MusicTrackingService : NotificationListenerService() {
     }
 
     private fun onActiveSessionsChanged(controllers: List<MediaController>?) {
-        val currentControllers = controllers ?: emptyList()
+        // One controller per package is the current tracking model. Deduplicate source
+        // snapshots so two simultaneous tokens do not replace each other in one pass.
+        val currentControllers = controllers.orEmpty().distinctBy { it.packageName }
 
         // Debounce session change logs - avoid spam when count unchanged within 2 seconds
         val now = System.currentTimeMillis()
@@ -3725,7 +3803,15 @@ class MusicTrackingService : NotificationListenerService() {
 
         removedPackages.forEach { packageName ->
             // Unregister callback
-            activeControllers[packageName]?.unregisterCallback(packageSpecificCallbacks[packageName] ?: sharedCallback)
+            activeControllers[packageName]?.let { old ->
+                packageSpecificCallbacks[packageName]?.let { callback ->
+                    try {
+                        old.unregisterCallback(callback)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "MediaSession already gone for $packageName", e)
+                    }
+                }
+            }
             activeControllers.remove(packageName)
             packageSpecificCallbacks.remove(packageName)
 
@@ -3742,7 +3828,22 @@ class MusicTrackingService : NotificationListenerService() {
         currentControllers.forEach { controller ->
             val packageName = controller.packageName
 
-            // Skip if already tracked
+            // A music app can replace its MediaSession token without changing package
+            // (Spotify reconnect, player restart, cast handoff). The old callback is then
+            // dead even though activeControllers still contains this package.
+            val previous = activeControllers[packageName]
+            if (previous != null && previous.sessionToken != controller.sessionToken) {
+                packageSpecificCallbacks.remove(packageName)?.let { callback ->
+                    try {
+                        previous.unregisterCallback(callback)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Previous MediaSession already gone for $packageName", e)
+                    }
+                }
+                activeControllers.remove(packageName, previous)
+                Log.i(TAG, "MediaSession token changed for $packageName; attaching new controller")
+            }
+
             if (!activeControllers.containsKey(packageName)) {
                 // Default-deny: an app is tracked only when the allowlist says so. The previous
                 // rule here ("track unknown apps if the session looks like music") is what let
@@ -4354,6 +4455,9 @@ class MusicTrackingService : NotificationListenerService() {
 
         override fun onSessionDestroyed() {
             super.onSessionDestroyed()
+            // A destroyed old token may race a replacement controller registration.
+            // It must never remove the replacement's callback or playback session.
+            if (packageSpecificCallbacks[packageName] !== this) return
             TrackingServiceHeartbeat.markMediaSessionCallback(applicationContext)
             Log.d(TAG, "Session destroyed for $packageName")
             // Handle destruction same as removal
@@ -4694,21 +4798,10 @@ class MusicTrackingService : NotificationListenerService() {
         }
         isMediaSessionManagerInitialized = false
 
-        // Cleanup MediaSession callbacks so no new position updates land mid-flush
-        val controllerSnapshot: List<Pair<String, MediaController>>
-        synchronized(activeControllers) {
-            controllerSnapshot = activeControllers.toList()
-        }
-        controllerSnapshot.forEach { (packageName, controller) ->
-            val callback = packageSpecificCallbacks[packageName] ?: sharedCallback
-            try {
-                controller.unregisterCallback(callback)
-            } catch (e: Exception) {
-                Log.w(TAG, "Error unregistering callback for $packageName", e)
-            }
-        }
-        activeControllers.clear()
-        packageSpecificCallbacks.clear()
+        // Release both the manager observer and per-token callbacks. Previously the
+        // manager observer was never unregistered, leaking destroyed service instances.
+        releaseMediaSessionObservation()
+        observedMediaNotificationKeys.clear()
 
         // Flush everything synchronously BEFORE cancelling serviceScope.
         //
