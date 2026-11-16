@@ -22,7 +22,8 @@ object SpotifyBroadcastPresence {
         val durationMs: Long,
         val updatedAtMs: Long,
         val packageName: String = "com.spotify.music",
-        val source: String = "Spotify broadcast"
+        val source: String = "Spotify broadcast",
+        val verifiedByApiAtMs: Long? = null
     )
 
     private val mutablePresence = MutableStateFlow<Presence?>(null)
@@ -41,9 +42,14 @@ object SpotifyBroadcastPresence {
     }
 
     internal fun publish(track: SpotifyBroadcastBridge.Track, playing: Boolean, positionMs: Long) {
+        val current = mutablePresence.value
+        val match = current?.title == track.title &&
+            current.artist == track.artist &&
+            current.packageName == "com.spotify.music"
         mutablePresence.value = Presence(
             track.title, track.artist, track.album, playing,
-            positionMs, track.durationMs, System.currentTimeMillis()
+            positionMs, track.durationMs, System.currentTimeMillis(),
+            verifiedByApiAtMs = if (match) current?.verifiedByApiAtMs else null,
         )
     }
 
@@ -52,6 +58,68 @@ object SpotifyBroadcastPresence {
      * broadcasts are disabled, delayed, or unavailable. Let recent broadcasts
      * win briefly so stale MediaSession snapshots cannot flicker the card.
      */
+    /**
+     * A Spotify Web API snapshot can verify local metadata or display remote
+     * Spotify Connect playback. Never replace a recent local play/pause event
+     * with a possibly delayed Web API response.
+     */
+    internal fun publishFromApi(
+        title: String,
+        artist: String,
+        album: String?,
+        playing: Boolean,
+        positionMs: Long,
+        durationMs: Long,
+        deviceName: String?,
+    ) {
+        if (title.isBlank() || artist.isBlank()) return
+        val now = System.currentTimeMillis()
+        val current = mutablePresence.value
+        val matchingLocal = current != null &&
+            current.source != "Spotify Web API" &&
+            !current.source.startsWith("Spotify Connect ·") &&
+            current.packageName == "com.spotify.music" &&
+            current.title.equals(title, ignoreCase = true) &&
+            current.artist.contains(artist, ignoreCase = true)
+        if (matchingLocal && now - current!!.updatedAtMs < 90_000L) {
+            mutablePresence.value = current.copy(
+                album = current.album ?: album,
+                durationMs = current.durationMs.takeIf { it > 0L } ?: durationMs,
+                verifiedByApiAtMs = now,
+            )
+            return
+        }
+
+        if (current != null &&
+            now - current.updatedAtMs < 90_000L &&
+            current.source != "Spotify Web API" &&
+            !current.source.startsWith("Spotify Connect ·")
+        ) {
+            // Fresh device observations, including another local player, win.
+            return
+        }
+
+        mutablePresence.value = Presence(
+            title = title,
+            artist = artist,
+            album = album,
+            playing = playing,
+            positionMs = positionMs.coerceAtLeast(0L),
+            durationMs = durationMs.coerceAtLeast(0L),
+            updatedAtMs = now,
+            source = deviceName?.takeIf { it.isNotBlank() }
+                ?.let { "Spotify Connect · $it" } ?: "Spotify Web API",
+        )
+    }
+
+    internal fun clearApiIfInactive() {
+        if (mutablePresence.value?.source == "Spotify Web API" ||
+            mutablePresence.value?.source?.startsWith("Spotify Connect ·") == true
+        ) {
+            mutablePresence.value = null
+        }
+    }
+
     internal fun publishFromLocal(
         packageName: String,
         title: String,
