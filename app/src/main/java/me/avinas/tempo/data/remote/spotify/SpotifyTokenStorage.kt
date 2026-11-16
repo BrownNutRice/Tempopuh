@@ -24,6 +24,7 @@ class SpotifyTokenStorage @Inject constructor(
         private const val TAG = "SpotifyTokenStorage"
         private const val PREFS_NAME = "spotify_auth_prefs"
         
+        private const val KEY_CUSTOM_CLIENT_ID = "custom_client_id"
         private const val KEY_ACCESS_TOKEN = "access_token"
         private const val KEY_REFRESH_TOKEN = "refresh_token"
         private const val KEY_EXPIRES_AT = "expires_at"
@@ -230,6 +231,21 @@ class SpotifyTokenStorage @Inject constructor(
     /**
      * Clear all stored tokens and user data.
      */
+    /** Client ID is public OAuth configuration; store alongside the user's encrypted tokens. */
+    fun getCustomClientId(): String? = encryptedPrefs
+        .getString(KEY_CUSTOM_CLIENT_ID, null)
+        ?.takeIf { it.matches(Regex("[0-9a-fA-F]{32}")) }
+
+    fun setCustomClientId(id: String) {
+        require(id.isEmpty() || id.matches(Regex("[0-9a-fA-F]{32}")))
+        check(getAccessToken() == null) { "Disconnect Spotify before changing the Client ID" }
+        encryptedPrefs.edit().apply {
+            if (id.isEmpty()) remove(KEY_CUSTOM_CLIENT_ID)
+            else putString(KEY_CUSTOM_CLIENT_ID, id)
+            apply()
+        }
+    }
+
     fun clearTokens() {
         encryptedPrefs.edit().apply {
             remove(KEY_ACCESS_TOKEN)
