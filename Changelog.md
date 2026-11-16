@@ -2,6 +2,43 @@
 
 All notable changes to Tempo are documented in this file.
 
+## [4.8.16-fork.1] — 2026-11-16
+
+**First fork preview** of Tempo with more responsive local music tracking and
+safer reconciliation between Android, Spotify and the browser companion.
+
+### Added
+- Provisional live-session listening timer and privacy-conscious playback timing diagnostics.
+- Opt-in, backup-confirmed history-quality scan and correction for unverifiable
+  legacy Spotify API estimates.
+- Spotify recently-played page traversal with safeguards against missing pages
+  and incorrect cursor advancement.
+- Regression coverage for replay protection, Spotify metadata validation, fast
+  repeat listening, concurrent devices and historical session aggregation.
+
+### Changed
+- Improved elapsed-time accounting across pause/resume, seeking and screen-off playback.
+- Reduced completed-play queueing latency and refresh delays in Home, History and Stats.
+- Changed Spotify API history reconciliation to approximately 20-minute
+  WorkManager scheduling; removed the 45-second foreground playback-state poll.
+- Corrected average/longest session calculations and unknown-completion/skip statistics.
+- Reorganized the README and removed checked-in generated browser dependencies.
+
+### Fixed and hardened
+- Centralized listening-event deduplication across local and imported sources.
+- Hardened Spotify broadcast validation and browser companion HTTP request replay protection.
+- Corrected stalled/retryable HTTP response handling, importer concurrency and track identity conflicts.
+
+### Known limitations
+- Debug-signed preview APK; in-place upgrades require the same signing certificate.
+- Google Drive requires per-fork OAuth configuration and actual APK signing SHA-1.
+- Spotify history availability is constrained by Spotify's own server-side window.
+- Real-device verification of the earlier one-minute-per-song symptom is still pending.
+
+Read the [complete release notes](docs/releases/v4.8.16-fork.1.md).
+
+---
+
 ## [Unreleased]
 
 ### Added
