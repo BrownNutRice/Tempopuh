@@ -884,7 +884,22 @@ class MusicTrackingService : NotificationListenerService() {
         // position advances as wall-clock minutes (seeks and 2x speed differ).
         private val recoveredListeningMs: Long = accumulatedPositionMs.coerceAtLeast(0L)
         private var wallClockPlayedMs: Long = 0L
-        private var lastResumeMonotonicMs: Long = System.nanoTime() / 1_000_000L
+
+        // elapsedRealtime includes Android device suspend. An audio-offloaded
+        // player may continue playing while the CPU sleeps; System.nanoTime
+        // does NOT necessarily cover that interval and would undercount music.
+        // Framework stubs in plain JVM tests return zero, so use a JVM clock
+        // fallback only when Android's elapsed-time clock is unavailable.
+        private fun playbackClockMs(): Long {
+            val androidMs = try {
+                android.os.SystemClock.elapsedRealtime()
+            } catch (_: RuntimeException) {
+                0L
+            }
+            return if (androidMs > 0L) androidMs else System.nanoTime() / 1_000_000L
+        }
+
+        private var lastResumeMonotonicMs: Long = playbackClockMs()
         private var observedPositionProgress: Boolean = false
 
         /**
@@ -895,7 +910,7 @@ class MusicTrackingService : NotificationListenerService() {
          */
         @Synchronized fun calculateCurrentPlayDuration(): Long {
             val elapsedSinceResume = if (isPlaying) {
-                ((System.nanoTime() / 1_000_000L) - lastResumeMonotonicMs)
+                ((playbackClockMs()) - lastResumeMonotonicMs)
                     .coerceAtLeast(0L)
             } else 0L
             return (recoveredListeningMs + wallClockPlayedMs + elapsedSinceResume)
@@ -1025,7 +1040,7 @@ class MusicTrackingService : NotificationListenerService() {
          */
         @Synchronized fun pause() {
             if (isPlaying) {
-                wallClockPlayedMs += ((System.nanoTime() / 1_000_000L) -
+                wallClockPlayedMs += ((playbackClockMs()) -
                     lastResumeMonotonicMs).coerceAtLeast(0L)
                 isPlaying = false
                 pauseCount++
@@ -1049,7 +1064,7 @@ class MusicTrackingService : NotificationListenerService() {
                 }
 
                 isPlaying = true
-                lastResumeMonotonicMs = System.nanoTime() / 1_000_000L
+                lastResumeMonotonicMs = playbackClockMs()
                 // Reset position update time so we don't accumulate the pause gap
                 lastPositionUpdateTime = now
                 lastPauseTimestamp = null
