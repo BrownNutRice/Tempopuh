@@ -81,6 +81,12 @@ object SpotifyBroadcastPresence {
         )
     }
 
+    internal fun clearLocalIfNoSession() {
+        if (mutablePresence.value?.source == "Android media tracking") {
+            mutablePresence.value = null
+        }
+    }
+
     internal fun clearForPackage(packageName: String) {
         if (mutablePresence.value?.packageName == packageName) {
             mutablePresence.value = null
