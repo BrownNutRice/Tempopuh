@@ -66,7 +66,10 @@ internal class SpotifyBroadcastBridge(
                         title = title,
                         artist = artist,
                         album = intent.getStringExtra("album"),
-                        durationMs = intent.getIntExtra("length", 0).coerceAtLeast(0).toLong(),
+                        // Spotify's documentation says seconds, but recent versions
+                        // are reported to send milliseconds. Accept both forms.
+                        durationMs = intent.getIntExtra("length", 0).coerceAtLeast(0).toLong()
+                            .let { if (it in 1L..10_000L) it * 1000L else it },
                     )
                     positionMs = 0L
                 }
