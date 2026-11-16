@@ -202,3 +202,32 @@ while Tempo's tracking service is alive, and is unregistered when it stops.
 Spotify broadcasts are unauthenticated on older Android versions and are not a
 security-sensitive source of truth. Test song changes, pause/resume and skips on
 your own device when using a newly built APK.
+
+
+### Spotify tracking controls (this fork)
+
+Open **Tempo → Settings** to configure Spotify. Use **Spotify API · Connect account**
+to open the OAuth login page. When building without a bundled Spotify Client ID,
+enter the 32-character Client ID of your Spotify Developer app. In the Spotify
+Developer Dashboard register exactly `tempo://spotify-callback` as a redirect
+URI. Spotify uses PKCE authorization; you never enter a Spotify password in Tempo.
+
+For developer-mode apps, Spotify currently requires a Premium subscription
+for the app owner and limits accounts to the developer allowlist. See Spotify's
+developer documentation for the current quota restrictions.
+
+Choose **one listening-history source** at a time:
+- **Spotify Device Broadcast Status**: Fast local Spotify app events; also enable
+  Spotify → Settings → Playback → Device Broadcast Status. Requires Tempo's
+  tracking service running. A Now Playing card appears on the Tempo Settings screen
+  when Spotify emits events.
+- **Spotify API-only history sync**: Uses Spotify authorization and periodic
+  recently-played sync, including Spotify Connect playback. It does not provide
+  real-time presence; recent tracks can arrive later. Enabling this disables local
+  broadcast mode to avoid duplicate sessions.
+- **Default MediaSession/notification tracking**: Android fallback for local
+  playback when broadcasts are unavailable.
+
+The Now Playing card is **local to Tempo** and is not Discord Rich Presence.
+Historical play counts are generally finalized when songs end or the session
+closes, so the history screen can lag behind currently playing content.
