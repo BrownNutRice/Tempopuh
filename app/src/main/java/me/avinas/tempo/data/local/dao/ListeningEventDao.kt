@@ -28,7 +28,7 @@ interface ListeningEventDao {
         // (which is the end time). Search a bounded wider range for Spotify
         // reconciliation, then compare observed END times precisely below.
         const val SPOTIFY_API_LOOKBACK_MS = 15 * 60_000L
-        const val SPOTIFY_END_TOLERANCE_MS = 45_000L
+        const val SPOTIFY_END_TOLERANCE_MS = 15_000L
     }
 
     @Query("SELECT * FROM listening_events WHERE id = :id")
@@ -139,7 +139,7 @@ interface ListeningEventDao {
      */
     @Query(
         """
-        SELECT id, track_id, timestamp, playDuration, source, content_fingerprint, end_timestamp
+        SELECT id, track_id, timestamp, playDuration, source, content_fingerprint, end_timestamp, session_id
         FROM listening_events
         WHERE track_id = :trackId
         AND timestamp BETWEEN :tsMin AND :tsMax
@@ -246,7 +246,7 @@ interface ListeningEventDao {
             // same-play conflict checks on this track.
             val acceptedSlots = ArrayList<Slot>(existingAlive.size + sortedIncoming.size)
             for (ex in existingAlive) {
-                acceptedSlots.add(Slot(ex.timestamp, ex.end_timestamp, ex.playDuration, ex.source, true, ex.id))
+                acceptedSlots.add(Slot(ex.timestamp, ex.end_timestamp, ex.playDuration, ex.source, true, ex.id, ex.session_id))
             }
 
             for (incoming in sortedIncoming) {
@@ -257,7 +257,7 @@ interface ListeningEventDao {
                     // No conflict → accept the incoming event.
                     toInsert.add(incoming)
                     acceptedSlots.add(
-                        Slot(incoming.timestamp, incoming.endTimestamp, incoming.playDuration, incoming.source, false),
+                        Slot(incoming.timestamp, incoming.endTimestamp, incoming.playDuration, incoming.source, false, sessionId = incoming.sessionId),
                     )
                     continue
                 }
@@ -280,6 +280,7 @@ interface ListeningEventDao {
                             incoming.playDuration,
                             incoming.source,
                             false,
+                            sessionId = incoming.sessionId,
                         )
                     toInsert.add(incoming)
                 } else {
@@ -315,6 +316,8 @@ interface ListeningEventDao {
         val isExisting: Boolean,
         /** listening_events.id when this slot came from the database; null for incoming events. */
         val existingId: Long? = null,
+        /** Distinct observed sessions must not be collapsed by a 5s window. */
+        val sessionId: String? = null,
     )
 
     /**
@@ -328,6 +331,16 @@ interface ListeningEventDao {
         incoming: ListeningEvent,
     ): Boolean {
         val sameSource = slot.source == incoming.source
+        if (sameSource && !slot.sessionId.isNullOrBlank() &&
+            !incoming.sessionId.isNullOrBlank() && slot.sessionId != incoming.sessionId
+        ) return false
+
+        // Android + desktop may play the same recording concurrently. These
+        // are independent observed sessions, not lower-fidelity imported copies.
+        if (!sameSource && SourceAuthority.rank(slot.source) >= 90 &&
+            SourceAuthority.rank(incoming.source) >= 90
+        ) return false
+
         val apiVsLive =
             (slot.source == "com.spotify.music.import" && incoming.source == "com.spotify.music") ||
             (incoming.source == "com.spotify.music.import" && slot.source == "com.spotify.music")
@@ -408,6 +421,7 @@ interface ListeningEventDao {
         val source: String,
         val content_fingerprint: String?,
         val end_timestamp: Long?,
+        val session_id: String?,
     )
 
     /** Desktop source → count breakdown. */
