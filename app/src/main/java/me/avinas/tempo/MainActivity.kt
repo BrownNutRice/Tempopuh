@@ -84,12 +84,20 @@ class MainActivity : AppCompatActivity() {
                 if (spotifyAuthManager.isConnected() &&
                     userPreferencesDao.getSync()?.spotifyApiOnlyMode == true
                 ) {
-                    if (!SpotifyPollingWorker.isScheduled(applicationContext)) {
-                        SpotifyPollingWorker.schedule(applicationContext)
-                    }
-                    // Refresh when the user opens Tempo, but don't hammer Spotify
-                    // if they repeatedly move between activities.
+                    // WorkManager UPDATE changes an existing 15-minute job to
+                    // the new 20-minute interval, but only if schedule() runs.
+                    // Store the schedule generation so an app upgrade updates
+                    // existing installs exactly once without restarting the
+                    // periodic timer on every Activity recreation.
                     val syncPrefs = getSharedPreferences("spotify_sync_cadence", MODE_PRIVATE)
+                    if (syncPrefs.getInt("schedule_generation", 0) < 2 ||
+                        !SpotifyPollingWorker.isScheduled(applicationContext)
+                    ) {
+                        SpotifyPollingWorker.schedule(applicationContext)
+                        syncPrefs.edit().putInt("schedule_generation", 2).apply()
+                    }
+                    // Request an extra reconciliation only after a long gap.
+                    // Device broadcasts and MediaSession remain real-time.
                     val now = System.currentTimeMillis()
                     if (now - syncPrefs.getLong("last_requested_at", 0L) > 20 * 60_000L) {
                         syncPrefs.edit().putLong("last_requested_at", now).apply()
