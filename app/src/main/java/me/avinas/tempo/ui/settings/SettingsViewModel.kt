@@ -443,6 +443,14 @@ class SettingsViewModel
             if (auth.isConfigured()) auth.startLoginFlow() else null
         }
 
+        suspend fun disconnectSpotify(): Unit = withContext(Dispatchers.IO) {
+            spotifyAuthManager.get().disconnect()
+            SpotifyPollingWorker.cancel(context)
+            val prefs = userPreferencesDao.getSync() ?: me.avinas.tempo.data.local.entities.UserPreferences()
+            userPreferencesDao.upsert(prefs.copy(spotifyApiOnlyMode = false))
+            _uiState.update { it.copy(spotifyApiOnlyMode = false) }
+        }
+
         fun toggleSpotifyApiOnlyMode(enabled: Boolean) {
             viewModelScope.launch {
                 val currentPrefs =
