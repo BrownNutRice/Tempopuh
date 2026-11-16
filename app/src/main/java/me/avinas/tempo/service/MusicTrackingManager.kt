@@ -21,14 +21,16 @@ import java.util.concurrent.atomic.AtomicLong
 class MusicTrackingManager(
     private val listeningRepository: ListeningRepository,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
-    private val offlineEventStore: OfflineEventStore? = null
+    private val offlineEventStore: OfflineEventStore? = null,
+    // Called only after the database write has succeeded (not when merely queued).
+    private val onPersisted: (List<ListeningEvent>) -> Unit = {}
 ) {
     companion object {
         private const val TAG = "MusicTrackingManager"
         
         // Batching configuration
         private const val BATCH_SIZE = 10
-        private const val BATCH_TIMEOUT_MS = 30_000L // 30 seconds
+        private const val BATCH_TIMEOUT_MS = 750L // Ended plays should appear in history within ~1s
         
         // Retry configuration
         private const val MAX_RETRIES = 5
@@ -162,6 +164,7 @@ class MusicTrackingManager(
 
         if (id > 0L) {
             updateMetrics { it.copy(eventsSaved = it.eventsSaved + 1) }
+            onPersisted(listOf(event))
         }
         return Result.success(id)
     }
@@ -240,59 +243,48 @@ class MusicTrackingManager(
     private fun startBatchProcessor() {
         batchJob = scope.launch {
             val batch = mutableListOf<PendingEvent>()
-            var lastFlushTime = System.currentTimeMillis()
-
+            var batchStartedAt = 0L
             try {
                 while (true) {
-                    // Wait for the next event, but never longer than the batch
-                    // timeout. The previous implementation only flushed when a NEW
-                    // event arrived, so the last events of a quiet period could sit
-                    // in memory indefinitely (and be lost on a process kill).
-                    val remaining = BATCH_TIMEOUT_MS - (System.currentTimeMillis() - lastFlushTime)
-                    val result = if (remaining > 0) {
-                        withTimeoutOrNull(remaining) { eventChannel.receiveCatching() }
+                    // Idle with no wakeups until there is actual work. The timer
+                    // starts with the first event, not with a service-level tick.
+                    val result = if (batch.isEmpty()) {
+                        eventChannel.receiveCatching()
                     } else {
-                        null
+                        val remaining = BATCH_TIMEOUT_MS -
+                            ((System.nanoTime() / 1_000_000L) - batchStartedAt)
+                        if (remaining > 0L) {
+                            withTimeoutOrNull(remaining) { eventChannel.receiveCatching() }
+                        } else {
+                            null
+                        }
                     }
-
                     if (result == null) {
-                        // Timeout with no new event — flush what we have
                         if (batch.isNotEmpty()) {
                             processBatch(batch.toList())
                             batch.clear()
                         }
-                        lastFlushTime = System.currentTimeMillis()
                         continue
                     }
-
-                    val event = result.getOrNull() ?: break // channel closed
+                    val event = result.getOrNull() ?: break
+                    if (batch.isEmpty()) {
+                        batchStartedAt = System.nanoTime() / 1_000_000L
+                    }
                     batch.add(event)
-
-                    val now = System.currentTimeMillis()
-                    val shouldFlush = batch.size >= BATCH_SIZE ||
-                            (now - lastFlushTime) >= BATCH_TIMEOUT_MS
-
-                    if (shouldFlush) {
+                    if (batch.size >= BATCH_SIZE) {
                         processBatch(batch.toList())
                         batch.clear()
-                        lastFlushTime = now
                     }
                 }
-
-                // Process remaining events when channel closes
-                if (batch.isNotEmpty()) {
-                    processBatch(batch.toList())
-                }
+                if (batch.isNotEmpty()) processBatch(batch.toList())
             } catch (e: CancellationException) {
-                // Process remaining on cancellation
-                if (batch.isNotEmpty()) {
-                    processBatch(batch.toList())
-                }
+                // Service shutdown uses flushAll() before cancelling the scope.
+                // Don't make a Room call from a cancelled coroutine.
                 throw e
             }
         }
     }
-    
+
     private suspend fun processBatch(batch: List<PendingEvent>) {
         if (batch.isEmpty()) return
         
@@ -323,6 +315,7 @@ class MusicTrackingManager(
                 }
 
                 var successCount = 0
+                val savedEvents = ArrayList<ListeningEvent>(candidates.size)
                 candidates.forEachIndexed { index, pending ->
                     val id = ids.getOrNull(index) ?: -1L
                     if (id <= 0L) {
@@ -331,6 +324,7 @@ class MusicTrackingManager(
                         }
                     } else if (shouldPersistEvent(pending.event)) {
                         successCount++
+                        savedEvents.add(pending.event)
                     } else {
                         // Complements the pre-insert check. If NON_MUSIC was committed
                         // during insertAll(), remove the row that was just created.
@@ -345,6 +339,7 @@ class MusicTrackingManager(
                         batchesProcessed = it.batchesProcessed + 1
                     ) 
                 }
+                if (savedEvents.isNotEmpty()) onPersisted(savedEvents)
                 Log.d(TAG, "Batch saved: $successCount/${candidates.size} valid events")
             } finally {
                 isProcessing.value = false
@@ -513,6 +508,7 @@ class MusicTrackingManager(
                         Log.d(TAG, "Removed offline event rejected after persistence: trackId=${pending.event.track_id}")
                     } else {
                         updateMetrics { it.copy(eventsSaved = it.eventsSaved + 1) }
+                        onPersisted(listOf(pending.event))
                     }
                     offlineQueue.remove(pending.key())
                 } else if (!shouldPersistEvent(pending.event)) {
