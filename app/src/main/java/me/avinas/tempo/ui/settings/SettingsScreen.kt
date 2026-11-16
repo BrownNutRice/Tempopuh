@@ -629,7 +629,7 @@ fun SettingsScreen(
                         SettingsOption(
                             title = if (spotifyConnected) "Spotify API · Connected" else "Spotify API · Connect account",
                             subtitle = if (spotifyConnected) {
-                                "Spotify authorization active. Use the API-only option below to import recent plays."
+                                "Spotify authorization active. Use the history sync option below to import recent plays."
                             } else {
                                 "Sign into Spotify in your browser to allow Tempo to import listening history."
                             },
@@ -690,13 +690,13 @@ fun SettingsScreen(
 
                         SettingsSwitch(
                             title = "Spotify API history sync",
-                            subtitle = "Automatic Spotify history reconciliation (about every 15 minutes) alongside local broadcasts and MediaSession. Requires Spotify login.",
+                            subtitle = "Automatic Spotify history reconciliation (about every 20 minutes) alongside local broadcasts and MediaSession. Requires Spotify login.",
                             checked = uiState.spotifyApiOnlyMode,
                             onCheckedChange = { enabled ->
                                 if (enabled && !spotifyConnected) {
                                     Toast.makeText(
                                         context,
-                                        "Connect your Spotify account before using API-only tracking.",
+                                        "Connect your Spotify account before using Spotify API sync.",
                                         Toast.LENGTH_LONG
                                     ).show()
                                 } else {
