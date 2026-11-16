@@ -60,7 +60,10 @@ object SmartListeningEventGenerator {
         val endTime: Long,    // Latest possible event timestamp (usually now)
         val totalEventsTarget: Int,  // Approximate total events to generate
         val source: String = SpotifyTopItemsService.IMPORT_SOURCE,
-        val generateForTopTracksWithoutDates: Boolean = true  // Enable smart estimation
+        // A liked date, ranking or yearly playlist does not prove a listening event occurred.
+        // Never add synthetic plays to real listening statistics unless explicitly requested.
+        val generateForTopTracksWithoutDates: Boolean = false,
+        val allowSyntheticPlaybackEvents: Boolean = false
     )
     
 
@@ -73,7 +76,7 @@ object SmartListeningEventGenerator {
         tracks: List<TrackWithAffinity>,
         config: GenerationConfig
     ): List<ListeningEvent> {
-        if (tracks.isEmpty()) return emptyList()
+        if (tracks.isEmpty() || !config.allowSyntheticPlaybackEvents) return emptyList()
         
         // Deduplicate: if trackId appears multiple times, keep highest-quality record.
         // Priority: addedTimestamp > yearContext > topTracksOnly
