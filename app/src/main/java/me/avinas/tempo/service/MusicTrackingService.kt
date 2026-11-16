@@ -922,7 +922,8 @@ class MusicTrackingService : NotificationListenerService() {
                 lastRecordedPosition = newPosition
                 lastKnownPosition = newPosition
                 lastPositionUpdateTime = now
-                isPlaying = isCurrentlyPlaying
+                // First baseline is not a state transition: the caller must
+                // still run pause()/resume() and close the monotonic timer.
                 hasReceivedInitialPosition = true
                 Log.d("PlaybackSession", "Established initial position baseline: ${newPosition}ms for '$title'")
                 return
