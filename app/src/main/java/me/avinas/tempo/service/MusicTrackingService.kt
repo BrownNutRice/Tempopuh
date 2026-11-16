@@ -662,7 +662,6 @@ class MusicTrackingService : NotificationListenerService() {
                 val prefs = userPreferencesDao.getSync()
                 cachedFilterPodcasts = prefs?.filterPodcasts ?: true
                 cachedFilterAudiobooks = prefs?.filterAudiobooks ?: true
-                cachedSpotifyApiOnlyMode = prefs?.spotifyApiOnlyMode ?: false
                 cachedMergeAlternateVersions = prefs?.mergeAlternateVersions ?: true
                 lastPreferencesFetch = now
             } catch (e: Exception) {
@@ -672,11 +671,6 @@ class MusicTrackingService : NotificationListenerService() {
 
         val filterPodcasts = cachedFilterPodcasts
         val filterAudiobooks = cachedFilterAudiobooks
-
-        if (cachedSpotifyApiOnlyMode && packageName == "com.spotify.music") {
-            Log.d(TAG, "Filtering Spotify notification (Spotify-API-Only mode enabled)")
-            return true
-        }
 
         if (filterPodcasts && packageName in DefaultMusicApps.PODCAST_PACKAGES) {
             Log.d(TAG, "Filtering podcast app: $packageName")
@@ -783,7 +777,6 @@ class MusicTrackingService : NotificationListenerService() {
     private var cachedFilterAudiobooks: Boolean = true
 
     @Volatile
-    private var cachedSpotifyApiOnlyMode: Boolean = false
     private var lastPreferencesFetch: Long = 0
     private val PREFERENCES_CACHE_TTL_MS = 60_000L // Refresh every 60 seconds
 
