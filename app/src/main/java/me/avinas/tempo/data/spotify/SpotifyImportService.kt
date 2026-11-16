@@ -54,6 +54,8 @@ class SpotifyImportService @Inject constructor(
         
         // Rate limit protection
         private const val CURSOR_OVERLAP_MS = 30 * 60 * 1000L
+        private const val MAX_PAGES_PER_SYNC = 6
+        private const val PAGE_SIZE = 50
         
         // Source identifier for imported events
         const val IMPORT_SOURCE = "com.spotify.music.import"
@@ -127,40 +129,94 @@ class SpotifyImportService @Inject constructor(
         return try {
             Log.i(TAG, "Starting Spotify import (limit=$limit, afterCursor=$afterCursor)")
             
-            // Fetch recently played from Spotify
-            val response = spotifyApi.getRecentlyPlayed(
-                authorization = authHeader,
-                limit = limit.coerceIn(1, 50),
-                after = afterCursor?.let { (it - CURSOR_OVERLAP_MS).coerceAtLeast(0L) }
-            )
-            
-            if (!response.isSuccessful) {
-                val errorBody = response.errorBody()?.string()
-                Log.e(TAG, "Spotify API error: ${response.code()} - $errorBody")
-                
-                return when (response.code()) {
-                    401 -> ImportResult.error("Spotify session expired. Please reconnect.")
-                    429 -> ImportResult.error("Rate limited by Spotify. Try again later.")
-                    else -> ImportResult.error("Spotify API error: ${response.code()}")
+            // Spotify returns at most 50 items per request. Walk backward using
+            // the before cursor until reaching the previous successful cursor.
+            // Never supply before and after in the same request (Spotify rejects it).
+            val lowerBound = afterCursor?.let { (it - CURSOR_OVERLAP_MS).coerceAtLeast(0L) }
+            var before: Long? = null
+            var latestSeen: Long? = null
+            var pageCount = 0
+            var reachedBoundary = false
+            var incomplete = false
+            val allItems = ArrayList<PlayHistoryObject>()
+            val seenPlays = HashSet<String>()
+
+            while (pageCount < MAX_PAGES_PER_SYNC) {
+                val response = spotifyApi.getRecentlyPlayed(
+                    authorization = authHeader,
+                    limit = PAGE_SIZE,
+                    after = if (before == null) lowerBound else null,
+                    before = before,
+                )
+                if (!response.isSuccessful) {
+                    // Do not advance cursor after partially successful pages.
+                    val code = response.code()
+                    Log.w(TAG, "Spotify recently-played API returned HTTP $code (page ${pageCount + 1})")
+                    return when (code) {
+                        401 -> ImportResult.error("Spotify session expired. Please reconnect.")
+                        403 -> ImportResult.error("Spotify API error: 403 (scope or developer access unavailable)")
+                        429 -> ImportResult.error("Rate limited by Spotify. Try again later.")
+                        else -> ImportResult.error("Spotify API error: $code")
+                    }
                 }
+                val page = response.body()
+                    ?: return ImportResult.error("Spotify recently-played returned an empty response")
+                pageCount++
+                val records = page.items
+                if (records.isEmpty()) {
+                    reachedBoundary = true
+                    break
+                }
+                val valid = records.mapNotNull { entry ->
+                    entry.playedAtMillis.takeIf { it > 0L }?.let { it to entry }
+                }
+                if (valid.isEmpty()) {
+                    incomplete = true
+                    break
+                }
+
+                val oldest = valid.minOf { it.first }
+                latestSeen = maxOf(latestSeen ?: 0L, valid.maxOf { it.first })
+                valid.forEach { (timestamp, entry) ->
+                    // Repeated cursor edges can return the same item. Dedup here
+                    // too so progress/UI totals are not inflated within a sync.
+                    if ((lowerBound == null || timestamp > lowerBound) &&
+                        seenPlays.add("${entry.track.id}|${entry.playedAt}")
+                    ) {
+                        allItems.add(entry)
+                    }
+                }
+                if (lowerBound != null && oldest <= lowerBound) {
+                    reachedBoundary = true
+                    break
+                }
+                if (records.size < PAGE_SIZE) {
+                    reachedBoundary = true
+                    break
+                }
+                // A non-decreasing page boundary indicates that the server is
+                // repeating the same page or the cursor has stalled. Stop rather
+                // than spinning and silently declaring a complete import.
+                if (before != null && oldest >= before) {
+                    incomplete = true
+                    break
+                }
+                before = oldest
             }
-            
-            val recentlyPlayed = response.body()
-            if (recentlyPlayed == null) {
-                Log.w(TAG, "Empty response from Spotify")
-                return ImportResult(0, 0, 0, emptyList())
+            if (!reachedBoundary && pageCount >= MAX_PAGES_PER_SYNC) incomplete = true
+            if (incomplete) {
+                Log.w(TAG, "Recent history exceeded accessible/capped pages; preserving cursor and retrying later")
+                return ImportResult.error(
+                    "Recent Spotify history may exceed the accessible page window. " +
+                        "Import your Spotify extended history export to recover older plays."
+                )
             }
-            
-            val items = recentlyPlayed.items
-            Log.i(TAG, "Fetched ${items.size} recently played tracks from Spotify")
-            if (items.size >= 50) {
-                Log.w(TAG, "Spotify returned a full 50-item window; very long offline gaps may exceed Spotify's accessible recent-history window")
-            }
-            
+            val items = allItems.sortedBy { it.playedAtMillis }
+            Log.i(TAG, "Fetched ${items.size} unique recent tracks in $pageCount Spotify page(s)")
             if (items.isEmpty()) {
-                return ImportResult(0, 0, 0, emptyList(), recentlyPlayed.cursors?.after)
+                return ImportResult(0, 0, 0, emptyList(), latestSeen?.toString())
             }
-            
+
             // Process each play history item
             var tracksImported = 0
             var eventsCreated = 0
@@ -193,7 +249,9 @@ class SpotifyImportService @Inject constructor(
             }
             
             // Save cursor for future polling
-            val newCursor = recentlyPlayed.cursors?.after
+            val newCursor = latestSeen?.let { latest ->
+                maxOf(latest, afterCursor ?: 0L).toString()
+            }
             if (newCursor != null && errors.isEmpty()) {
                 saveCursor(newCursor)
             }
