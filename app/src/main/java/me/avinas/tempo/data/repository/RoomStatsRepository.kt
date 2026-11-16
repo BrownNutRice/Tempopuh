@@ -530,9 +530,14 @@ class RoomStatsRepository @Inject constructor(
         // Use combined query with content filtering to reduce database round trips
         val combinedStats = statsDao.getCombinedBasicStatsFiltered(startTime, endTime, filterPodcasts, filterAudiobooks)
 
-        // Calculate average session duration (approximate: total time / number of days)
-        val activeDays = statsDao.getActiveDaysCount(startTime, endTime).coerceAtLeast(1)
-        val avgSessionDuration = combinedStats.totalTimeMs / activeDays
+        // Use observed play boundaries for real sessions. The previous
+        // calculation divided total listening time by active DAYS and mislabeled
+        // the result as an average listening SESSION.
+        val sessions = me.avinas.tempo.data.stats.ListeningSessionAggregator.summarize(
+            listeningEventDao.getSessionPointsInRange(
+                startTime, endTime, filterPodcasts, filterAudiobooks,
+            )
+        )
 
         return ListeningOverview(
             totalListeningTimeMs = combinedStats.totalTimeMs,
@@ -540,62 +545,11 @@ class RoomStatsRepository @Inject constructor(
             uniqueTracksCount = combinedStats.uniqueTracks,
             uniqueArtistsCount = combinedStats.uniqueArtists,
             uniqueAlbumsCount = combinedStats.uniqueAlbums,
-            averageSessionDurationMs = avgSessionDuration,
-            longestSessionMs = calculateLongestSession(startTime, endTime), // Use actual session calculation
+            averageSessionDurationMs = sessions.averageListeningMs,
+            longestSessionMs = sessions.longestListeningMs,
             timeRange = timeRange
         )
 
-    }
-
-    /**
-     * Calculate the longest continuous listening session in a time range.
-     * A session is defined as a sequence of songs with less than 20 minutes gap between them.
-     */
-    private suspend fun calculateLongestSession(startTime: Long, endTime: Long): Long {
-        val points = listeningEventDao.getSessionPointsInRange(startTime, endTime)
-        if (points.isEmpty()) return 0L
-
-        var maxDuration = 0L
-        var currentSessionDuration = 0L
-        var sessionStartTime = points.first().timestamp
-        var lastEndTime = points.first().timestamp + points.first().playDuration
-
-        currentSessionDuration = points.first().playDuration
-        maxDuration = currentSessionDuration
-
-        // Threshold for session break: 20 minutes (1200000 ms)
-        val sessionThreshold = 20 * 60 * 1000L
-
-        for (i in 1 until points.size) {
-            val point = points[i]
-            val gap = point.timestamp - lastEndTime
-            
-            if (gap <= sessionThreshold) {
-                // Continue session
-                // Add gap time to duration? Ideally yes for "wall clock" session time, 
-                // but let's stick to "active listening time" sum or "total elapsed"?
-                // Let's use total elapsed time (wall clock) for the session length
-                val pointEndTime = point.timestamp + point.playDuration
-                currentSessionDuration = pointEndTime - sessionStartTime
-                lastEndTime = pointEndTime
-            } else {
-                // End of session
-                if (currentSessionDuration > maxDuration) {
-                    maxDuration = currentSessionDuration
-                }
-                // Start new session
-                sessionStartTime = point.timestamp
-                currentSessionDuration = point.playDuration
-                lastEndTime = sessionStartTime + point.playDuration
-            }
-        }
-        
-        // Check last session
-        if (currentSessionDuration > maxDuration) {
-            maxDuration = currentSessionDuration
-        }
-
-        return maxDuration
     }
 
     // Top Charts
