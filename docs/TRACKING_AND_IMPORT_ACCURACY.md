@@ -30,7 +30,7 @@ The OAuth redirect URI used by this fork is `tempo://spotify-callback`.
 
 1. The **Spotify extended JSON export** includes the exact number of
    milliseconds played and an end timestamp. Import these as reported listening
-   time. It **does not** provide the catalog track duration, so import completion
+   time. It **does not** necessarily provide the catalog track duration, so import completion
    is *unknown*; the legacy non-null completion column stores 0 to avoid
    inaccurately reporting every imported play as 80% complete.
 2. The **Spotify Web API recently-played feed** provides a played timestamp
@@ -49,7 +49,16 @@ The OAuth redirect URI used by this fork is `tempo://spotify-callback`.
    authority-ranked ListeningEventDao. Reconciliation compares Spotify
    `played_at` (the end of a play) against the observed local session end,
    rather than comparing the API end to a local session start. A higher-fidelity
-   locally observed play wins over an API history import.
+   locally observed play wins over an API history import, irrespective of insert order.
+
+**Unknown completion must not count as a skip.** New statistics queries exclude
+unknown, non-skipped import rows from completion averages and skip counts. This
+corrects how existing rows are *interpreted* without rewriting them.
+
+**Recently played limit:** Spotify limits each API response to 50 tracks, and
+very long offline gaps can exceed the accessible history window. An automatic
+sync cannot reconstruct every historical play; for comprehensive older data,
+prefer the extended streaming-history export.
 
 ## Data already imported
 
