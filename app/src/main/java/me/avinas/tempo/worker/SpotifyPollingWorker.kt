@@ -16,9 +16,9 @@ import java.util.concurrent.TimeUnit
 
 /**
  * SpotifyPollingWorker periodically fetches recently played tracks from Spotify
- * when Spotify-API-Only mode is enabled.
+ * when Spotify history sync is enabled.
  * 
- * This worker runs every 15 minutes (minimum for WorkManager) and uses cursor-based
+ * This worker runs every 20 minutes (minimum for WorkManager) and uses cursor-based
  * pagination to only fetch new plays since the last poll.
  */
 @HiltWorker
@@ -35,8 +35,8 @@ class SpotifyPollingWorker @AssistedInject constructor(
         private const val SYNC_NOW_NAME = "spotify_sync_now"
         
         /**
-         * Schedule periodic polling when Spotify-API-Only mode is enabled.
-         * Runs every 15 minutes (minimum for WorkManager periodic work).
+         * Schedule periodic polling when Spotify history sync is enabled.
+         * Runs every 20 minutes (minimum for WorkManager periodic work).
          */
         fun schedule(context: Context) {
             val constraints = Constraints.Builder()
@@ -45,7 +45,7 @@ class SpotifyPollingWorker @AssistedInject constructor(
                 .build()
 
             val workRequest = PeriodicWorkRequestBuilder<SpotifyPollingWorker>(
-                15, TimeUnit.MINUTES,
+                20, TimeUnit.MINUTES,
                 5, TimeUnit.MINUTES // Flex interval
             )
                 .setConstraints(constraints)
@@ -62,11 +62,11 @@ class SpotifyPollingWorker @AssistedInject constructor(
                 workRequest
             )
 
-            Log.i(TAG, "Spotify polling scheduled (15-minute intervals)")
+            Log.i(TAG, "Spotify polling scheduled (20-minute intervals)")
         }
 
         /**
-         * Queue an immediate sync after a user enables Spotify API-only mode.
+         * Queue an immediate sync after a user enables Spotify history sync.
          * Periodic WorkManager tasks can otherwise wait up to 15 minutes.
          */
         fun syncNow(context: Context) {
@@ -107,10 +107,10 @@ class SpotifyPollingWorker @AssistedInject constructor(
     override suspend fun doWork(): Result {
         Log.d(TAG, "Running Spotify polling")
 
-        // Check if Spotify-API-Only mode is still enabled
+        // Check if Spotify history sync is still enabled
         val prefs = userPreferencesDao.getSync()
         if (prefs == null || !prefs.spotifyApiOnlyMode) {
-            Log.i(TAG, "Spotify-API-Only mode disabled, skipping poll and cancelling future runs")
+            Log.i(TAG, "Spotify history sync disabled, skipping poll and cancelling future runs")
             // Cancel self since mode is disabled
             WorkManager.getInstance(applicationContext).cancelUniqueWork(WORK_NAME)
             return Result.success()
