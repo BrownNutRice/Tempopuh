@@ -185,8 +185,8 @@ class SpotifyImportService @Inject constructor(
                     onProgress?.invoke(index + 1, items.size)
                     
                 } catch (e: CancellationException) {
-     throw e
- } catch (e: Exception) {
+                    throw e
+                } catch (e: Exception) {
                     Log.e(TAG, "Error processing Spotify play", e)
                     errors.add("Failed to import a Spotify play")
                 }
@@ -217,8 +217,8 @@ class SpotifyImportService @Inject constructor(
                 newCursor = newCursor
             )
         } catch (e: CancellationException) {
-     throw e
- } catch (e: Exception) {
+            throw e
+        } catch (e: Exception) {
             Log.e(TAG, "Import failed", e)
             ImportResult.error("Import failed: ${e.message}")
         }
@@ -257,8 +257,8 @@ class SpotifyImportService @Inject constructor(
             try {
                 artistLinkingService.linkArtistsForTrack(resolution.track)
             } catch (e: CancellationException) {
-     throw e
- } catch (e: Exception) {
+                throw e
+            } catch (e: Exception) {
                 Log.w(TAG, "Unable to link imported Spotify artists", e)
             }
         }
@@ -311,8 +311,8 @@ class SpotifyImportService @Inject constructor(
                 albumTitle = spotifyTrack.album.name,
                 releaseDate = spotifyTrack.album.releaseDate,
                 releaseYear = try { spotifyTrack.album.releaseDate.take(4).toIntOrNull() } catch (e: CancellationException) {
-     throw e
- } catch (e: Exception) { null },
+            throw e
+        } catch (e: Exception) {
                 releaseType = spotifyTrack.album.albumType,
                 // Album art with source tracking
                 albumArtUrl = spotifyTrack.album.mediumImageUrl,
@@ -336,8 +336,8 @@ class SpotifyImportService @Inject constructor(
             enrichedMetadataDao.upsertFromAutomaticEnrichment(metadata)
             Log.d(TAG, "Created enriched metadata for track $trackId (spotify: ${spotifyTrack.id})")
         } catch (e: CancellationException) {
-     throw e
- } catch (e: Exception) {
+            throw e
+        } catch (e: Exception) {
             Log.e(TAG, "Failed to create enriched metadata for track $trackId", e)
             // Non-fatal - track is still imported, metadata can be enriched later
         }
@@ -357,8 +357,8 @@ class SpotifyImportService @Inject constructor(
             )
             Log.d(TAG, "Saved import cursor: $cursor")
         } catch (e: CancellationException) {
-     throw e
- } catch (e: Exception) {
+            throw e
+        } catch (e: Exception) {
             Log.w(TAG, "Failed to save import cursor", e)
         }
     }
@@ -374,8 +374,8 @@ class SpotifyImportService @Inject constructor(
             // It's stored as a String but represents a Unix timestamp
             prefs?.spotifyImportCursor?.toLongOrNull()
         } catch (e: CancellationException) {
-     throw e
- } catch (e: Exception) {
+            throw e
+        } catch (e: Exception) {
             Log.w(TAG, "Failed to get saved cursor", e)
             null
         }
