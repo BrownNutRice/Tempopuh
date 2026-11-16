@@ -99,4 +99,20 @@ class PlaybackSessionLiveAccountingTest {
         assertEquals(0, session.calculateCompletionPercent())
         session.pause()
     }
+    @Test fun `the first position sample cannot swallow pause handling`() {
+        val session = MusicTrackingService.PlaybackSession(
+            packageName = "player",
+            title = "Opening",
+            artist = "Artist",
+            album = null,
+            isPlaying = true,
+        )
+        session.updatePosition(15_000L, false)
+        assertTrue("Update only establishes a position baseline", session.isPlaying)
+        session.pause()
+        assertFalse(session.isPlaying)
+        assertEquals(1, session.pauseCount)
+    }
+
+
 }
