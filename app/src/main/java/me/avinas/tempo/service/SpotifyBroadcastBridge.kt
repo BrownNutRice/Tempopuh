@@ -7,7 +7,6 @@ import android.content.IntentFilter
 import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
-import android.os.Process
 import android.util.Log
 
 /**
@@ -19,6 +18,10 @@ internal class SpotifyBroadcastBridge(
     private val context: Context,
     private val onPlayback: (Track, Boolean, Long) -> Unit,
     private val onQueueChanged: () -> Unit,
+    // Pre-Android-14 cannot reliably read the broadcast sender UID. Only
+    // accept metadata/playback that agrees with Spotify's trusted MediaSession.
+    // Rejection falls back to normal Android MediaSession/notification tracking.
+    private val allowLegacyBroadcast: (Track?) -> Boolean = { false },
 ) {
     data class Track(
         val title: String,
@@ -48,10 +51,12 @@ internal class SpotifyBroadcastBridge(
             val action = intent.action ?: return
             if (action != METADATA && action != PLAYBACK && action != QUEUE) return
 
-            // On Android 14+ reject broadcasts from packages other than Spotify.
+            // Reject even an UNKNOWN sender on Android 14+. On older Android,
+            // sender UID is unavailable so validate against a trusted Spotify
+            // MediaSession *before* mutating receiver state.
             if (Build.VERSION.SDK_INT >= 34) {
                 val senderUid = sentFromUid
-                if (senderUid != Process.INVALID_UID &&
+                if (senderUid < 0 ||
                     context.packageManager.getPackagesForUid(senderUid)?.contains(PACKAGE) != true
                 ) return
             }
@@ -66,24 +71,32 @@ internal class SpotifyBroadcastBridge(
 
             when (action) {
                 METADATA -> {
-                    val title = intent.getStringExtra("track")?.trim()?.takeIf { it.isNotEmpty() } ?: return
-                    val artist = intent.getStringExtra("artist")?.trim()?.takeIf { it.isNotEmpty() } ?: return
-                    track = Track(
+                    val title = intent.getStringExtra("track")?.trim()
+                        ?.takeIf { it.isNotEmpty() && it.length <= 300 } ?: return
+                    val artist = intent.getStringExtra("artist")?.trim()
+                        ?.takeIf { it.isNotEmpty() && it.length <= 300 } ?: return
+                    val candidate = Track(
                         title = title,
                         artist = artist,
-                        album = intent.getStringExtra("album"),
-                        // Spotify's documentation says seconds, but recent versions
-                        // are reported to send milliseconds. Accept both forms.
+                        album = intent.getStringExtra("album")?.take(300),
+                        // Spotify's documentation says seconds; some versions
+                        // report milliseconds. Reject implausibly long values.
                         durationMs = intent.getIntExtra("length", 0).coerceAtLeast(0).toLong()
-                            .let { if (it in 1L..10_000L) it * 1000L else it },
+                            .let { if (it in 1L..10_000L) it * 1000L else it }
+                            .coerceIn(0L, 24 * 60 * 60_000L),
                     )
+                    if (Build.VERSION.SDK_INT < 34 && !allowLegacyBroadcast(candidate)) return
+                    track = candidate
                     positionMs = 0L
                 }
                 PLAYBACK -> {
+                    if (Build.VERSION.SDK_INT < 34 && !allowLegacyBroadcast(track)) return
                     playing = intent.getBooleanExtra("playing", false)
-                    positionMs = intent.getIntExtra("playbackPosition", 0).coerceAtLeast(0).toLong()
+                    positionMs = intent.getIntExtra("playbackPosition", 0)
+                        .coerceIn(0, 24 * 60 * 60_000).toLong()
                 }
                 QUEUE -> {
+                    if (Build.VERSION.SDK_INT < 34 && !allowLegacyBroadcast(track)) return
                     onQueueChanged()
                     return
                 }
