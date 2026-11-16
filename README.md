@@ -114,6 +114,7 @@ Listening history is kept locally unless you explicitly export, back up, or pair
 | [Google Drive setup](docs/GOOGLE_DRIVE_SETUP.md) | OAuth, signing, backup setup |
 | [Analytics](docs/ANALYTICS.md) | App-health data and consent |
 | [Performance audit](docs/PERFORMANCE_AUDIT.md) | Earlier engineering findings and fixes |
+| [Maintenance audit](docs/MAINTENANCE_AUDIT_2026-11-16.md) | Current maintenance changes and remaining device-test risks |
 | [Browser companion](browser-extension/README.md) | Browser extension setup and pairing |
 | [Changelog](Changelog.md) | Upstream historical release notes |
 
