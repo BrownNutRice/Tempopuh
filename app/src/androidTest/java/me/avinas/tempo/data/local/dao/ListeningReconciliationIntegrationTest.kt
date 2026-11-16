@@ -103,4 +103,28 @@ class ListeningReconciliationIntegrationTest {
         database.listeningEventDao().insertAllBatchedWithDedup(listOf(apiPlay(id)))
         assertEquals(0, database.statsDao().getSkipsCount(0L, Long.MAX_VALUE))
     }
+    @Test fun historicalRepairOnlyResetsUnsupportedSpotifyApiValues() = runBlocking {
+        val id = trackId()
+        val dao = database.listeningEventDao()
+        // Simulate an older importer that guessed a full song's listening
+        // duration from the Spotify recently-played catalog duration.
+        val badApi = apiPlay(id).copy(playDuration = 180_000L, completionPercentage = 100)
+        val live = localPlay(id).copy(timestamp = badApi.timestamp - 1_000_000L,
+            endTimestamp = badApi.timestamp - 940_000L)
+        dao.insert(badApi)
+        dao.insert(live)
+
+        assertEquals(1, dao.countUnverifiableSpotifyApiPlays())
+        assertEquals(1, dao.clearUnverifiableSpotifyApiEstimates())
+        assertEquals(0, dao.countUnverifiableSpotifyApiPlays())
+
+        val apiAfter = dao.getEventsForTrack(id).single { it.source == "com.spotify.music.import" }
+        assertEquals(0L, apiAfter.playDuration)
+        assertEquals(0, apiAfter.completionPercentage)
+        assertEquals(id, apiAfter.track_id)
+        assertEquals(badApi.timestamp, apiAfter.timestamp)
+        assertEquals(60_000L, dao.getEventsForTrack(id)
+            .single { it.source == "com.spotify.music" }.playDuration)
+    }
+
 }
