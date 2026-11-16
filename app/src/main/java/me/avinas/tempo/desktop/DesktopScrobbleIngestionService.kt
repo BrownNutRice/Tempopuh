@@ -53,9 +53,8 @@ class DesktopPlayIngestionService @Inject constructor(
         /** Minimum sensible play duration to accept (5 seconds). */
         private const val MIN_PLAY_DURATION_MS = 5_000L
 
-        /** Assumed completion percentage for desktop plays (90 %, stricter than Last.fm's
-         *  50 % threshold, since desktop clients only log finished tracks). */
-        private const val DESKTOP_COMPLETION_PERCENT = 90
+        // Without a catalog duration, completion is unknown, not 90% verified.
+        private const val UNKNOWN_COMPLETION_PERCENT = 0
     }
 
     /**
@@ -168,7 +167,7 @@ class DesktopPlayIngestionService @Inject constructor(
                 val completionPct = if (durationMs > 0L) {
                     ((listenedMs.toDouble() / durationMs) * 100).toInt().coerceIn(0, 100)
                 } else {
-                    DESKTOP_COMPLETION_PERCENT
+                    UNKNOWN_COMPLETION_PERCENT
                 }
                 val event = ListeningEvent(
                     track_id = trackId,
@@ -176,13 +175,19 @@ class DesktopPlayIngestionService @Inject constructor(
                     playDuration = listenedMs.coerceAtLeast(0L),
                     completionPercentage = completionPct,
                     source = "desktop:$sourceApp",
-                    wasSkipped = completionPct < 30,
+                    wasSkipped = durationMs > 0L && completionPct < 30,
                     isReplay = false,
                     estimatedDurationMs = durationMs.takeIf { it > 0L }
                 )
-                listeningRepository.insert(event)
-                accepted++
-                Log.d(TAG, "Accepted: $title by $artist @ $timestampUtc")
+                val savedId = listeningRepository.insert(event)
+                if (savedId > 0L) {
+                    accepted++
+                    Log.d(TAG, "Accepted: $title by $artist @ $timestampUtc")
+                } else {
+                    // Authority-ranked reconciliation may already have the
+                    // same play from another source. Don't count it as saved.
+                    duplicates++
+                }
 
             } catch (e: Exception) {
                 Log.e(TAG, "Error processing play [$title / $artist]", e)
