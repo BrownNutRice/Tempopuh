@@ -136,7 +136,12 @@ class SpotifyPollingWorker @AssistedInject constructor(
                 Log.e(TAG, "Polling failed: $error")
                 
                 // Retry on transient errors, fail on auth errors
-                if (error.contains("session expired", ignoreCase = true) ||
+                if (error.contains("history window is incomplete", ignoreCase = true)) {
+                    // Partial recent history was already imported. Retrying
+                    // immediately cannot extend Spotify's accessible window;
+                    // let the next 20-minute sync try normally.
+                    Result.success()
+                } else if (error.contains("session expired", ignoreCase = true) ||
                     error.contains("not connected", ignoreCase = true) ||
                     error.contains("authenticate", ignoreCase = true) ||
                     error.contains("API error: 401", ignoreCase = true) ||
