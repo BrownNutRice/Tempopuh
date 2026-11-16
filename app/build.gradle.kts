@@ -37,6 +37,21 @@ android {
                 keyPassword = localProperties.getProperty("KEY_PASSWORD")
             }
         }
+
+        // Optional stable debug signing for GitHub-built APKs. The same key is
+        // required across builds if Google OAuth registers its SHA-1 fingerprint.
+        val debugKeystore = providers.environmentVariable("TEMPO_DEBUG_KEYSTORE_PATH").orNull
+        if (!debugKeystore.isNullOrBlank()) {
+            create("ciDebug") {
+                storeFile = file(debugKeystore)
+                storePassword = providers.environmentVariable("TEMPO_DEBUG_STORE_PASSWORD").orNull
+                    ?: error("Missing TEMPO_DEBUG_STORE_PASSWORD")
+                keyAlias = providers.environmentVariable("TEMPO_DEBUG_KEY_ALIAS").orNull
+                    ?: error("Missing TEMPO_DEBUG_KEY_ALIAS")
+                keyPassword = providers.environmentVariable("TEMPO_DEBUG_KEY_PASSWORD").orNull
+                    ?: error("Missing TEMPO_DEBUG_KEY_PASSWORD")
+            }
+        }
     }
 
     defaultConfig {
@@ -83,6 +98,9 @@ android {
 
     buildTypes {
         debug {
+            if (signingConfigs.findByName("ciDebug") != null) {
+                signingConfig = signingConfigs.getByName("ciDebug")
+            }
             isMinifyEnabled = false
             isShrinkResources = false
         }
