@@ -880,32 +880,26 @@ class MusicTrackingService : NotificationListenerService() {
         // notification-only players never expose it. Keep a monotonic stopwatch
         // as a fallback, excluding observed pauses. This is *not* added to the
         // position-based total, so mixed sources cannot double-count playback.
+        // Recovered or explicitly supplied playtime; do not treat later media
+        // position advances as wall-clock minutes (seeks and 2x speed differ).
+        private val recoveredListeningMs: Long = accumulatedPositionMs.coerceAtLeast(0L)
         private var wallClockPlayedMs: Long = 0L
         private var lastResumeMonotonicMs: Long = System.nanoTime() / 1_000_000L
         private var observedPositionProgress: Boolean = false
 
-        /** Position progress rather than wall-clock time. */
+        /**
+         * Actual listening time measured with a monotonic clock while the
+         * player reports PLAYING, excluding pauses. Media-position deltas are
+         * used separately for *track coverage/completion*, not for minutes.
+         * This stays correct for seeks and 0.5x/2x playback speed.
+         */
         @Synchronized fun calculateCurrentPlayDuration(): Long {
-            // Use accumulated position-based duration.
-            // This represents actual audio playback time, not wall-clock time.
-            // No fixed cap: long-form content allowed by the user's tracking rules
-            // (ALWAYS_MUSIC, no-limit apps) must count in full. Runaway values are
-            // guarded by MAX_REASONABLE_DELTA_MS in updatePosition() and the
-            // 3x-estimated-duration checks in validatePlayDuration()/insert paths.
             val elapsedSinceResume = if (isPlaying) {
                 ((System.nanoTime() / 1_000_000L) - lastResumeMonotonicMs)
                     .coerceAtLeast(0L)
             } else 0L
-            val monotonicPlayedMs = (wallClockPlayedMs + elapsedSinceResume)
+            return (recoveredListeningMs + wallClockPlayedMs + elapsedSinceResume)
                 .coerceAtLeast(0L)
-            // If position tracking works, trust its seek-aware accounting. If
-            // it freezes, allow the observed playing-time clock to catch up
-            // within a small callback/polling tolerance.
-            return if (observedPositionProgress) {
-                maxOf(accumulatedPositionMs, (monotonicPlayedMs - 3_000L).coerceAtLeast(0L))
-            } else {
-                maxOf(accumulatedPositionMs, monotonicPlayedMs)
-            }
         }
 
         /** Applies a MediaSession position update; `newPosition` is in ms. */
@@ -1064,53 +1058,21 @@ class MusicTrackingService : NotificationListenerService() {
         /**
          * Check if this was a quick skip (< 30 seconds or < 30% completion).
          */
-        fun wasSkipped(): Boolean {
-            val duration = calculateCurrentPlayDuration()
-            // Skip if less than 30 seconds played
-            if (duration < 30_000) return true
-            // Skip if less than 30% of estimated duration
-            estimatedDurationMs?.let { estimated ->
-                if (estimated > 0 && (duration.toFloat() / estimated) < 0.3f) {
-                    return true
-                }
-            }
-            return false
+        @Synchronized fun wasSkipped(): Boolean {
+            if (calculateCurrentPlayDuration() < 30_000L) return true
+            val duration = estimatedDurationMs?.takeIf { it > 0L } ?: return false
+            // Only claim a percentage-based skip if we observed actual media
+            // progression. Otherwise playback length cannot establish coverage.
+            return observedPositionProgress &&
+                accumulatedPositionMs.toDouble() / duration.toDouble() < 0.3
         }
 
-        /**
-         * Calculate completion percentage with fallback estimation.
-         */
-        fun calculateCompletionPercent(): Int {
-            val duration = calculateCurrentPlayDuration()
-
-            // If we have estimated duration, use it
-            estimatedDurationMs?.let { estimated ->
-                if (estimated > 0) {
-                    return ((duration.toDouble() / estimated) * 100).toInt().coerceIn(0, 100)
-                }
-            }
-
-            // Fallback: Estimate based on typical song duration (3.5 minutes average)
-            // This gives a reasonable approximation when duration is unknown
-            val typicalDurationMs = 210_000L // 3.5 minutes
-            val estimatedCompletion = ((duration.toDouble() / typicalDurationMs) * 100).toInt()
-
-            // Cap at 100% but use 75% as "likely full play" threshold for unknown duration
-            return when {
-                duration >= 240_000 -> 100
-
-                // 4+ minutes = definitely full play
-                duration >= 180_000 -> 90
-
-                // 3+ minutes = likely full play
-                duration >= 120_000 -> 70
-
-                // 2+ minutes = partial play
-                duration >= 60_000 -> 50
-
-                // 1+ minute = half play
-                else -> estimatedCompletion.coerceIn(0, 40)
-            }
+        /** Track completion, NOT total elapsed listening time. */
+        @Synchronized fun calculateCompletionPercent(): Int {
+            val duration = estimatedDurationMs?.takeIf { it > 0L } ?: return 0
+            if (!observedPositionProgress) return 0 // unavailable, not zero coverage
+            return ((accumulatedPositionMs.toDouble() / duration) * 100.0)
+                .toInt().coerceIn(0, 100)
         }
 
         /**
@@ -2273,7 +2235,7 @@ class MusicTrackingService : NotificationListenerService() {
                             trackAlbum = session.album,
                             startTimestamp = session.startTimestamp,
                             lastResumeTimestamp = session.lastPositionUpdateTime,
-                            totalPlayedMs = session.accumulatedPositionMs,
+                            totalPlayedMs = session.calculateCurrentPlayDuration(),
                             isPlaying = session.isPlaying,
                             pauseCount = session.pauseCount,
                             estimatedDurationMs = session.estimatedDurationMs,
@@ -3508,9 +3470,7 @@ class MusicTrackingService : NotificationListenerService() {
         // genuine listens as full plays or skips.
         val reliableDuration = session.estimatedDurationMs?.takeIf { it > 0L }
         val completionPct = if (reliableDuration != null) {
-            durationEstimator.calculateCompletionPercent(
-                playDuration, reliableDuration, isStillPlaying = false
-            )
+            session.calculateCompletionPercent()
         } else 0
 
         val wasSkipped = session.wasSkipped() ||
@@ -3988,7 +3948,9 @@ class MusicTrackingService : NotificationListenerService() {
                     isSameTrackInfo && isPlaying &&
                         run {
                             val lastPosition = existing!!.lastKnownPosition
-                            val playedMs = existing.calculateCurrentPlayDuration()
+                            // Replay is a MEDIA POSITION reset, not a wall-clock
+                            // duration threshold (2x/0.5x must not distort it).
+                            val playedMs = existing.accumulatedPositionMs
 
                             val positionResetThresholdMs = 5_000L
                             val minPlayedForReplayMs = 30_000L
