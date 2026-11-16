@@ -86,6 +86,9 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val historyQuality by viewModel.historyQuality.collectAsState()
+    var showHistoryAuditDialog by remember { mutableStateOf(false) }
+    var historyBackupConfirmed by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
@@ -876,6 +879,16 @@ fun SettingsScreen(
                         )
                         HorizontalDivider(color = GlassBorderSoft)
                         SettingsOption(
+                            title = "Check listening-history accuracy",
+                            subtitle = "Find older Spotify API records with unverified listening minutes. No automatic changes.",
+                            onClick = {
+                                historyBackupConfirmed = false
+                                showHistoryAuditDialog = true
+                                viewModel.scanHistoryQuality()
+                            },
+                        )
+                        HorizontalDivider(color = GlassBorderSoft)
+                        SettingsOption(
                             title = stringResource(R.string.enrichment_report_settings_option),
                             subtitle = stringResource(R.string.enrichment_report_settings_option_desc),
                             onClick = { onNavigateToEnrichmentReport?.invoke() },
@@ -890,6 +903,78 @@ fun SettingsScreen(
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
+
+                if (showHistoryAuditDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showHistoryAuditDialog = false },
+                        title = { Text("Listening-history accuracy") },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                if (historyQuality.isLoading) {
+                                    CircularProgressIndicator()
+                                    Text("Checking stored listening events…")
+                                } else if (historyQuality.error != null) {
+                                    Text(historyQuality.error ?: "An unknown error occurred")
+                                } else {
+                                    Text(
+                                        "Old Spotify API estimates: ${historyQuality.apiEstimatedCount} plays. " +
+                                            "Reconstructed history: ${historyQuality.reconstructedCount} plays."
+                                    )
+                                    Text(
+                                        "The Spotify recently-played API never supplied listening seconds. " +
+                                            "The optional repair preserves play records and removes only invented " +
+                                            "listening durations and completion for this exact API source."
+                                    )
+                                    if (historyQuality.reconstructedCount > 0) {
+                                        Text(
+                                            "Reconstructed plays are flagged for review, not automatically deleted."
+                                        )
+                                    }
+                                    historyQuality.repairedCount?.let { repaired ->
+                                        Text("Corrected $repaired API records. Reopen statistics to see refreshed totals.")
+                                    }
+                                    if (historyQuality.apiEstimatedCount > 0 &&
+                                        historyQuality.repairedCount == null
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Checkbox(
+                                                checked = historyBackupConfirmed,
+                                                onCheckedChange = { historyBackupConfirmed = it },
+                                            )
+                                            Text(
+                                                "I have exported a backup and accept that " +
+                                                    "estimated minutes will be reset to unknown."
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        confirmButton = {
+                            if (historyQuality.apiEstimatedCount > 0 &&
+                                historyQuality.repairedCount == null &&
+                                historyQuality.error == null
+                            ) {
+                                TextButton(
+                                    enabled = historyBackupConfirmed && !historyQuality.isLoading,
+                                    onClick = {
+                                        historyBackupConfirmed = false
+                                        viewModel.repairHistoryAfterBackupConfirmation()
+                                    },
+                                ) { Text("Correct API estimates") }
+                            } else {
+                                TextButton(onClick = { showHistoryAuditDialog = false }) {
+                                    Text("Close")
+                                }
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showHistoryAuditDialog = false }) {
+                                Text("Cancel")
+                            }
+                        },
+                    )
+                }
 
                 // Community
                 SettingsSectionHeader(stringResource(R.string.settings_community))
