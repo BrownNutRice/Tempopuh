@@ -1184,24 +1184,22 @@ class MusicTrackingService : NotificationListenerService() {
         spotifyBroadcastBridge = SpotifyBroadcastBridge(
             context = this,
             onPlayback = { track, playing, positionMs ->
-                val controller = activeControllers["com.spotify.music"]
-                if (controller?.metadata != null) {
-                    processMediaControllerState(controller)
-                } else {
-                    val metadata = MediaMetadata.Builder()
-                        .putString(MediaMetadata.METADATA_KEY_TITLE, track.title)
-                        .putString(MediaMetadata.METADATA_KEY_ARTIST, track.artist)
-                        .putString(MediaMetadata.METADATA_KEY_ALBUM, track.album)
-                        .putLong(MediaMetadata.METADATA_KEY_DURATION, track.durationMs)
-                        .build()
-                    val playbackState = PlaybackState.Builder()
-                        .setState(
-                            if (playing) PlaybackState.STATE_PLAYING else PlaybackState.STATE_PAUSED,
-                            positionMs,
-                            if (playing) 1f else 0f,
-                        ).build()
-                    processPlaybackMetadata("com.spotify.music", metadata, playbackState)
-                }
+                // The broadcast is the freshest event: don't read a possibly stale
+                // MediaController snapshot and overwrite play/pause or track changes.
+                val metadata = MediaMetadata.Builder()
+                    .putString(MediaMetadata.METADATA_KEY_TITLE, track.title)
+                    .putString(MediaMetadata.METADATA_KEY_ARTIST, track.artist)
+                    .putString(MediaMetadata.METADATA_KEY_ALBUM, track.album)
+                    .putLong(MediaMetadata.METADATA_KEY_DURATION, track.durationMs)
+                    .build()
+                val playbackState = PlaybackState.Builder()
+                    .setState(
+                        if (playing) PlaybackState.STATE_PLAYING else PlaybackState.STATE_PAUSED,
+                        positionMs,
+                        if (playing) 1f else 0f
+                    ).build()
+                processPlaybackMetadata("com.spotify.music", metadata, playbackState)
+                updateServiceLifecycle()
             },
             onQueueChanged = { rescanActiveMediaSessions() },
         ).also { it.start() }
