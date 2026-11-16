@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit
  * SpotifyPollingWorker periodically fetches recently played tracks from Spotify
  * when Spotify history sync is enabled.
  * 
- * This worker runs every 20 minutes (minimum for WorkManager) and uses cursor-based
+ * This worker requests a 20-minute cadence (WorkManager minimum is 15 minutes) and uses cursor-based
  * pagination to only fetch new plays since the last poll.
  */
 @HiltWorker
@@ -36,7 +36,7 @@ class SpotifyPollingWorker @AssistedInject constructor(
         
         /**
          * Schedule periodic polling when Spotify history sync is enabled.
-         * Runs every 20 minutes (minimum for WorkManager periodic work).
+         * Requests a 20-minute interval; Android may defer execution.
          */
         fun schedule(context: Context) {
             val constraints = Constraints.Builder()
@@ -67,7 +67,7 @@ class SpotifyPollingWorker @AssistedInject constructor(
 
         /**
          * Queue an immediate sync after a user enables Spotify history sync.
-         * Periodic WorkManager tasks can otherwise wait up to 15 minutes.
+         * Periodic WorkManager tasks can otherwise wait roughly 20 minutes or longer.
          */
         fun syncNow(context: Context) {
             val request = OneTimeWorkRequestBuilder<SpotifyPollingWorker>()
