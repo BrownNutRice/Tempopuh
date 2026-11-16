@@ -351,6 +351,7 @@ class HomeViewModel @Inject constructor(
                 maybeShowShareNudge()
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             _uiState.update { it.copy(error = e.message) }
             _flagsState.update { it.copy(isLoading = false) }
         }
