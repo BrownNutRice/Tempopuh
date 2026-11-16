@@ -1,8 +1,8 @@
 package me.avinas.tempo.data.spotify
 
 import android.util.Log
-import kotlinx.coroutines.delay
 import me.avinas.tempo.data.local.dao.EnrichedMetadataDao
+import me.avinas.tempo.data.local.dao.ListeningEventDao
 import me.avinas.tempo.data.local.dao.UserPreferencesDao
 import me.avinas.tempo.data.local.entities.AlbumArtSource
 import me.avinas.tempo.data.local.entities.EnrichedMetadata
@@ -18,6 +18,7 @@ import me.avinas.tempo.data.remote.spotify.SpotifyTrack
 import me.avinas.tempo.data.repository.ArtistLinkingService
 import me.avinas.tempo.data.repository.ListeningRepository
 import me.avinas.tempo.data.repository.TrackRepository
+import me.avinas.tempo.data.repository.TrackResolver
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -32,20 +33,21 @@ class SpotifyImportService @Inject constructor(
     private val listeningRepository: ListeningRepository,
     private val userPreferencesDao: UserPreferencesDao,
     private val artistLinkingService: ArtistLinkingService,
-    private val enrichedMetadataDao: EnrichedMetadataDao
+    private val enrichedMetadataDao: EnrichedMetadataDao,
+    private val trackResolver: TrackResolver,
+    private val listeningEventDao: ListeningEventDao
 ) {
     companion object {
         private const val TAG = "SpotifyImportService"
         
         // Rate limit protection
-        private const val RATE_LIMIT_DELAY_MS = 100L
+        private const val CURSOR_OVERLAP_MS = 30 * 60 * 1000L
         
         // Source identifier for imported events
         const val IMPORT_SOURCE = "com.spotify.music.import"
         
         // Default assumed duration percentage for imported plays
         // We can't know actual play duration from recently-played API
-        private const val DEFAULT_COMPLETION_PERCENTAGE = 80
     }
     
     /**
@@ -87,9 +89,9 @@ class SpotifyImportService @Inject constructor(
         afterCursor: Long? = null,
         onProgress: ((imported: Int, total: Int) -> Unit)? = null
     ): ImportResult {
-        // Check if Spotify import is available (disabled due to API restrictions)
+        // A Spotify account must be connected; Spotify itself controls API allowlisting.
         if (!isAvailable()) {
-            Log.w(TAG, "Cannot import: Spotify API import is disabled")
+            Log.w(TAG, "Cannot import: Spotify account not connected")
             return ImportResult.notConnected()
         }
         
@@ -109,7 +111,7 @@ class SpotifyImportService @Inject constructor(
             val response = spotifyApi.getRecentlyPlayed(
                 authorization = authHeader,
                 limit = limit.coerceIn(1, 50),
-                after = afterCursor
+                after = afterCursor?.let { (it - CURSOR_OVERLAP_MS).coerceAtLeast(0L) }
             )
             
             if (!response.isSuccessful) {
@@ -131,14 +133,6 @@ class SpotifyImportService @Inject constructor(
             
             val items = recentlyPlayed.items
             Log.i(TAG, "Fetched ${items.size} recently played tracks from Spotify")
-            
-            // Log sample of what we received for debugging
-            if (items.isNotEmpty()) {
-                val firstItem = items.first()
-                Log.d(TAG, "Sample item - Track: '${firstItem.track.name}' by '${firstItem.track.allArtistNames}'")
-                Log.d(TAG, "Sample item - played_at raw: '${firstItem.playedAt}'")
-                Log.d(TAG, "Sample item - played_at parsed: ${firstItem.playedAtMillis}")
-            }
             
             if (items.isEmpty()) {
                 return ImportResult(0, 0, 0, emptyList(), recentlyPlayed.cursors?.after)
@@ -167,19 +161,15 @@ class SpotifyImportService @Inject constructor(
                     }
                     onProgress?.invoke(index + 1, items.size)
                     
-                    // Small delay to be nice to the database
-                    if (index < items.size - 1) {
-                        delay(RATE_LIMIT_DELAY_MS)
-                    }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error processing track: ${playHistory.track.name}", e)
-                    errors.add("Failed to import '${playHistory.track.name}'")
+                    Log.e(TAG, "Error processing Spotify play", e)
+                    errors.add("Failed to import a Spotify play")
                 }
             }
             
             // Save cursor for future polling
             val newCursor = recentlyPlayed.cursors?.after
-            if (newCursor != null) {
+            if (newCursor != null && errors.isEmpty()) {
                 saveCursor(newCursor)
             }
             
@@ -210,113 +200,55 @@ class SpotifyImportService @Inject constructor(
     private suspend fun processPlayHistoryItem(playHistory: PlayHistoryObject): ProcessResult {
         val spotifyTrack = playHistory.track
         val playedAtMillis = playHistory.playedAtMillis
-        
-        // A zero timestamp means Spotify's `played_at` failed to parse; skip the item
-        if (playedAtMillis == 0L) {
-            Log.e(TAG, "Invalid timestamp for track '${spotifyTrack.name}' - raw value: '${playHistory.playedAt}'")
-            return ProcessResult.Duplicate // Treat as duplicate to skip but not count as error
+        if (playedAtMillis <= 0L) {
+            Log.w(TAG, "Skipping a Spotify play with an invalid timestamp")
+            return ProcessResult.Duplicate
         }
-        
-        // Log the actual played time for debugging
-        val playedAtFormatted = java.time.Instant.ofEpochMilli(playedAtMillis)
-            .atZone(java.time.ZoneId.systemDefault())
-            .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-        Log.d(TAG, "Processing: '${spotifyTrack.name}' played at $playedAtFormatted (raw: ${playHistory.playedAt})")
-        
-        // Check if this exact play already exists (same track + same timestamp)
-        // This prevents duplicates from multiple import runs
-        val existingTrack = trackRepository.findBySpotifyId(spotifyTrack.id)
-        
-        if (existingTrack != null) {
-            // Track exists - check if this specific listening event already exists
-            val existingEvents = listeningRepository.getEventsForTrack(existingTrack.id)
-            val alreadyImported = existingEvents.any { event ->
-                // Consider it duplicate if timestamp is within 1 minute
-                // (API timestamps might have slight variations)
-                kotlin.math.abs(event.timestamp - playedAtMillis) < 60_000
-            }
-            
-            if (alreadyImported) {
-                Log.d(TAG, "Skipping duplicate: '${spotifyTrack.name}' at $playedAtFormatted")
-                return ProcessResult.Duplicate
-            }
-            
-            // Backfill artist links for tracks imported under older schemas
-            if (existingTrack.primaryArtistId == null) {
-                try {
-                    artistLinkingService.linkArtistsForTrack(existingTrack)
-                } catch (e: Exception) {
-                    Log.w(TAG, "Failed to link artists for existing track ${existingTrack.id}", e)
-                }
-            }
-            
-            // Create listening event for existing track
-            createListeningEvent(existingTrack.id, playHistory)
-            return ProcessResult.ExistingTrack
-        }
-        
-        // Create new track
-        val track = convertToTrack(spotifyTrack)
-        val trackId = trackRepository.insert(track)
-        
-        // Artist links feed the artists and track_artists tables
-        try {
-            val insertedTrack = track.copy(id = trackId)
-            artistLinkingService.linkArtistsForTrack(insertedTrack)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to link artists for track $trackId: ${e.message}", e)
-            // Continue anyway - track is created, artists can be linked later
-        }
-        
-        // Persist Spotify metadata and album art hotlinks
-        createEnrichedMetadata(trackId, spotifyTrack)
-        
-        // Create listening event
-        createListeningEvent(trackId, playHistory)
-        
-        Log.d(TAG, "Imported new track: '${spotifyTrack.name}' by '${spotifyTrack.allArtistNames}'")
-        return ProcessResult.NewTrack
-    }
-    
-    private fun convertToTrack(spotifyTrack: SpotifyTrack): Track {
-        return Track(
-            title = spotifyTrack.name,
-            artist = spotifyTrack.allArtistNames,
-            album = spotifyTrack.album.name,
-            duration = spotifyTrack.durationMs,
-            albumArtUrl = spotifyTrack.album.mediumImageUrl ?: spotifyTrack.album.largeImageUrl,
-            spotifyId = spotifyTrack.id,
-            musicbrainzId = null,
-            primaryArtistId = null, // Will be linked by ArtistLinkingService later
-            contentType = "MUSIC"
+
+        // Resolve against local MediaSession/Last.fm/Spotify tracks as well as API
+        // tracks. A Spotify ID is stronger identity than a fuzzy title match.
+        val resolution = trackResolver.resolve(
+            TrackResolver.Query(
+                title = spotifyTrack.name,
+                artist = spotifyTrack.allArtistNames,
+                album = spotifyTrack.album.name,
+                albumArtUrl = spotifyTrack.album.mediumImageUrl ?: spotifyTrack.album.largeImageUrl,
+                duration = spotifyTrack.durationMs.takeIf { it > 0L },
+                spotifyId = spotifyTrack.id,
+            )
         )
-    }
-    
-    private suspend fun createListeningEvent(trackId: Long, playHistory: PlayHistoryObject) {
-        val spotifyTrack = playHistory.track
-        val playedAtMillis = playHistory.playedAtMillis
-        
-        // Calculate estimated play duration
-        // We assume 80% completion for imported plays since we don't have actual data
-        val estimatedDuration = (spotifyTrack.durationMs * DEFAULT_COMPLETION_PERCENTAGE / 100)
-        
+        if (resolution.track.primaryArtistId == null) {
+            try {
+                artistLinkingService.linkArtistsForTrack(resolution.track)
+            } catch (e: Exception) {
+                Log.w(TAG, "Unable to link imported Spotify artists", e)
+            }
+        }
+        if (resolution.isNewTrack) createEnrichedMetadata(resolution.trackId, spotifyTrack)
+
+        // /recently-played supplies an exact played_at timestamp and catalog duration
+        // but NO observed listening duration or completion percentage. Do not
+        // invent an 80% play or add fictional listening minutes.
         val event = ListeningEvent(
-            track_id = trackId,
+            track_id = resolution.trackId,
             timestamp = playedAtMillis,
-            playDuration = estimatedDuration,
-            completionPercentage = DEFAULT_COMPLETION_PERCENTAGE,
+            playDuration = 0L,
+            completionPercentage = 0,
             source = IMPORT_SOURCE,
             wasSkipped = false,
             isReplay = false,
-            estimatedDurationMs = spotifyTrack.durationMs,
+            estimatedDurationMs = spotifyTrack.durationMs.takeIf { it > 0L },
             pauseCount = 0,
             sessionId = null,
-            endTimestamp = playedAtMillis + estimatedDuration
+            endTimestamp = null
         )
-        
-        listeningRepository.insert(event)
+        // Authority-ranked dedup avoids the old full-history scan and prevents
+        // API sync from double-counting a play recorded live.
+        val insertResult = listeningEventDao.insertAllBatchedWithDedup(listOf(event))
+        if (insertResult.inserted == 0) return ProcessResult.Duplicate
+        return if (resolution.isNewTrack) ProcessResult.NewTrack else ProcessResult.ExistingTrack
     }
-    
+
     /**
      * Store Spotify ids, album art with its source, and artist ids. `spotifyEnrichmentStatus` is
      * ENRICHED so this data is never fetched again, while `enrichmentStatus` stays PENDING for the
@@ -409,6 +341,6 @@ class SpotifyImportService @Inject constructor(
     fun isAvailable(): Boolean {
         // DISABLED: Spotify API requires allowlisted users (max 5) in development mode.
         // Use SpotifyJsonImportService for JSON data export imports instead.
-        return false
+        return authManager.isConnected()
     }
 }
