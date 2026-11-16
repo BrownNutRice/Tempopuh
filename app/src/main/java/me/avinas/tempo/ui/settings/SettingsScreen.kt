@@ -720,7 +720,7 @@ fun SettingsScreen(
                                         if (presence.durationMs > 0L) {
                                             val position = presence.positionMs.coerceIn(0L, presence.durationMs)
                                             LinearProgressIndicator(
-                                                progress = { position.toFloat() / presence.durationMs },
+                                                progress = { position.toFloat() / presence.durationMs.toFloat() },
                                                 modifier = Modifier.fillMaxWidth(),
                                             )
                                         }
