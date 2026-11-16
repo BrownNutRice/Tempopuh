@@ -104,8 +104,12 @@ fun SettingsScreen(
             if (event == Lifecycle.Event.ON_RESUME) {
                 scope.launch {
                     val (connected, id) = viewModel.spotifyAccountInfo()
+                    val newlyConnected = connected && !spotifyConnected
                     spotifyConnected = connected
                     if (!connected) spotifyClientId = id
+                    if (newlyConnected && uiState.spotifyApiOnlyMode) {
+                        me.avinas.tempo.worker.SpotifyPollingWorker.syncNow(context)
+                    }
                 }
             }
         }
@@ -660,11 +664,19 @@ fun SettingsScreen(
                             subtitle = "Import recent plays from Spotify's API; updates are delayed and this is not real-time presence. Broadcast tracking is disabled when enabled.",
                             checked = uiState.spotifyApiOnlyMode,
                             onCheckedChange = { enabled ->
-                                if (enabled) {
-                                    SpotifyBroadcastPresence.setEnabled(context, false)
-                                    spotifyBroadcastEnabled = false
+                                if (enabled && !spotifyConnected) {
+                                    Toast.makeText(
+                                        context,
+                                        "Connect your Spotify account before using API-only tracking.",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                } else {
+                                    if (enabled) {
+                                        SpotifyBroadcastPresence.setEnabled(context, false)
+                                        spotifyBroadcastEnabled = false
+                                    }
+                                    viewModel.toggleSpotifyApiOnlyMode(enabled)
                                 }
-                                viewModel.toggleSpotifyApiOnlyMode(enabled)
                             },
                         )
 
