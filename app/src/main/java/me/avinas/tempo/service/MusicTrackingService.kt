@@ -1180,6 +1180,28 @@ class MusicTrackingService : NotificationListenerService() {
     private var spotifyBroadcastBridge: SpotifyBroadcastBridge? = null
     private var lastSpotifyBroadcastAtMs = 0L
 
+    /**
+     * On Android 8-13 broadcast sender identity is unavailable. A third-party
+     * app can spoof Spotify's action strings, so use Spotify's independently
+     * authenticated Android MediaSession as the source of track identity.
+     * If the controller has not caught up yet, ignore the broadcast and let
+     * standard MediaSession/notification tracking handle the transition.
+     */
+    private fun trustedSpotifyBroadcastTrack(track: SpotifyBroadcastBridge.Track?): Boolean {
+        val proposed = track ?: return false
+        val controller = synchronized(activeControllers) {
+            activeControllers["com.spotify.music"]
+        } ?: return false
+        val metadata = controller.metadata ?: return false
+        val title = metadata.getString(MediaMetadata.METADATA_KEY_TITLE)
+            ?: metadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE)
+            ?: return false
+        val artist = metadata.getString(MediaMetadata.METADATA_KEY_ARTIST)
+            ?: return false
+        return title.trim().equals(proposed.title, ignoreCase = true) &&
+            artist.trim().equals(proposed.artist, ignoreCase = true)
+    }
+
     private fun startSpotifyBroadcastTracking() {
         spotifyBroadcastBridge = SpotifyBroadcastBridge(
             context = this,
@@ -1194,6 +1216,7 @@ class MusicTrackingService : NotificationListenerService() {
             onQueueChanged = {
                 android.os.Handler(android.os.Looper.getMainLooper()).post { rescanActiveMediaSessions() }
             },
+            allowLegacyBroadcast = { proposed -> trustedSpotifyBroadcastTrack(proposed) },
         ).also { it.start() }
     }
 
