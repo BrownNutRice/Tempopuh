@@ -127,4 +127,32 @@ class ListeningReconciliationIntegrationTest {
             .single { it.source == "com.spotify.music" }.playDuration)
     }
 
+    @Test fun distinctFastRepeatsAreSeparateSessions() = runBlocking {
+        val id = trackId()
+        val listening = repository()
+        val first = localPlay(id)
+        val repeated = first.copy(
+            timestamp = first.timestamp + 2_000L,
+            endTimestamp = first.endTimestamp!! + 2_000L,
+            sessionId = "second-distinct-session",
+        )
+        assertTrue(listening.insert(first) > 0L)
+        assertTrue(listening.insert(repeated) > 0L)
+        assertEquals(2, database.listeningEventDao().getEventsForTrack(id).size)
+    }
+
+    @Test fun concurrentDesktopAndAndroidListeningAreIndependent() = runBlocking {
+        val id = trackId()
+        val listening = repository()
+        val phone = localPlay(id)
+        val desktop = phone.copy(
+            source = "desktop:SpotifyWeb",
+            sessionId = "desktop-session",
+            playDuration = 60_000L,
+        )
+        assertTrue(listening.insert(phone) > 0L)
+        assertTrue(listening.insert(desktop) > 0L)
+        assertEquals(2, database.listeningEventDao().getEventsForTrack(id).size)
+    }
+
 }
