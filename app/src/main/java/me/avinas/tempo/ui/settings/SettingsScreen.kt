@@ -659,6 +659,24 @@ fun SettingsScreen(
                             )
                         }
 
+                        if (spotifyConnected) {
+                            SettingsOption(
+                                title = "Reconnect Spotify / update permissions",
+                                subtitle = "Reconnect to grant current playback-state access for Spotify Connect verification. Existing listening history is retained.",
+                                onClick = {
+                                    scope.launch {
+                                        viewModel.disconnectSpotify()
+                                        spotifyConnected = false
+                                        Toast.makeText(
+                                            context,
+                                            "Spotify disconnected. Tap Connect account to authorize updated permissions.",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
+                                },
+                            )
+                        }
+
                         if (spotifyConnected && uiState.spotifyApiOnlyMode) {
                             SettingsOption(
                                 title = "Sync Spotify history now",
