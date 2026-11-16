@@ -19,6 +19,9 @@ jobs:
     # Optional OAuth Web client ID for sign-in. No client secret is needed in the APK.
     env:
       GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+      TEMPO_DEBUG_STORE_PASSWORD: ${{ secrets.TEMPO_DEBUG_STORE_PASSWORD }}
+      TEMPO_DEBUG_KEY_ALIAS: ${{ secrets.TEMPO_DEBUG_KEY_ALIAS }}
+      TEMPO_DEBUG_KEY_PASSWORD: ${{ secrets.TEMPO_DEBUG_KEY_PASSWORD }}
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
@@ -27,6 +30,17 @@ jobs:
           java-version: '21'
           distribution: temurin
           cache: gradle
+      # OAuth credentials must match the installed APK signer. Supply a stable
+      # keystore in repository Secrets if using a Google Android OAuth client.
+      - name: Restore optional debug signing keystore
+        env:
+          TEMPO_DEBUG_KEYSTORE_BASE64: ${{ secrets.TEMPO_DEBUG_KEYSTORE_BASE64 }}
+        shell: bash
+        run: |
+          if [ -n "$TEMPO_DEBUG_KEYSTORE_BASE64" ]; then
+            printf '%s' "$TEMPO_DEBUG_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/tempo-debug.jks"
+            echo "TEMPO_DEBUG_KEYSTORE_PATH=$RUNNER_TEMP/tempo-debug.jks" >> "$GITHUB_ENV"
+          fi
       - name: Make Gradle executable
         run: chmod +x gradlew
       - name: Run unit tests
