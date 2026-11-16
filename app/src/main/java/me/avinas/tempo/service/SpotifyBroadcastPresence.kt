@@ -145,7 +145,12 @@ object SpotifyBroadcastPresence {
             durationMs = durationMs.coerceAtLeast(0L),
             updatedAtMs = now,
             packageName = packageName,
-            source = "Android media tracking"
+            source = "Android media tracking",
+            verifiedByApiAtMs = if (
+                current?.title == title &&
+                current?.artist == artist &&
+                current?.packageName == packageName
+            ) current.verifiedByApiAtMs else null,
         )
     }
 
