@@ -119,6 +119,22 @@ class TrackResolver @Inject constructor(
             contentType = contentType
         )
         val newId = trackRepository.insert(track)
+        if (newId <= 0L) {
+            // Room's INSERT IGNORE can return -1 if another observer created
+            // this provider ID after our initial lookup. Never create an event
+            // pointing to track_id=-1: retry identity resolution once.
+            val racedTrack = query.spotifyId?.takeIf { it.isNotBlank() }
+                ?.let { trackRepository.findBySpotifyId(it) }
+                ?: query.youtubeId?.takeIf { it.isNotBlank() }
+                    ?.let { trackRepository.findByYoutubeId(it) }
+                ?: query.musicbrainzId?.takeIf { it.isNotBlank() }
+                    ?.let { trackRepository.findByMusicBrainzId(it) }
+                ?: trackRepository.findByTitleAndArtist(query.title, query.artist)
+            if (racedTrack != null) {
+                return Resolution(racedTrack.id, isNewTrack = false, track = racedTrack)
+            }
+            error("Track could not be created or resolved: insert returned $newId")
+        }
         return Resolution(newId, isNewTrack = true, track = track.copy(id = newId))
     }
 
