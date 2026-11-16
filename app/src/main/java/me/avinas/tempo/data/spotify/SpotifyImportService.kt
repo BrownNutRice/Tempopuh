@@ -19,6 +19,8 @@ import me.avinas.tempo.data.repository.ArtistLinkingService
 import me.avinas.tempo.data.repository.ListeningRepository
 import me.avinas.tempo.data.repository.TrackRepository
 import me.avinas.tempo.data.repository.TrackResolver
+import me.avinas.tempo.data.repository.StatsRepository
+import me.avinas.tempo.data.repository.RefreshCoordinator
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,7 +37,9 @@ class SpotifyImportService @Inject constructor(
     private val artistLinkingService: ArtistLinkingService,
     private val enrichedMetadataDao: EnrichedMetadataDao,
     private val trackResolver: TrackResolver,
-    private val listeningEventDao: ListeningEventDao
+    private val listeningEventDao: ListeningEventDao,
+    private val statsRepository: StatsRepository,
+    private val refreshCoordinator: RefreshCoordinator,
 ) {
     companion object {
         private const val TAG = "SpotifyImportService"
@@ -173,6 +177,15 @@ class SpotifyImportService @Inject constructor(
                 saveCursor(newCursor)
             }
             
+            // Imported plays are persisted directly via the DAO (not through the
+            // local MusicTrackingManager). Drop the long-lived aggregate caches
+            // once per sync, after all inserts, so Home/History/Stats show the
+            // new plays immediately instead of serving stale five-minute totals.
+            if (eventsCreated > 0) {
+                statsRepository.invalidateCache()
+                refreshCoordinator.notifyNewTrackRecorded()
+            }
+
             Log.i(TAG, "Import complete: $tracksImported new tracks, $eventsCreated events, $duplicatesSkipped duplicates")
             
             ImportResult(
