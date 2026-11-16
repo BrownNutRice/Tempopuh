@@ -69,6 +69,11 @@ interface ListeningEventDao {
         endTime: Long,
     ): List<me.avinas.tempo.data.stats.SessionPoint>
 
+    /** Return the actual ID of an accepted, fingerprinted event after the
+     * authority-aware reconciliation transaction, or null when absent. */
+    @Query("SELECT id FROM listening_events WHERE content_fingerprint = :fingerprint ORDER BY id DESC LIMIT 1")
+    suspend fun findIdByFingerprint(fingerprint: String): Long?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(event: ListeningEvent): Long
 
