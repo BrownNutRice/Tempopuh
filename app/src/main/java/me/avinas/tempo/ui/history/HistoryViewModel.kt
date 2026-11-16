@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -96,7 +98,6 @@ class HistoryViewModel @Inject constructor(
     init {
         initializeViewMode()
         observeDataChanges()
-        observeRefreshEvents()
     }
     
     /**
@@ -141,28 +142,22 @@ class HistoryViewModel @Inject constructor(
         }
     }
     
+    /**
+     * A one-row Room invalidation signal is much cheaper than recalculating the
+     * ALL_TIME listening overview (including the longest session) solely to
+     * discover that a new event arrived.
+     *
+     * Live tracking also sends a refresh notification after its Room commit.
+     * Merge both sources into one short debounce to avoid running two expensive
+     * history queries for the same song.
+     */
+    @OptIn(kotlinx.coroutines.FlowPreview::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     private fun observeDataChanges() {
         viewModelScope.launch {
-            statsRepository.observeListeningOverview(TimeRange.ALL_TIME)
-                .collect { _ ->
-                    // Refresh history when new listening events are added
-                    // Only refresh if we are on the first page to avoid jumping
-                    // Also skip if we're in the middle of a delete operation to prevent
-                    // overwriting optimistic UI updates
-                    if (_uiState.value.page == 0 && !suppressObserverRefresh) {
-                        loadHistory()
-                    }
-                }
-        }
-    }
-    
-    /**
-     * Listen for "new track recorded" events from MusicTrackingService.
-     */
-    @OptIn(kotlinx.coroutines.FlowPreview::class)
-    private fun observeRefreshEvents() {
-        viewModelScope.launch {
-            refreshCoordinator.refreshEvents
+            merge(
+                listeningRepository.recentEvents(1).map { Unit },
+                refreshCoordinator.refreshEvents.map { Unit },
+            )
                 .debounce(300)
                 .collect {
                     if (_uiState.value.page == 0 && !suppressObserverRefresh) {
@@ -171,7 +166,7 @@ class HistoryViewModel @Inject constructor(
                 }
         }
     }
-    
+
     /** Pull-to-refresh handler. */
     suspend fun refresh() {
         _uiState.update { it.copy(isRefreshing = true) }
