@@ -36,6 +36,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.core.os.LocaleListCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.delay
 import me.avinas.tempo.R
@@ -86,6 +87,28 @@ fun SettingsScreen(
     val context = LocalContext.current
     var spotifyBroadcastEnabled by remember { mutableStateOf(SpotifyBroadcastPresence.enabled(context)) }
     val spotifyPresence by SpotifyBroadcastPresence.presence.collectAsState()
+    var spotifyConnected by remember { mutableStateOf(false) }
+    var spotifyClientId by remember { mutableStateOf("") }
+    var spotifyAccountLoaded by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        val (connected, id) = viewModel.spotifyAccountInfo()
+        spotifyConnected = connected
+        spotifyClientId = id
+        spotifyAccountLoaded = true
+    }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                scope.launch {
+                    val (connected, id) = viewModel.spotifyAccountInfo()
+                    spotifyConnected = connected
+                    if (!connected) spotifyClientId = id
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     val lifecycleOwner = LocalLifecycleOwner.current
     val versionName =
         remember {
@@ -598,11 +621,62 @@ fun SettingsScreen(
 
                         HorizontalDivider(color = GlassBorderSoft)
 
+                        SettingsOption(
+                            title = if (spotifyConnected) "Spotify API · Connected" else "Spotify API · Connect account",
+                            subtitle = if (spotifyConnected) {
+                                "Spotify authorization active. Use the API-only option below to import recent plays."
+                            } else {
+                                "Sign into Spotify in your browser to allow Tempo to import listening history."
+                            },
+                            onClick = {
+                                if (!spotifyConnected) scope.launch {
+                                    val intent = viewModel.startSpotifyAuthorization(spotifyClientId)
+                                    if (intent == null) {
+                                        Toast.makeText(context, "Enter a valid Spotify Client ID first.", Toast.LENGTH_LONG).show()
+                                    } else {
+                                        try {
+                                            context.startActivity(intent)
+                                        } catch (e: ActivityNotFoundException) {
+                                            Toast.makeText(context, "No browser available for Spotify login.", Toast.LENGTH_LONG).show()
+                                        }
+                                    }
+                                }
+                            },
+                        )
+                        if (spotifyAccountLoaded && !spotifyConnected) {
+                            OutlinedTextField(
+                                value = spotifyClientId,
+                                onValueChange = { spotifyClientId = it.trim() },
+                                label = { Text("Spotify Developer Client ID (32 characters)") },
+                                supportingText = { Text("Create a Spotify Developer app and register tempo://spotify-callback as its redirect URI.") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                            )
+                        }
+
+                        SettingsSwitch(
+                            title = "Spotify API-only history sync",
+                            subtitle = "Import recent plays from Spotify's API; updates are delayed and this is not real-time presence. Broadcast tracking is disabled when enabled.",
+                            checked = uiState.spotifyApiOnlyMode,
+                            onCheckedChange = { enabled ->
+                                if (enabled) {
+                                    SpotifyBroadcastPresence.setEnabled(context, false)
+                                    spotifyBroadcastEnabled = false
+                                }
+                                viewModel.toggleSpotifyApiOnlyMode(enabled)
+                            },
+                        )
+
+                        HorizontalDivider(color = GlassBorderSoft)
+
                         SettingsSwitch(
                             title = "Spotify Device Broadcast Status",
                             subtitle = "Real-time local Spotify playback updates. Turn on the matching switch in Spotify > Settings > Playback. Requires Tempo tracking service.",
                             checked = spotifyBroadcastEnabled,
                             onCheckedChange = { enabled ->
+                                if (enabled && uiState.spotifyApiOnlyMode) {
+                                    viewModel.toggleSpotifyApiOnlyMode(false)
+                                }
                                 SpotifyBroadcastPresence.setEnabled(context, enabled)
                                 spotifyBroadcastEnabled = enabled
                             },
