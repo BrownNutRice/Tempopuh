@@ -37,6 +37,7 @@ class SpotifyAuthManager @Inject constructor(
         
         // Set in local.properties
         val CLIENT_ID: String = me.avinas.tempo.BuildConfig.SPOTIFY_CLIENT_ID
+
         
         // PKCE constants
         private const val CODE_VERIFIER_LENGTH = 64
@@ -70,6 +71,10 @@ class SpotifyAuthManager @Inject constructor(
         }
     }
 
+    fun effectiveClientId(): String = tokenStorage.getCustomClientId() ?: CLIENT_ID
+
+    fun isConfigured(): Boolean = effectiveClientId().matches(Regex("[0-9a-fA-F]{32}"))
+
     fun isConnected(): Boolean {
         return tokenStorage.getAccessToken() != null
     }
@@ -95,6 +100,7 @@ class SpotifyAuthManager @Inject constructor(
 
     /** Returns the Spotify authorization page as an Intent; the caller launches it. */
     fun startLoginFlow(): Intent {
+        require(isConfigured()) { "Enter a valid Spotify Client ID before connecting" }
         _authState.value = AuthState.Connecting
 
         val codeVerifier = generateCodeVerifier()
@@ -165,7 +171,7 @@ class SpotifyAuthManager @Inject constructor(
         return withContext(Dispatchers.IO) {
             try {
                 val formBody = FormBody.Builder()
-                    .add("client_id", CLIENT_ID)
+                    .add("client_id", effectiveClientId())
                     .add("grant_type", "authorization_code")
                     .add("code", code)
                     .add("redirect_uri", SpotifyApi.REDIRECT_URI)
@@ -228,7 +234,7 @@ class SpotifyAuthManager @Inject constructor(
                 }
 
                 val formBody = FormBody.Builder()
-                    .add("client_id", CLIENT_ID)
+                    .add("client_id", effectiveClientId())
                     .add("grant_type", "refresh_token")
                     .add("refresh_token", refreshToken)
                     .build()
@@ -282,7 +288,7 @@ class SpotifyAuthManager @Inject constructor(
 
     private fun buildAuthorizationUrl(codeChallenge: String, state: String): String {
         return Uri.parse(SpotifyApi.AUTH_URL).buildUpon()
-            .appendQueryParameter("client_id", CLIENT_ID)
+            .appendQueryParameter("client_id", effectiveClientId())
             .appendQueryParameter("response_type", "code")
             .appendQueryParameter("redirect_uri", SpotifyApi.REDIRECT_URI)
             .appendQueryParameter("code_challenge_method", CODE_CHALLENGE_METHOD)
