@@ -45,10 +45,6 @@ import me.avinas.tempo.worker.ServiceHealthWorker
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.repeatOnLifecycle
-import me.avinas.tempo.data.spotify.SpotifyPlaybackVerifier
 import me.avinas.tempo.data.remote.spotify.SpotifyAuthManager
 import me.avinas.tempo.data.local.dao.UserPreferencesDao
 import me.avinas.tempo.worker.SpotifyPollingWorker
@@ -72,9 +68,6 @@ class MainActivity : AppCompatActivity() {
     @javax.inject.Inject
     lateinit var userPreferencesDao: UserPreferencesDao
 
-    @javax.inject.Inject
-    lateinit var spotifyPlaybackVerifier: SpotifyPlaybackVerifier
-
     private val navigationTrigger = mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -82,18 +75,6 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
 
         checkNavigationIntent(intent)
-
-        // Low-rate foreground cross-check. Real-time track changes still come
-        // from the device broadcast/MediaSession, and this loop is cancelled
-        // automatically when Tempo is no longer visible.
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                while (true) {
-                    spotifyPlaybackVerifier.refresh()
-                    delay(45_000L)
-                }
-            }
-        }
 
         // Repair the periodic Spotify sync after upgrades, process death or a
         // reboot. Only an authorized account with API sync enabled is scheduled.
@@ -110,7 +91,7 @@ class MainActivity : AppCompatActivity() {
                     // if they repeatedly move between activities.
                     val syncPrefs = getSharedPreferences("spotify_sync_cadence", MODE_PRIVATE)
                     val now = System.currentTimeMillis()
-                    if (now - syncPrefs.getLong("last_requested_at", 0L) > 5 * 60_000L) {
+                    if (now - syncPrefs.getLong("last_requested_at", 0L) > 20 * 60_000L) {
                         syncPrefs.edit().putLong("last_requested_at", now).apply()
                         SpotifyPollingWorker.syncNow(applicationContext)
                     }
