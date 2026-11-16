@@ -110,6 +110,7 @@ fun SettingsScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
     val lifecycleOwner = LocalLifecycleOwner.current
+    val scope = rememberCoroutineScope()
     val versionName =
         remember {
             try {
@@ -118,7 +119,6 @@ fun SettingsScreen(
                 "Unknown"
             }
         }
-    val scope = rememberCoroutineScope()
     var showClearDataDialog by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
