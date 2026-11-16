@@ -220,6 +220,7 @@ class StatsViewModel
                         loadAnalyticsData(timeRange)
                     }
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     _uiState.update { it.copy(isLoading = false, isLoadingMore = false, error = e.message) }
                 }
             }
