@@ -13,6 +13,7 @@ import me.avinas.tempo.data.repository.EnrichedMetadataRepository
 import me.avinas.tempo.data.local.dao.UserPreferencesDao
 import me.avinas.tempo.data.local.entities.UserPreferences
 import me.avinas.tempo.worker.SpotifyPollingWorker
+import me.avinas.tempo.data.spotify.SpotifyPlaybackVerifier
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -36,6 +37,9 @@ class SpotifyCallbackActivity : ComponentActivity() {
 
     @Inject
     lateinit var userPreferencesDao: UserPreferencesDao
+
+    @Inject
+    lateinit var spotifyPlaybackVerifier: SpotifyPlaybackVerifier
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -73,6 +77,7 @@ class SpotifyCallbackActivity : ComponentActivity() {
                     }
                     SpotifyPollingWorker.schedule(applicationContext)
                     SpotifyPollingWorker.syncNow(applicationContext)
+                    spotifyPlaybackVerifier.resetAfterSpotifyLogin()
 
                     // History reconstruction is triggered from MainActivity, whose
                     // viewModelScope outlives this activity and won't get cancelled. It uses
