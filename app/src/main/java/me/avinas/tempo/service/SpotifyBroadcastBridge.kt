@@ -67,8 +67,10 @@ internal class SpotifyBroadcastBridge(
             // Only discard stale events within the SAME action type.
             if (sentAt < now - 120_000L || sentAt > now + 30_000L) return
             if (sentAt < (lastSentAtByAction[action] ?: 0L)) return
-            lastSentAtByAction[action] = sentAt
 
+            // Don't advance the anti-stale cursor until the sender and its
+            // metadata have passed validation. A forged broadcast could
+            // otherwise preempt genuine messages for up to 30 seconds.
             when (action) {
                 METADATA -> {
                     val title = intent.getStringExtra("track")?.trim()
@@ -97,6 +99,7 @@ internal class SpotifyBroadcastBridge(
                 }
                 QUEUE -> {
                     if (Build.VERSION.SDK_INT < 34 && !allowLegacyBroadcast(track)) return
+                    lastSentAtByAction[action] = sentAt
                     onQueueChanged()
                     return
                 }
@@ -104,6 +107,7 @@ internal class SpotifyBroadcastBridge(
 
             val currentTrack = track ?: return
             val isPlaying = playing ?: return
+            lastSentAtByAction[action] = sentAt
             SpotifyBroadcastPresence.publish(currentTrack, isPlaying, positionMs)
             onPlayback(currentTrack, isPlaying, positionMs)
         }
