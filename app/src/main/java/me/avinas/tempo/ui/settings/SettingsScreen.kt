@@ -39,6 +39,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.delay
 import me.avinas.tempo.R
+import me.avinas.tempo.service.SpotifyBroadcastPresence
 import me.avinas.tempo.data.importexport.ImportConflictStrategy
 import me.avinas.tempo.data.importexport.ImportExportResult
 import me.avinas.tempo.data.local.entities.AlbumArtSource
@@ -83,6 +84,8 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    var spotifyBroadcastEnabled by remember { mutableStateOf(SpotifyBroadcastPresence.enabled(context)) }
+    val spotifyPresence by SpotifyBroadcastPresence.presence.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
     val versionName =
         remember {
@@ -590,6 +593,33 @@ fun SettingsScreen(
                                 title = stringResource(R.string.settings_import_lastfm),
                                 subtitle = stringResource(R.string.settings_import_lastfm_desc),
                                 onClick = { onNavigateToLastFmImport?.invoke() },
+                            )
+                        }
+
+                        HorizontalDivider(color = GlassBorderSoft)
+
+                        SettingsSwitch(
+                            title = "Spotify Device Broadcast Status",
+                            subtitle = "Real-time local Spotify playback updates. Turn on the matching switch in Spotify > Settings > Playback. Requires Tempo tracking service.",
+                            checked = spotifyBroadcastEnabled,
+                            onCheckedChange = { enabled ->
+                                SpotifyBroadcastPresence.setEnabled(context, enabled)
+                                spotifyBroadcastEnabled = enabled
+                            },
+                        )
+
+                        if (spotifyBroadcastEnabled) {
+                            val presence = spotifyPresence
+                            Text(
+                                text = if (presence == null) {
+                                    "Now Playing · Waiting for a Spotify broadcast"
+                                } else {
+                                    val state = if (presence.playing) "Playing" else "Paused"
+                                    "Now Playing · $state: ${presence.title} — ${presence.artist}"
+                                },
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                color = TextSecondary,
+                                style = MaterialTheme.typography.bodySmall,
                             )
                         }
 
