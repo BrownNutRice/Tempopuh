@@ -177,4 +177,41 @@ class TrackResolverAliasTest {
     private companion object {
         const val NEW_TRACK_ID = 99L
     }
+
+
+    @Test
+    fun `Spotify imports do not merge distinct recordings with conflicting IDs`() = runTest {
+        val existing = track(id = 21L, title = "Same Title")
+            .copy(spotifyId = "old-recording-spotify-id")
+        val h = harness(exactTitleMatch = existing)
+
+        val resolution = h.resolver.resolve(
+            TrackResolver.Query(
+                title = "Same Title",
+                artist = "A.R. Rahman",
+                spotifyId = "different-remaster-spotify-id"
+            )
+        )
+
+        assertTrue("Different Spotify IDs must create separate tracks", resolution.isNewTrack)
+        assertEquals(NEW_TRACK_ID, resolution.trackId)
+        assertEquals("different-remaster-spotify-id", h.inserted().single().spotifyId)
+    }
+
+    @Test
+    fun `different MusicBrainz recording IDs must not collapse into one track`() = runTest {
+        val existing = track(id = 22L, title = "Same Title")
+            .copy(musicbrainzId = "recording-a")
+        val h = harness(exactTitleMatch = existing)
+
+        val resolution = h.resolver.resolve(
+            TrackResolver.Query(
+                title = "Same Title",
+                artist = "A.R. Rahman",
+                musicbrainzId = "recording-b"
+            )
+        )
+        assertTrue(resolution.isNewTrack)
+        assertEquals(NEW_TRACK_ID, resolution.trackId)
+    }
 }
