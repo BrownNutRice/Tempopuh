@@ -16,6 +16,9 @@ permissions:
 jobs:
   apk:
     runs-on: ubuntu-latest
+    # Optional OAuth Web client ID for sign-in. No client secret is needed in the APK.
+    env:
+      GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
