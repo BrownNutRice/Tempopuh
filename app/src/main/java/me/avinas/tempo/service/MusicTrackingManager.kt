@@ -164,7 +164,7 @@ class MusicTrackingManager(
 
         if (id > 0L) {
             updateMetrics { it.copy(eventsSaved = it.eventsSaved + 1) }
-            onPersisted(listOf(event))
+            notifyPersisted(listOf(event))
         }
         return Result.success(id)
     }
@@ -278,8 +278,12 @@ class MusicTrackingManager(
                 }
                 if (batch.isNotEmpty()) processBatch(batch.toList())
             } catch (e: CancellationException) {
-                // Service shutdown uses flushAll() before cancelling the scope.
-                // Don't make a Room call from a cancelled coroutine.
+                // A rapid service shutdown can race the normal flushAll().
+                // Save the last batch outside the cancelled context rather than
+                // dropping the most recently completed playback.
+                withContext(NonCancellable) {
+                    if (batch.isNotEmpty()) processBatch(batch.toList())
+                }
                 throw e
             }
         }
@@ -339,7 +343,7 @@ class MusicTrackingManager(
                         batchesProcessed = it.batchesProcessed + 1
                     ) 
                 }
-                if (savedEvents.isNotEmpty()) onPersisted(savedEvents)
+                if (savedEvents.isNotEmpty()) notifyPersisted(savedEvents)
                 Log.d(TAG, "Batch saved: $successCount/${candidates.size} valid events")
             } finally {
                 isProcessing.value = false
@@ -508,7 +512,7 @@ class MusicTrackingManager(
                         Log.d(TAG, "Removed offline event rejected after persistence: trackId=${pending.event.track_id}")
                     } else {
                         updateMetrics { it.copy(eventsSaved = it.eventsSaved + 1) }
-                        onPersisted(listOf(pending.event))
+                        notifyPersisted(listOf(pending.event))
                     }
                     offlineQueue.remove(pending.key())
                 } else if (!shouldPersistEvent(pending.event)) {
@@ -582,6 +586,16 @@ class MusicTrackingManager(
         recentEventHashes.entries.removeAll { it.value < threshold }
     }
     
+    private fun notifyPersisted(events: List<ListeningEvent>) {
+        try {
+            onPersisted(events)
+        } catch (e: Exception) {
+            // The write has already succeeded. A UI cache-notification failure
+            // must never roll back the event or stop the batch processor.
+            Log.w(TAG, "Saved play but failed to signal UI refresh", e)
+        }
+    }
+
     private fun updateMetrics(updater: (TrackingMetrics) -> TrackingMetrics) {
         _metrics.value = updater(_metrics.value)
     }
