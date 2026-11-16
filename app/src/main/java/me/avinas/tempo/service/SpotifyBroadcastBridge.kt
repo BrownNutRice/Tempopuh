@@ -4,7 +4,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Process
 import android.util.Log
@@ -42,6 +41,7 @@ internal class SpotifyBroadcastBridge(
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
+            if (!SpotifyBroadcastPresence.enabled(context)) return
             val action = intent.action ?: return
             if (action != METADATA && action != PLAYBACK && action != QUEUE) return
 
@@ -85,6 +85,7 @@ internal class SpotifyBroadcastBridge(
 
             val currentTrack = track ?: return
             val isPlaying = playing ?: return
+            SpotifyBroadcastPresence.publish(currentTrack, isPlaying, positionMs)
             onPlayback(currentTrack, isPlaying, positionMs)
         }
     }
@@ -117,6 +118,7 @@ internal class SpotifyBroadcastBridge(
             Log.w(TAG, "Error unregistering Spotify receiver", e)
         } finally {
             registered = false
+            SpotifyBroadcastPresence.clear()
         }
     }
 }
