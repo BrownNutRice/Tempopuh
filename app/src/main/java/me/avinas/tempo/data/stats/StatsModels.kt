@@ -102,7 +102,9 @@ data class CombinedBasicStats(
 
 data class SessionPoint(
     val timestamp: Long,
-    val playDuration: Long
+    val playDuration: Long,
+    /** Timestamp when playback ended, if directly observed rather than inferred. */
+    val endTimestamp: Long? = null,
 )
 
 // Basic Stats Models
