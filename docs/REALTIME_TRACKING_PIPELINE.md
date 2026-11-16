@@ -17,11 +17,11 @@ The app tracks **two different facts**:
 2. MediaSession positions are extrapolated using `PlaybackState.lastPositionUpdateTime`
    and Android's monotonic clock. A stale position value no longer freezes
    estimated track progress.
-3. `PlaybackSession` uses a **monotonic playing-time stopwatch** (excluding
+3. `PlaybackSession` uses a **Android elapsed-realtime playing-time stopwatch** (excluding
    reported pauses) for real seconds listened. Media position advancement is
    tracked separately for seek-aware *track completion*. This avoids inflating
    listening minutes at 2x speed or treating a large seek as time listened.
-   When no position is available, notification-only playback still accumulates
+   Android's elapsed-realtime clock includes CPU suspend during supported\n   offloaded audio playback. When no position is available, notification-only playback still accumulates
    eligible listening time.
 4. When a session finalizes, `MusicTrackingManager` groups completed events for
    **up to 750 ms**, rather than 30 seconds, before saving them through Room.
@@ -32,7 +32,7 @@ The app tracks **two different facts**:
    querying the same event.
 6. Spotify API's *recently played* feed is separate: WorkManager pulls it
    approximately every 20 minutes and reconciles duplicates against live tracking. Imported
-   histories refresh statistics when their writes complete. API data may arrive
+   histories refresh statistics when their writes complete. Both local and API\n   writes pass through authority-ranked deduplication. API data may arrive
    late on Spotify's servers and does not contain observed listening duration.
 
 ## Important interpretation notes
