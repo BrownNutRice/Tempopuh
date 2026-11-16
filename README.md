@@ -110,6 +110,7 @@ Listening history is kept locally unless you explicitly export, back up, or pair
 | Guide | Contents |
 | --- | --- |
 | [Tracking and import accuracy](docs/TRACKING_AND_IMPORT_ACCURACY.md) | Recording sources, duplicate handling and historical data quality |
+| [History data quality](docs/HISTORY_DATA_QUALITY.md) | Preview and optionally correct unsupported legacy Spotify API estimates |
 | [Real-time tracking pipeline](docs/REALTIME_TRACKING_PIPELINE.md) | Session timing, persistence and device test checklist |
 | [Google Drive setup](docs/GOOGLE_DRIVE_SETUP.md) | OAuth, signing, backup setup |
 | [Analytics](docs/ANALYTICS.md) | App-health data and consent |
