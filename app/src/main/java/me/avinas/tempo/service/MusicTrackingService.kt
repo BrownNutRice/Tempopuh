@@ -3587,6 +3587,18 @@ class MusicTrackingService : NotificationListenerService() {
                     ).getStreamVolume(android.media.AudioManager.STREAM_MUSIC),
             )
 
+        // Device troubleshooting: privacy-preserving session accounting only.
+        // No track title, artist, OAuth credential or package UID in this log.
+        // Compare this finalized wall-clock listening time with History's raw
+        // playDuration to locate "1 minute per song" reporting regressions.
+        Log.i(
+            TAG,
+            "Finalized listening session id=${session.sessionId} " +
+                "listenedMs=$playDuration positionCoverageMs=${session.accumulatedPositionMs} " +
+                "positionCallbacks=${session.positionUpdatesCount} " +
+                "pauses=${session.pauseCount} seeks=${session.seekCount}"
+        )
+
         // VALIDATION: Validate event before saving
         if (!session.validatePlayDuration()) {
             Log.w(TAG, "Validation failed for '${session.title}': invalid play duration, capping to max")
