@@ -75,7 +75,7 @@ fun HowItWorksScreen(
         if (reducedMotion) {
             remember { mutableFloatStateOf(0.5f) }
         } else {
-            rememberInfiniteTransition(label = "flow").animateFloat(
+            me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "flow").animateFloat(
                 initialValue = 0f,
                 targetValue = 1f,
                 animationSpec = infiniteRepeatable(

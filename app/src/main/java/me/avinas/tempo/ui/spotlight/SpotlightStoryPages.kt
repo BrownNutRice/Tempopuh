@@ -7,7 +7,6 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -984,7 +983,7 @@ fun TopGenresPage(page: SpotlightStoryPage.TopGenres) {
                 contentAlignment = Alignment.Center
             ) {
                 // Floating Animation
-                val infiniteTransition = androidx.compose.animation.core.rememberInfiniteTransition(label = "floating")
+                val infiniteTransition = me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "floating")
                 val floatOffset by infiniteTransition.animateFloat(
                     initialValue = -10f,
                     targetValue = 10f,
@@ -1115,7 +1114,7 @@ fun TopGenresPage(page: SpotlightStoryPage.TopGenres) {
 fun PersonalityPage(page: SpotlightStoryPage.Personality) {
     val (icon, color) = getPersonalityAssets(page.personalityKey)
     
-    val infiniteTransition = androidx.compose.animation.core.rememberInfiniteTransition(label = "personality")
+    val infiniteTransition = me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "personality")
     val rotationAngle by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
@@ -3112,7 +3111,7 @@ fun BadgesEarnedPage(page: SpotlightStoryPage.BadgesEarned) {
         else         -> Color(0xFFC4B5FD)
     }
 
-    val infiniteTransition = rememberInfiniteTransition(label = "trophy")
+    val infiniteTransition = me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "trophy")
     val shimmer by infiniteTransition.animateFloat(
         initialValue = 0.7f, targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(1800, easing = FastOutSlowInEasing), RepeatMode.Reverse),
@@ -3309,7 +3308,7 @@ fun LevelUpPage(page: SpotlightStoryPage.LevelUp) {
         }
     }
 
-    val infiniteTransition = rememberInfiniteTransition(label = "lvl")
+    val infiniteTransition = me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "lvl")
     val pulseAlpha by infiniteTransition.animateFloat(
         initialValue = 0.12f, targetValue = 0.38f,
         animationSpec = infiniteRepeatable(tween(900, easing = FastOutSlowInEasing), RepeatMode.Reverse),
@@ -3558,7 +3557,7 @@ fun TitleEarnedPage(page: SpotlightStoryPage.TitleEarned) {
         else                 -> Color(0xFFC4B5FD)
     }
 
-    val infiniteTransition = rememberInfiniteTransition(label = "titlering")
+    val infiniteTransition = me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "titlering")
     val ringRotate by infiniteTransition.animateFloat(
         initialValue = 0f, targetValue = 360f,
         animationSpec = infiniteRepeatable(tween(12000, easing = androidx.compose.animation.core.LinearEasing)),

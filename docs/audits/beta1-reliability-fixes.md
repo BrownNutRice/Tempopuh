@@ -10,3 +10,9 @@ Baseline: main at `81a5cadb09d1b97daab6f97228cd475b7fcab6f7`. This batch address
 - #18: explicitly request access_token and the Play Developer Reporting scope from the existing Google auth action. Reference: https://github.com/google-github-actions/auth#inputs-generating-oauth-20-access-tokens . Credential permissions and Play API responses still require a configured workflow run.
 
 Validation: changed Kotlin syntax, XML and YAML parse checks; git diff --check. Added Android recovery regression tests for preserved corrupt payloads and legacy empty queues; these have not run. No Gradle tasks, CI, emulator, APK build, release or tag was started. Issues stay open pending the appropriate runtime validation; current task still includes remaining backlog work.
+
+
+## Manual validation and motion follow-up
+
+- #11: set lint abortOnError=true; remove the unreachable PR-only changed-line gate from manual CI. Upload lint reports even after failure. Historical lint errors will now correctly fail an authorized run; no suppressions or automatic trigger were added.
+- #27: repeating decoration uses a shared policy-aware adapter, returning stable initial values without constructing InfiniteTransition when effective reduced motion is active. Existing component-specific static skeleton alpha overrides are preserved. This also covers equivalent patterns in Home, onboarding, Spotlight and walkthroughs. Device toggling and animation-clock checks remain outstanding.

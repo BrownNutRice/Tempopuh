@@ -42,7 +42,7 @@ fun SpotlightStoryBackground(
     )
 
     // Infinite transitions for "Living" feel
-    val infiniteTransition = rememberInfiniteTransition(label = "SpotlightBg")
+    val infiniteTransition = me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "SpotlightBg")
 
     // Slow Drift Animations
     val driftP_X by infiniteTransition.animateFloat(

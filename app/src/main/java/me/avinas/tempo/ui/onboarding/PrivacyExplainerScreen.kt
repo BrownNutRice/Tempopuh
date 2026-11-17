@@ -127,7 +127,7 @@ fun PrivacyExplainerScreen(
                     if (reducedMotion) {
                         remember { mutableFloatStateOf(0f) }
                     } else {
-                        rememberInfiniteTransition(label = "shield_breath").animateFloat(
+                        me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "shield_breath").animateFloat(
                             0f, 1f,
                             infiniteRepeatable(tween(3200, easing = LinearEasing)),
                             label = "breath"

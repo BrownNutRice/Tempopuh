@@ -155,9 +155,8 @@ android {
     }
 
     lint {
-        // Tempo has a large historical lint backlog. Keep generating the full
-        // report, while CI below fails on lint errors introduced by changed files.
-        abortOnError = false
+        // Explicitly requested manual validation must fail on lint errors.
+        abortOnError = true
         checkReleaseBuilds = false
     }
 

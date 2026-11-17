@@ -762,7 +762,7 @@ fun DashboardDeepDiveCard(
                 contentAlignment = Alignment.Center
             ) {
                 // Op Art Tunnel Background (Animated)
-                val infiniteTransition = androidx.compose.animation.core.rememberInfiniteTransition(label = "tunnel")
+                val infiniteTransition = me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "tunnel")
                 val rotation by infiniteTransition.animateFloat(
                     initialValue = 0f,
                     targetValue = 360f,

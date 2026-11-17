@@ -65,7 +65,7 @@ fun LevelUpOverlay(
         }
     }
     
-    val infiniteTransition = rememberInfiniteTransition(label = "confetti")
+    val infiniteTransition = me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "confetti")
     val confettiProgress by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,

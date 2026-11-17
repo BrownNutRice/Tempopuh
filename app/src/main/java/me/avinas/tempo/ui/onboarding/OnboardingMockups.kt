@@ -4,7 +4,6 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -173,7 +172,7 @@ private val MockTextFaint = Color(0xFF6B7373)
 @Composable
 private fun rememberDemoSwitch(): Boolean {
     if (rememberReducedMotion()) return true
-    val t = rememberInfiniteTransition(label = "demoSwitch")
+    val t = me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "demoSwitch")
     val frac by t.animateFloat(
         0f,
         1f,
@@ -191,7 +190,7 @@ private fun rememberDemoSwitch(): Boolean {
 @Composable
 private fun rememberGuidePulseState(): State<Float> {
     if (rememberReducedMotion()) return remember { mutableFloatStateOf(0.55f) }
-    val t = rememberInfiniteTransition(label = "guide")
+    val t = me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "guide")
     return t.animateFloat(
         0.3f,
         0.75f,

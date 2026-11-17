@@ -344,7 +344,7 @@ private fun PulsingRadar(
     modifier: Modifier = Modifier,
     color: Color = Color(0xFF22C55E)
 ) {
-    val infiniteTransition = androidx.compose.animation.core.rememberInfiniteTransition(label = "Radar")
+    val infiniteTransition = me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "Radar")
     
     val scale by infiniteTransition.animateFloat(
         initialValue = 0.8f,

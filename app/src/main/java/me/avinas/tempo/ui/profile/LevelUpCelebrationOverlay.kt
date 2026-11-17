@@ -78,7 +78,7 @@ fun LevelUpCelebrationOverlay(
     val contentOffsetY = remember { Animatable(if (reducedMotion) 0f else 48f) }
 
     // Rotating orbital ray animation
-    val infiniteTransition = rememberInfiniteTransition(label = "orbitalRays")
+    val infiniteTransition = me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "orbitalRays")
     val orbitAngle by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,

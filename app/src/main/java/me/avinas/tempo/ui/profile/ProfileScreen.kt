@@ -301,7 +301,7 @@ internal fun MastheadHeroMetric(
     val pulseScale by if (reducedMotion) {
         remember { mutableFloatStateOf(1f) }
     } else {
-        val transition = rememberInfiniteTransition(label = "heroMetricPulse")
+        val transition = me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "heroMetricPulse")
         transition.animateFloat(
             initialValue = 0.85f,
             targetValue = 1.35f,
@@ -570,7 +570,7 @@ private fun ProfileLoadingSkeleton(
 ) {
     val reducedMotion = rememberReducedMotion()
     val pulse =
-        rememberInfiniteTransition(label = "profileSkeleton").animateFloat(
+        me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "profileSkeleton").animateFloat(
             initialValue = 0.40f,
             targetValue = 0.85f,
             animationSpec =
@@ -1899,7 +1899,7 @@ private fun SpotlightBadgeCard(
     val pulseAlpha by if (reducedMotion) {
         remember { mutableFloatStateOf(0.35f) }
     } else {
-        val transition = rememberInfiniteTransition(label = "spotlightPulse")
+        val transition = me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "spotlightPulse")
         transition.animateFloat(
             initialValue = 0.28f,
             targetValue = 0.55f,

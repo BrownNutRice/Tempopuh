@@ -36,7 +36,7 @@ fun CoachMark(
     modifier: Modifier = Modifier,
     onDismiss: () -> Unit
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "coachMarkPulse")
+    val infiniteTransition = me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "coachMarkPulse")
     
     val scale by infiniteTransition.animateFloat(
         initialValue = 1f,

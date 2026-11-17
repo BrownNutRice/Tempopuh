@@ -18,7 +18,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -253,7 +252,7 @@ internal fun SkeletonBlock(modifier: Modifier, cornerRadius: Dp) {
     val appearancePalette = LocalTempoPalette.current
     val reducedMotion = rememberReducedMotion()
     // Layer-phase pulse: no recomposition per frame.
-    val pulse = rememberInfiniteTransition(label = "skeleton").animateFloat(
+    val pulse = me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "skeleton").animateFloat(
         initialValue = 0.40f,
         targetValue = 0.85f,
         animationSpec = infiniteRepeatable(
@@ -1022,7 +1021,7 @@ private fun MiniEqualizer(
 ) {
     val reducedMotion = rememberReducedMotion()
     // Draw-phase animation: the bars pulse without recomposing the pill.
-    val phase = rememberInfiniteTransition(label = "previewEq").animateFloat(
+    val phase = me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "previewEq").animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(1150, easing = LinearEasing)),

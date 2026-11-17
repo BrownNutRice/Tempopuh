@@ -357,7 +357,7 @@ private fun ActiveSpotlightRing(
 ) {
     val appearancePalette = LocalTempoPalette.current
     val storyAccessibilityLabel = stringResource(R.string.spotlight_view_story)
-    val infiniteTransition = rememberInfiniteTransition(label = "spotlightRingTransition")
+    val infiniteTransition = me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "spotlightRingTransition")
     val rotationAngle by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,

@@ -186,7 +186,7 @@ fun SpotlightLayer(
     val alpha by transition.animateFloat(label = "alpha") { if (it) 1f else 0f }
     
     // Pulse animation
-    val infiniteTransition = rememberInfiniteTransition(label = "Pulse")
+    val infiniteTransition = me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "Pulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1f,
         targetValue = 1.05f,

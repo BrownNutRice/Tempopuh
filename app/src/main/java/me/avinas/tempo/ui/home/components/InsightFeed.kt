@@ -662,7 +662,7 @@ private fun MoodVisualizer(valence: Float, energy: Float, color: Color) {
     ) {
         // 16 soundwave bars with amplitude and speed tied to energy level
         val barCount = 16
-        val infiniteTransition = rememberInfiniteTransition(label = "mood_soundwave")
+        val infiniteTransition = me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "mood_soundwave")
         val baseSpeed = (1200 - (safeEnergy * 600)).toInt().coerceAtLeast(350)
         val animations = (0 until barCount).map { index ->
             val factor = kotlin.math.sin(index * Math.PI / (barCount - 1)).toFloat().coerceAtLeast(0.25f)
@@ -1078,7 +1078,7 @@ private fun BingeVisualizer(
 
         // Live Rhythmic Playback Wave
         val barCount = 18
-        val infiniteTransition = rememberInfiniteTransition(label = "binge_playback")
+        val infiniteTransition = me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "binge_playback")
         val animations = (0 until barCount).map { index ->
             val duration = 400 + (index * 55) % 360
             infiniteTransition.animateFloat(
@@ -1349,7 +1349,7 @@ private fun DiscoveryVisualizer(newArtistsCount: Int, trends: List<DiscoveryTren
             }
         } else {
             // Discovery Intake Constellation Fallback (Guaranteed never blank for 0 or 1 data point)
-            val infiniteTransition = rememberInfiniteTransition(label = "discovery_radar")
+            val infiniteTransition = me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "discovery_radar")
             val orbitAngle by infiniteTransition.animateFloat(
                 initialValue = 0f,
                 targetValue = 360f,
@@ -1434,7 +1434,7 @@ private fun TempoBPMVisualizer(bpm: Float, color: Color) {
     val appearancePalette = LocalTempoPalette.current
     val safeBpm = bpm.coerceIn(40f, 240f)
     val cycleMs = (60_000 / safeBpm).toInt().coerceIn(250, 1500)
-    val infiniteTransition = rememberInfiniteTransition(label = "metronome")
+    val infiniteTransition = me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "metronome")
     val ringPulse by infiniteTransition.animateFloat(
         initialValue = 0.85f,
         targetValue = 1.35f,
@@ -1567,7 +1567,7 @@ private fun TempoBPMVisualizer(bpm: Float, color: Color) {
 private fun StreakVisualizer(days: Int) {
     val appearancePalette = LocalTempoPalette.current
     val safeDays = days.coerceAtLeast(1)
-    val infiniteTransition = rememberInfiniteTransition(label = "flame")
+    val infiniteTransition = me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "flame")
     val flameScale by infiniteTransition.animateFloat(
         initialValue = 0.94f,
         targetValue = 1.06f,
@@ -1983,7 +1983,7 @@ private fun EngagementVisualizer(value: Float, color: Color) {
 private fun FallbackVisualizer(color: Color) {
     val appearancePalette = LocalTempoPalette.current
     val barCount = 14
-    val infiniteTransition = rememberInfiniteTransition(label = "ambient_wave")
+    val infiniteTransition = me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "ambient_wave")
     val animations = (0 until barCount).map { index ->
         val duration = 600 + (index * 60) % 400
         infiniteTransition.animateFloat(
