@@ -1,6 +1,6 @@
 # Tempo — Appearance & Personalization Design RFC
 
-**Status:** Proposed / planning only (2026-11-17). No appearance features implemented by this document.
+**Status:** Phase A + initial Phase B in progress (2026-11-17). Four dark-compatible palettes, a gallery, heading typography options and reduced-motion preference are now implemented in source. Compilation/device tests have not run. Full light/system modes, advanced glass, blur and arrangement remain unimplemented.
 **Scope:** Visual design system, appearance settings, performance profiles, accessibility, rollout, testing.
 **Out of scope:** Rebranding, player controls, altering music-tracking/event persistence, changing Android app ID, generating/publishing APKs.
 **Reference:** User-supplied screenshot of an Appearance page with system/light/dark themes, font, reduced animation, reduced blur, blend effects, "Liquid Glass", glass performance, progressive blur, and a floating mini player/nav. It is a feature reference, not an interface or artwork to copy.
