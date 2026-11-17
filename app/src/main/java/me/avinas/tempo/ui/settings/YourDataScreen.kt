@@ -82,21 +82,21 @@ fun YourDataScreen(
         containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.settings_data_diagnostics), color = TextPrimary) },
+                title = { Text(stringResource(R.string.settings_data_diagnostics), color = MaterialTheme.colorScheme.onSurface) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.settings_back),
-                            tint = TextPrimary,
+                            tint = MaterialTheme.colorScheme.onSurface,
                         )
                     }
                 },
                 colors =
                     TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.Transparent,
-                        titleContentColor = TextPrimary,
-                        navigationIconContentColor = TextPrimary,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
                     ),
             )
         },
@@ -124,7 +124,7 @@ fun YourDataScreen(
                     Text(
                         text = stringResource(R.string.what_we_collect_properties),
                         style = MaterialTheme.typography.labelSmall,
-                        color = TextTertiary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                     )
 
                     AnalyticsCatalog.entries.forEachIndexed { index, entry ->
@@ -135,7 +135,7 @@ fun YourDataScreen(
                                 style = MaterialTheme.typography.titleSmall,
                                 fontFamily = FontFamily.Monospace,
                                 fontWeight = FontWeight.Bold,
-                                color = TempoPrimary,
+                                color = MaterialTheme.colorScheme.primary,
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
@@ -148,7 +148,7 @@ fun YourDataScreen(
                                 text = entry.properties.joinToString(" · "),
                                 style = MaterialTheme.typography.bodySmall,
                                 fontFamily = FontFamily.Monospace,
-                                color = TextTertiary,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                             )
                         }
                     }
@@ -173,7 +173,7 @@ fun YourDataScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                CircularProgressIndicator(color = TempoPrimary, strokeWidth = 2.dp)
+                                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary, strokeWidth = 2.dp)
                             }
                         }
 
@@ -227,7 +227,7 @@ fun YourDataScreen(
                                     enabled = report != null,
                                     colors =
                                         ButtonDefaults.buttonColors(
-                                            containerColor = TempoPrimary,
+                                            containerColor = MaterialTheme.colorScheme.primary,
                                             contentColor = Color.White,
                                         ),
                                 ) {
@@ -276,13 +276,13 @@ private fun CollapsibleCard(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                 )
                 Icon(
                     imageVector = Icons.Filled.KeyboardArrowDown,
                     contentDescription = null,
-                    tint = TempoPrimary,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.rotate(if (expanded) 180f else 0f),
                 )
             }
