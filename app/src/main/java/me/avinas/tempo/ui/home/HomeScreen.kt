@@ -77,6 +77,9 @@ fun HomeScreen(
     // Focused dashboard by default: extended discovery cards are opt-in.
     // Save across rotation/process recreation without changing app preferences.
     var showExtendedInsights by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(showExtendedInsights) {
+        viewModel.setExtendedInsightsVisible(showExtendedInsights)
+    }
     val scope = rememberCoroutineScope()
     val lazyListState = rememberLazyListState()
 
