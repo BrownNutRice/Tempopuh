@@ -95,7 +95,6 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
@@ -113,9 +112,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.palette.graphics.Palette
-import coil3.BitmapImage
-import coil3.imageLoader
-import coil3.request.ImageRequest
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -152,6 +148,7 @@ fun SongDetailsScreen(
     viewModel: SongDetailsViewModel = hiltViewModel(),
     spotifyViewModel: SpotifyViewModel = hiltViewModel(),
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val uiState by viewModel.uiState.collectAsState()
     val isPlayingPreview by viewModel.isPlayingPreview.collectAsState()
     val previewProgress by viewModel.previewProgress.collectAsState()
@@ -203,8 +200,8 @@ fun SongDetailsScreen(
                 OutlinedButton(
                     onClick = { viewModel.refresh() },
                     shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(0.8.dp, GlassBorderMedium),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TextPrimary),
+                    border = BorderStroke(0.8.dp, appearancePalette.border.copy(alpha = 0.65f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = appearancePalette.onSurface),
                 ) {
                     Text(stringResource(R.string.common_retry).uppercase(Locale.getDefault()))
                 }
@@ -253,6 +250,7 @@ private fun SongDetailsLoadingSkeleton() {
 // Shared with AlbumDetailsScreen (same package).
 @Composable
 internal fun SkeletonBlock(modifier: Modifier, cornerRadius: Dp) {
+    val appearancePalette = LocalTempoPalette.current
     val reducedMotion = rememberReducedMotion()
     // Layer-phase pulse: no recomposition per frame.
     val pulse = rememberInfiniteTransition(label = "skeleton").animateFloat(
@@ -269,7 +267,7 @@ internal fun SkeletonBlock(modifier: Modifier, cornerRadius: Dp) {
             .graphicsLayer { alpha = if (reducedMotion) 0.65f else pulse.value }
             .clip(RoundedCornerShape(cornerRadius))
             .background(GlassFrostMedium)
-            .border(0.8.dp, GlassBorderSoft, RoundedCornerShape(cornerRadius))
+            .border(0.8.dp, appearancePalette.border.copy(alpha = 0.45f), RoundedCornerShape(cornerRadius))
     )
 }
 
@@ -287,6 +285,7 @@ fun SongDetailsContent(
     onNavigateToAlbum: (String, String) -> Unit,
     viewModel: SongDetailsViewModel = hiltViewModel(),
 ) {
+    val appearancePalette = LocalTempoPalette.current
     var showMenu by remember { mutableStateOf(false) }
     var showShareDialog by remember { mutableStateOf(false) }
     var showMergeDialog by remember { mutableStateOf(false) }
@@ -488,8 +487,8 @@ fun SongDetailsContent(
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                TempoDarkBackground.copy(alpha = 0.94f),
-                                TempoDarkBackground.copy(alpha = 0.60f),
+                                appearancePalette.background.copy(alpha = 0.94f),
+                                appearancePalette.background.copy(alpha = 0.60f),
                                 Color.Transparent,
                             )
                         )
@@ -629,6 +628,7 @@ private fun TopBarNavigation(
     onShare: () -> Unit,
     onMenuClick: () -> Unit,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -655,7 +655,7 @@ private fun TopBarNavigation(
                     text = title,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
+                    color = appearancePalette.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center
@@ -663,7 +663,7 @@ private fun TopBarNavigation(
                 Text(
                     text = artist,
                     style = MaterialTheme.typography.labelSmall,
-                    color = TextTertiary,
+                    color = appearancePalette.mutedText,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center
@@ -719,6 +719,7 @@ fun SongHeroEditorialStage(
     releaseYear: Int? = null,
     recordLabel: String? = null,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -751,12 +752,12 @@ fun SongHeroEditorialStage(
                     .shadow(
                         elevation = 22.dp,
                         shape = RoundedCornerShape(22.dp),
-                        ambientColor = GlassShadowTeal,
+                        ambientColor = appearancePalette.surfaceSunken.copy(alpha = 0.30f),
                         spotColor = dominantColor.copy(alpha = 0.22f),
                     )
                     .clip(RoundedCornerShape(22.dp))
-                    .background(TempoDarkSurfaceSunken)
-                    .border(1.dp, GlassBorderStrong, RoundedCornerShape(22.dp)),
+                    .background(appearancePalette.surfaceSunken)
+                    .border(1.dp, appearancePalette.border, RoundedCornerShape(22.dp)),
             ) {
                 AlbumArtImage(
                     albumArtUrl = trackDetails.track.albumArtUrl,
@@ -776,8 +777,8 @@ fun SongHeroEditorialStage(
                             .padding(10.dp)
                             .size(32.dp)
                             .clip(CircleShape)
-                            .background(TempoDarkSurface.copy(alpha = 0.85f))
-                            .border(0.6.dp, GlassBorderSoft, CircleShape),
+                            .background(appearancePalette.surface.copy(alpha = 0.85f))
+                            .border(0.6.dp, appearancePalette.border.copy(alpha = 0.45f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -796,15 +797,15 @@ fun SongHeroEditorialStage(
                         .padding(8.dp)
                         .size(48.dp)
                         .clip(CircleShape)
-                        .background(TempoDarkSurface.copy(alpha = 0.90f))
-                        .border(0.8.dp, GlassBorderMedium, CircleShape)
+                        .background(appearancePalette.surface.copy(alpha = 0.90f))
+                        .border(0.8.dp, appearancePalette.border.copy(alpha = 0.65f), CircleShape)
                         .premiumClickable(onClick = onEditCover),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Edit,
                         contentDescription = stringResource(R.string.details_change_cover),
-                        tint = TextPrimary,
+                        tint = appearancePalette.onSurface,
                         modifier = Modifier.size(18.dp),
                     )
                 }
@@ -842,7 +843,7 @@ fun SongHeroEditorialStage(
                     letterSpacing = (-0.5).sp,
                 ),
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = appearancePalette.onSurface,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -857,14 +858,14 @@ fun SongHeroEditorialStage(
                     .size(36.dp)
                     .clip(CircleShape)
                     .background(GlassFrostSoft)
-                    .border(0.6.dp, GlassBorderSoft, CircleShape)
+                    .border(0.6.dp, appearancePalette.border.copy(alpha = 0.45f), CircleShape)
                     .premiumClickable(onClick = onEditTitle),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Edit,
                     contentDescription = stringResource(R.string.details_edit_title),
-                    tint = TextTertiary,
+                    tint = appearancePalette.mutedText,
                     modifier = Modifier.size(15.dp),
                 )
             }
@@ -881,7 +882,7 @@ fun SongHeroEditorialStage(
         ClickableEntityRow(
             text = trackDetails.track.artist,
             style = MaterialTheme.typography.titleMedium,
-            tint = TextPrimary,
+            tint = appearancePalette.onSurface,
             onClick = { onNavigateToArtist(artistIdentifier) },
         )
 
@@ -891,7 +892,7 @@ fun SongHeroEditorialStage(
             ClickableEntityRow(
                 text = trackDetails.track.album!!,
                 style = MaterialTheme.typography.bodyMedium,
-                tint = TextSecondary,
+                tint = appearancePalette.mutedText,
                 onClick = { onNavigateToAlbum(trackDetails.track.album!!, trackDetails.track.artist) },
             )
         }
@@ -912,13 +913,13 @@ fun SongHeroEditorialStage(
                     modifier = Modifier
                         .width(28.dp)
                         .height(0.8.dp)
-                        .background(GlassBorderMedium),
+                        .background(appearancePalette.border.copy(alpha = 0.65f)),
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = metaParts.joinToString("  ·  ").uppercase(Locale.getDefault()),
                     style = KickerSmall,
-                    color = TextTertiary,
+                    color = appearancePalette.mutedText,
                     letterSpacing = 1.4.sp,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
@@ -929,7 +930,7 @@ fun SongHeroEditorialStage(
                     modifier = Modifier
                         .width(28.dp)
                         .height(0.8.dp)
-                        .background(GlassBorderMedium),
+                        .background(appearancePalette.border.copy(alpha = 0.65f)),
                 )
             }
         }
@@ -1056,6 +1057,7 @@ internal fun ClickableEntityRow(
     tint: Color,
     onClick: () -> Unit,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -1075,7 +1077,7 @@ internal fun ClickableEntityRow(
         Icon(
             imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
             contentDescription = null,
-            tint = TextTertiary,
+            tint = appearancePalette.mutedText,
             modifier = Modifier.size(15.dp),
         )
     }
@@ -1091,6 +1093,7 @@ fun MasterStatMasthead(
     engagement: TrackEngagement?,
     dominantColor: Color,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val formattedTime = if (trackDetails.totalTimeMinutes >= 60) {
         val hrs = trackDetails.totalTimeMinutes / 60
         val mins = trackDetails.totalTimeMinutes % 60
@@ -1122,7 +1125,7 @@ fun MasterStatMasthead(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
         variant = GlassCardVariant.Obsidian,
-        borderColor = GlassBorderSoft,
+        borderColor = appearancePalette.border.copy(alpha = 0.45f),
         borderWidth = 0.8.dp,
         contentPadding = PaddingValues(0.dp),
     ) {
@@ -1140,7 +1143,7 @@ fun MasterStatMasthead(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(0.8.dp)
-                        .background(GlassBorderSoft)
+                        .background(appearancePalette.border.copy(alpha = 0.45f))
                 )
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -1162,7 +1165,7 @@ fun MasterStatMasthead(
                         modifier = Modifier
                             .fillMaxHeight()
                             .width(0.8.dp)
-                            .background(GlassBorderSoft),
+                            .background(appearancePalette.border.copy(alpha = 0.45f)),
                     )
 
                     MastheadSecondaryStat(
@@ -1170,7 +1173,7 @@ fun MasterStatMasthead(
                         value = loyaltyText,
                         subtext = loyaltySubtext,
                         valueColor = when {
-                            loyaltyRate == null -> TextPrimary
+                            loyaltyRate == null -> appearancePalette.onSurface
                             loyaltyRate >= 70 -> TempoSuccess
                             else -> TempoWarning
                         },
@@ -1191,6 +1194,7 @@ internal fun EditorialStatBlock(
     modifier: Modifier = Modifier,
     isCompact: Boolean = false,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Column(
         modifier = modifier.padding(
             horizontal = 18.dp,
@@ -1210,7 +1214,7 @@ internal fun EditorialStatBlock(
             Text(
                 text = label.uppercase(Locale.getDefault()),
                 style = KickerSmall,
-                color = TextTertiary,
+                color = appearancePalette.mutedText,
             )
         }
 
@@ -1224,7 +1228,7 @@ internal fun EditorialStatBlock(
                 letterSpacing = (-0.5).sp,
             ),
             fontWeight = FontWeight.Bold,
-            color = TextPrimary,
+            color = appearancePalette.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -1233,7 +1237,7 @@ internal fun EditorialStatBlock(
         Text(
             text = subtext,
             style = CaptionSmall,
-            color = TextTertiary,
+            color = appearancePalette.mutedText,
         )
     }
 }
@@ -1249,6 +1253,7 @@ internal fun MastheadHeroMetric(
     suffix: String,
     accentTint: Color,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -1262,7 +1267,7 @@ internal fun MastheadHeroMetric(
         Text(
             text = label.uppercase(Locale.getDefault()),
             style = KickerSmall,
-            color = TextTertiary,
+            color = appearancePalette.mutedText,
         )
     }
 
@@ -1276,13 +1281,13 @@ internal fun MastheadHeroMetric(
                 letterSpacing = (-1).sp,
             ),
             fontWeight = FontWeight.Bold,
-            color = TextPrimary,
+            color = appearancePalette.onSurface,
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = suffix,
             style = MaterialTheme.typography.bodySmall,
-            color = TextSecondary,
+            color = appearancePalette.mutedText,
             modifier = Modifier.padding(bottom = 6.dp),
         )
     }
@@ -1298,13 +1303,14 @@ internal fun MastheadSecondaryStat(
     value: String,
     subtext: String,
     modifier: Modifier = Modifier,
-    valueColor: Color = TextPrimary,
+    valueColor: Color = LocalTempoPalette.current.onSurface,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Column(modifier = modifier) {
         Text(
             text = label.uppercase(Locale.getDefault()),
             style = KickerSmall,
-            color = TextTertiary,
+            color = appearancePalette.mutedText,
         )
         Spacer(modifier = Modifier.height(3.dp))
         Text(
@@ -1315,7 +1321,7 @@ internal fun MastheadSecondaryStat(
                     SpanStyle(
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
-                        color = TextTertiary,
+                        color = appearancePalette.mutedText,
                     )
                 ) {
                     append(subtext)
@@ -1338,9 +1344,10 @@ internal fun MastheadSecondaryStat(
 fun TemporalRhythmSection(
     history: List<DailyListening>,
     peakBinge: Pair<String, Int>?,
-    tint: Color = TempoPrimary,
+    tint: Color = LocalTempoPalette.current.accent,
     sectionNumber: String = "02",
 ) {
+    val appearancePalette = LocalTempoPalette.current
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -1366,7 +1373,7 @@ fun TemporalRhythmSection(
                             formatChartDate(peakBinge.first),
                         ),
                         style = CaptionSmall,
-                        color = TextTertiary,
+                        color = appearancePalette.mutedText,
                         fontWeight = FontWeight.Medium,
                     )
                 }
@@ -1389,6 +1396,7 @@ private fun ScrubbableRhythmChart(
     peakBinge: Pair<String, Int>?,
     tint: Color,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     var selectedIndex by remember { mutableStateOf<Int?>(null) }
     val scope = rememberCoroutineScope()
     var clearJob by remember { mutableStateOf<Job?>(null) }
@@ -1446,7 +1454,7 @@ private fun ScrubbableRhythmChart(
                 modifier = Modifier
                     .fillMaxHeight()
                     .width(0.8.dp)
-                    .background(GlassBorderSoft)
+                    .background(appearancePalette.border.copy(alpha = 0.45f))
             )
 
             TelemetryMiniCell(
@@ -1459,7 +1467,7 @@ private fun ScrubbableRhythmChart(
                 modifier = Modifier
                     .fillMaxHeight()
                     .width(0.8.dp)
-                    .background(GlassBorderSoft)
+                    .background(appearancePalette.border.copy(alpha = 0.45f))
             )
 
             TelemetryMiniCell(
@@ -1529,7 +1537,7 @@ private fun ScrubbableRhythmChart(
 
                 // Baseline
                 drawLine(
-                    color = GlassBorderSoft,
+                    color = appearancePalette.border.copy(alpha = 0.45f),
                     start = Offset(0f, totalHeight),
                     end = Offset(totalWidth, totalHeight),
                     strokeWidth = 1.dp.toPx(),
@@ -1543,7 +1551,7 @@ private fun ScrubbableRhythmChart(
                     if (item.playCount == 0) {
                         // Empty-day indicator dot on baseline
                         drawCircle(
-                            color = if (isSelected) TextPrimary else GlassBorderMedium,
+                            color = if (isSelected) appearancePalette.onSurface else appearancePalette.border.copy(alpha = 0.65f),
                             radius = 1.5.dp.toPx(),
                             center = Offset(x + barWidth / 2f, totalHeight - 1.5.dp.toPx()),
                         )
@@ -1556,7 +1564,7 @@ private fun ScrubbableRhythmChart(
                     val barTop = totalHeight - barHeight
 
                     val barColor = when {
-                        isSelected -> TextPrimary
+                        isSelected -> appearancePalette.onSurface
                         isPeak -> tint
                         else -> tint.copy(alpha = 0.55f)
                     }
@@ -1589,7 +1597,7 @@ private fun ScrubbableRhythmChart(
                     // Cap dot indicator above selected bar
                     if (isSelected) {
                         drawCircle(
-                            color = TextPrimary,
+                            color = appearancePalette.onSurface,
                             radius = 2.dp.toPx(),
                             center = Offset(x + barWidth / 2f, barTop - 5.dp.toPx()),
                         )
@@ -1613,19 +1621,19 @@ private fun ScrubbableRhythmChart(
                         .align(Alignment.TopCenter)
                         .padding(top = 6.dp)
                         .clip(RoundedCornerShape(6.dp))
-                        .background(TempoDarkSurfaceElevated)
-                        .border(0.8.dp, GlassBorderMedium, RoundedCornerShape(6.dp))
+                        .background(appearancePalette.elevatedSurface)
+                        .border(0.8.dp, appearancePalette.border.copy(alpha = 0.65f), RoundedCornerShape(6.dp))
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = formatSongDate(parseIsoToTimestamp(item.date)),
                         style = KickerSmall,
-                        color = TextPrimary,
+                        color = appearancePalette.onSurface,
                     )
                     Text(
                         text = "·",
                         style = CaptionSmall,
-                        color = TextTertiary,
+                        color = appearancePalette.mutedText,
                     )
                     Text(
                         text = playsLabel,
@@ -1652,20 +1660,20 @@ private fun ScrubbableRhythmChart(
             Text(
                 text = formatChartDate(history.first().date),
                 style = CaptionSmall,
-                color = TextTertiary,
+                color = appearancePalette.mutedText,
             )
             if (midDate != null) {
                 Text(
                     text = midDate,
                     style = CaptionSmall,
-                    color = TextTertiary,
+                    color = appearancePalette.mutedText,
                     textAlign = TextAlign.Center,
                 )
             }
             Text(
                 text = formatChartDate(history.last().date),
                 style = CaptionSmall,
-                color = TextTertiary,
+                color = appearancePalette.mutedText,
             )
         }
     }
@@ -1680,9 +1688,10 @@ private fun ScrubbableRhythmChart(
 fun AcousticDNASpecSheet(
     audioFeatures: TrackAudioFeatures?,
     moodSummary: TagBasedMoodAnalyzer.MoodSummary?,
-    tint: Color = TempoPrimary,
+    tint: Color = LocalTempoPalette.current.accent,
     sectionNumber: String = "03",
 ) {
+    val appearancePalette = LocalTempoPalette.current
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -1707,7 +1716,7 @@ fun AcousticDNASpecSheet(
                         else -> stringResource(R.string.details_af_awaiting)
                     },
                     style = CaptionSmall,
-                    color = TextTertiary,
+                    color = appearancePalette.mutedText,
                     fontWeight = FontWeight.Medium,
                 )
             }
@@ -1747,7 +1756,7 @@ fun AcousticDNASpecSheet(
                             modifier = Modifier
                                 .fillMaxHeight()
                                 .width(0.8.dp)
-                                .background(GlassBorderSoft)
+                                .background(appearancePalette.border.copy(alpha = 0.45f))
                         )
                     }
 
@@ -1845,6 +1854,7 @@ private fun AcousticHeaderMetric(
     tint: Color,
     modifier: Modifier = Modifier,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Column(
         modifier = modifier.padding(horizontal = 10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1862,7 +1872,7 @@ private fun AcousticHeaderMetric(
             Text(
                 text = label.uppercase(Locale.getDefault()),
                 style = KickerSmall,
-                color = TextTertiary,
+                color = appearancePalette.mutedText,
             )
         }
         Spacer(modifier = Modifier.height(4.dp))
@@ -1872,14 +1882,14 @@ private fun AcousticHeaderMetric(
                 fontFamily = DisplayFontFamily,
                 fontWeight = FontWeight.Bold,
             ),
-            color = TextPrimary,
+            color = appearancePalette.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
         Text(
             text = sublabel,
             style = CaptionSmall,
-            color = TextTertiary,
+            color = appearancePalette.mutedText,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -1894,6 +1904,7 @@ private fun AcousticSpecMeter(
     tint: Color,
     delayMs: Int = 0,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val percent = (fraction * 100).roundToInt().coerceIn(0, 100)
     val animatedPercent by animateIntAsState(
         targetValue = percent,
@@ -1915,12 +1926,12 @@ private fun AcousticSpecMeter(
                 Text(
                     text = label,
                     style = Kicker,
-                    color = TextPrimary,
+                    color = appearancePalette.onSurface,
                 )
                 Text(
                     text = "· $humanDesc",
                     style = CaptionSmall,
-                    color = TextTertiary,
+                    color = appearancePalette.mutedText,
                 )
             }
             Text(
@@ -1937,7 +1948,7 @@ private fun AcousticSpecMeter(
         ) {
             // Track
             drawLine(
-                color = GlassBorderSoft,
+                color = appearancePalette.border.copy(alpha = 0.45f),
                 start = Offset(0f, size.height / 2f),
                 end = Offset(size.width, size.height / 2f),
                 strokeWidth = size.height,
@@ -1959,6 +1970,7 @@ private fun AcousticSpecMeter(
 
 @Composable
 private fun MoodTagPill(tag: String) {
+    val appearancePalette = LocalTempoPalette.current
     Box(
         modifier = Modifier
             .background(GlassFrostMedium, RoundedCornerShape(10.dp))
@@ -1968,7 +1980,7 @@ private fun MoodTagPill(tag: String) {
             text = tag,
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
-            color = TextSecondary,
+            color = appearancePalette.mutedText,
         )
     }
 }
@@ -1981,6 +1993,7 @@ private fun MoodTagPill(tag: String) {
 fun ListenerAffinitySection(
     engagement: TrackEngagement,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val score = engagement.engagementScore
     val tier = when {
         score >= 90 -> AffinityTierInfo(
@@ -2033,7 +2046,7 @@ fun ListenerAffinitySection(
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(TempoSurfaceWhiteGray)
-            .border(0.8.dp, GlassBorderMedium, RoundedCornerShape(16.dp))
+            .border(0.8.dp, appearancePalette.border.copy(alpha = 0.65f), RoundedCornerShape(16.dp))
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -2047,7 +2060,7 @@ fun ListenerAffinitySection(
             Icon(
                 imageVector = tier.icon,
                 contentDescription = null,
-                tint = TextSecondary,
+                tint = appearancePalette.mutedText,
                 modifier = Modifier.size(16.dp),
             )
         }
@@ -2061,12 +2074,12 @@ fun ListenerAffinitySection(
                     fontFamily = DisplayFontFamily,
                 ),
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = appearancePalette.onSurface,
             )
             Text(
                 text = tier.status.uppercase(Locale.getDefault()),
                 style = KickerSmall,
-                color = TextSecondary,
+                color = appearancePalette.mutedText,
             )
         }
 
@@ -2077,12 +2090,12 @@ fun ListenerAffinitySection(
                     fontFamily = DisplayFontFamily,
                 ),
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = appearancePalette.onSurface,
             )
             Text(
                 text = stringResource(R.string.details_engagement_score).uppercase(Locale.getDefault()),
                 style = KickerSmall,
-                color = TextSecondary,
+                color = appearancePalette.mutedText,
             )
         }
     }
@@ -2129,9 +2142,10 @@ fun ListeningOdysseySection(
     engagement: TrackEngagement?,
     habitualHour: String?,
     habitualHourOfDay: Int? = null,
-    tint: Color = TempoPrimary,
+    tint: Color = LocalTempoPalette.current.accent,
     sectionNumber: String = "01",
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val firstListen = trackDetails.firstPlayed ?: engagement?.firstPlayedTimestamp
     val lastListen = trackDetails.lastPlayed ?: engagement?.lastPlayedTimestamp
 
@@ -2162,9 +2176,14 @@ fun ListeningOdysseySection(
     if (milestones.isEmpty()) return
 
     // Pick high-contrast text color based on background luminance
-    val ink = remember(tint) {
-        val backdrop = lerp(tint, TempoDarkBackground, 0.65f)
-        if (backdrop.luminance() > 0.25f) BrightRoomInk else DarkRoomInk
+    val ink = remember(tint, appearancePalette) {
+        val backdrop = lerp(tint, appearancePalette.background, 0.65f)
+        if (backdrop.luminance() > 0.25f) BrightRoomInk else FlatTimelineInk(
+            title = appearancePalette.mutedText,
+            value = appearancePalette.onSurface,
+            icon = appearancePalette.mutedText,
+            divider = appearancePalette.border.copy(alpha = 0.45f),
+        )
     }
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -2329,9 +2348,10 @@ internal fun FlatMilestoneRow(
 @Composable
 fun PlaybackFidelitySection(
     engagement: TrackEngagement,
-    tint: Color = TempoPrimary,
+    tint: Color = LocalTempoPalette.current.accent,
     sectionNumber: String = "04",
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val total = engagement.playCount.coerceAtLeast(1)
     val fullPlaysRatio = (engagement.fullPlaysCount.toFloat() / total).coerceIn(0f, 1f)
     val partialPlaysRatio = (engagement.partialPlaysCount.toFloat() / total).coerceIn(0f, 1f)
@@ -2359,7 +2379,7 @@ fun PlaybackFidelitySection(
                     .fillMaxWidth()
                     .height(7.dp)
                     .clip(RoundedCornerShape(4.dp))
-                    .background(GlassBorderSoft)
+                    .background(appearancePalette.border.copy(alpha = 0.45f))
             ) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     val w = size.width
@@ -2426,7 +2446,7 @@ fun PlaybackFidelitySection(
                     modifier = Modifier
                         .fillMaxHeight()
                         .width(0.8.dp)
-                        .background(GlassBorderSoft)
+                        .background(appearancePalette.border.copy(alpha = 0.45f))
                 )
 
                 TelemetryMiniCell(
@@ -2439,7 +2459,7 @@ fun PlaybackFidelitySection(
                     modifier = Modifier
                         .fillMaxHeight()
                         .width(0.8.dp)
-                        .background(GlassBorderSoft)
+                        .background(appearancePalette.border.copy(alpha = 0.45f))
                 )
 
                 TelemetryMiniCell(
@@ -2457,6 +2477,7 @@ private fun FidelityLegendItem(
     color: Color,
     label: String,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -2470,7 +2491,7 @@ private fun FidelityLegendItem(
         Text(
             text = label,
             style = CaptionSmall,
-            color = TextTertiary,
+            color = appearancePalette.mutedText,
         )
     }
 }
@@ -2481,6 +2502,7 @@ private fun TelemetryMiniCell(
     value: String,
     modifier: Modifier = Modifier,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Column(
         modifier = modifier.padding(horizontal = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -2488,7 +2510,7 @@ private fun TelemetryMiniCell(
         Text(
             text = label.uppercase(Locale.getDefault()),
             style = KickerSmall,
-            color = TextTertiary,
+            color = appearancePalette.mutedText,
         )
         Spacer(modifier = Modifier.height(2.dp))
         Text(
@@ -2497,7 +2519,7 @@ private fun TelemetryMiniCell(
                 fontFamily = DisplayFontFamily,
                 fontWeight = FontWeight.Bold,
             ),
-            color = TextPrimary,
+            color = appearancePalette.onSurface,
         )
     }
 }
@@ -2551,6 +2573,7 @@ internal fun SectionCatalogKicker(
     label: String,
     modifier: Modifier = Modifier,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
@@ -2560,18 +2583,18 @@ internal fun SectionCatalogKicker(
             text = number,
             style = KickerSmall,
             fontWeight = FontWeight.Bold,
-            color = TextPrimary,
+            color = appearancePalette.onSurface,
         )
         Box(
             modifier = Modifier
                 .width(10.dp)
                 .height(0.8.dp)
-                .background(GlassBorderMedium),
+                .background(appearancePalette.border.copy(alpha = 0.65f)),
         )
         Text(
             text = label.uppercase(Locale.getDefault()),
             style = KickerSmall,
-            color = TextTertiary,
+            color = appearancePalette.mutedText,
             letterSpacing = 1.2.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -2592,6 +2615,7 @@ private fun EditTitleDialog(
     onSave: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     var titleText by remember { mutableStateOf(currentTitle) }
     val trimmed = titleText.trim()
     val isUnchanged = trimmed == currentTitle
@@ -2601,7 +2625,7 @@ private fun EditTitleDialog(
         TempoDialogSurface {
             TempoDialogIcon(
                 icon = TempoIcons.Edit,
-                tint = TempoPrimary,
+                tint = appearancePalette.accent,
                 size = 48
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -2637,7 +2661,7 @@ private fun EditTitleDialog(
                         .height(48.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = TempoPrimary)
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = appearancePalette.accent)
                 }
             } else {
                 TempoDialogButtonRow(
@@ -2660,11 +2684,12 @@ private fun MergeConfirmDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Dialog(onDismissRequest = { if (!isMerging) onDismiss() }) {
         TempoDialogSurface {
             TempoDialogIcon(
                 icon = TempoIcons.MergeStreams,
-                tint = TempoPrimary,
+                tint = appearancePalette.accent,
                 size = 48
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -2700,7 +2725,7 @@ private fun MergeConfirmDialog(
                         .height(48.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = TempoPrimary)
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = appearancePalette.accent)
                 }
             } else {
                 TempoDialogButtonRow(
@@ -2721,6 +2746,7 @@ private fun DeleteSongConfirmDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Dialog(onDismissRequest = { if (!isDeleting) onDismiss() }) {
         TempoDialogSurface {
             TempoDialogIcon(
@@ -2753,12 +2779,12 @@ private fun DeleteSongConfirmDialog(
                     Text(
                         text = "• ${stringResource(R.string.details_delete_song_bullet_history, trackDetails.playCount)}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = TextSecondary
+                        color = appearancePalette.mutedText
                     )
                     Text(
                         text = "• ${stringResource(R.string.details_delete_song_undone)}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = TextTertiary
+                        color = appearancePalette.mutedText
                     )
                 }
             }
@@ -2796,6 +2822,7 @@ private fun DeleteSongConfirmDialog(
 
 @Composable
 private fun SongDetailsFooter() {
+    val appearancePalette = LocalTempoPalette.current
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -2804,13 +2831,13 @@ private fun SongDetailsFooter() {
             modifier = Modifier
                 .width(36.dp)
                 .height(1.dp)
-                .background(GlassBorderSoft),
+                .background(appearancePalette.border.copy(alpha = 0.45f)),
         )
         Spacer(modifier = Modifier.height(14.dp))
         Text(
             text = stringResource(R.string.details_footer).uppercase(Locale.getDefault()),
             style = KickerSmall,
-            color = TextTertiary,
+            color = appearancePalette.mutedText,
             letterSpacing = 2.sp,
         )
     }
@@ -2897,31 +2924,7 @@ internal fun conditionedAccent(color: Color): Color {
 }
 
 @Composable
-private fun rememberDominantColor(trackDetails: TrackDetails): Color {
-    val context = LocalContext.current
-    var dominantColor by remember { mutableStateOf(TempoPrimary) }
-
-    LaunchedEffect(trackDetails.track.albumArtUrl, trackDetails.localBackupArtUrl) {
-        val url = if (!trackDetails.track.albumArtUrl.isNullOrBlank()) {
-            MusicBrainzEnrichmentService.fixHttpUrl(trackDetails.track.albumArtUrl)
-        } else {
-            trackDetails.localBackupArtUrl
-        }
-        if (url.isNullOrBlank()) return@LaunchedEffect
-        val result = context.imageLoader.execute(
-            ImageRequest.Builder(context)
-                .data(url)
-                .size(64, 64)
-                .build(),
-        )
-        var bitmap = (result.image as? BitmapImage)?.bitmap ?: return@LaunchedEffect
-        if (bitmap.config == android.graphics.Bitmap.Config.HARDWARE) {
-            bitmap = bitmap.copy(android.graphics.Bitmap.Config.ARGB_8888, false)
-        }
-        Palette.from(bitmap).generate { palette ->
-            val color = palette?.dominantSwatch?.rgb?.let { conditionedAccent(Color(it)) } ?: TempoPrimary
-            dominantColor = color
-        }
-    }
-    return dominantColor
-}
+private fun rememberDominantColor(trackDetails: TrackDetails): Color = rememberArtworkAccent(
+    trackDetails.track.albumArtUrl,
+    trackDetails.localBackupArtUrl,
+)

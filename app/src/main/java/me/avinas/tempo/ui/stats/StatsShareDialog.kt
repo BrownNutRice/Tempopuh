@@ -1,5 +1,6 @@
 package me.avinas.tempo.ui.stats
 
+import me.avinas.tempo.ui.theme.LocalTempoPalette
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -42,12 +43,6 @@ import me.avinas.tempo.ui.components.ShareTheme
 import me.avinas.tempo.ui.components.ThemeSwatch
 import me.avinas.tempo.ui.components.rememberCaptureController
 import me.avinas.tempo.ui.onboarding.dataStore
-import me.avinas.tempo.ui.theme.GlassBorderMedium
-import me.avinas.tempo.ui.theme.TempoPrimary
-import me.avinas.tempo.ui.theme.TempoSurfaceDialog
-import me.avinas.tempo.ui.theme.TextOnAccent
-import me.avinas.tempo.ui.theme.TextSecondary
-import me.avinas.tempo.ui.theme.TextTertiary
 import me.avinas.tempo.utils.ShareUtils
 
 private val CardDesignWidth = 360.dp
@@ -259,6 +254,7 @@ private fun ConfigPanel(
     onConfigChange: (StatsShareConfig) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     // Floating control sheet from the sharecontrol mockup (drag handle,
     // grouped segmented controls, theme strip + summary pill) with Tempo
     // tokens for the sheet and selection — dark sheet, teal pill, gradient
@@ -268,8 +264,8 @@ private fun ConfigPanel(
         modifier =
             modifier
                 .clip(sheetShape)
-                .background(TempoSurfaceDialog)
-                .border(1.dp, GlassBorderMedium, sheetShape)
+                .background(appearancePalette.elevatedSurface)
+                .border(1.dp, appearancePalette.border.copy(alpha = 0.65f), sheetShape)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
@@ -390,11 +386,12 @@ private fun ConfigPanel(
 
 @Composable
 private fun ConfigLabel(text: String) {
+    val appearancePalette = LocalTempoPalette.current
     Text(
         text = text.uppercase(),
         style = MaterialTheme.typography.labelSmall,
         fontWeight = FontWeight.Bold,
-        color = TextTertiary,
+        color = appearancePalette.mutedText,
         letterSpacing = 1.2.sp,
     )
 }
@@ -409,7 +406,7 @@ private fun SegmentedTrack(
         modifier =
             modifier
                 .clip(RoundedCornerShape(14.dp))
-                .background(Color(0xFFF4F2EC))
+                .background(LocalTempoPalette.current.surfaceSunken)
                 .padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -424,20 +421,21 @@ private fun RowScope.SegmentedIconCell(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Box(
         modifier =
             Modifier
                 .weight(1f)
                 .height(40.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(if (selected) TempoPrimary else Color.Transparent)
+                .background(if (selected) appearancePalette.accent else Color.Transparent)
                 .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = if (selected) TextOnAccent else Color(0xFF3C3E44),
+            tint = if (selected) appearancePalette.onAccent else appearancePalette.mutedText,
             modifier = Modifier.size(20.dp),
         )
     }
@@ -449,13 +447,14 @@ private fun RowScope.SegmentedTextCell(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Box(
         modifier =
             Modifier
                 .weight(1f)
                 .height(40.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(if (selected) TempoPrimary else Color.Transparent)
+                .background(if (selected) appearancePalette.accent else Color.Transparent)
                 .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -463,7 +462,7 @@ private fun RowScope.SegmentedTextCell(
             text = text,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
-            color = if (selected) TextOnAccent else Color(0xFF3C3E44),
+            color = if (selected) appearancePalette.onAccent else appearancePalette.mutedText,
         )
     }
 }
@@ -473,12 +472,13 @@ private fun SummaryToggle(
     enabled: Boolean,
     onToggle: (Boolean) -> Unit,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Row(
         modifier =
             Modifier
                 .height(40.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(if (enabled) TempoPrimary else Color.White.copy(alpha = 0.08f))
+                .background(if (enabled) appearancePalette.accent else appearancePalette.elevatedSurface)
                 .clickable { onToggle(!enabled) }
                 .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -487,14 +487,14 @@ private fun SummaryToggle(
         Icon(
             imageVector = if (enabled) Icons.Default.Check else Icons.Default.Close,
             contentDescription = null,
-            tint = if (enabled) TextOnAccent else TextSecondary,
+            tint = if (enabled) appearancePalette.onAccent else appearancePalette.mutedText,
             modifier = Modifier.size(16.dp),
         )
         Text(
             text = stringResource(if (enabled) R.string.stats_share_on else R.string.stats_share_off),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
-            color = if (enabled) TextOnAccent else TextSecondary,
+            color = if (enabled) appearancePalette.onAccent else appearancePalette.mutedText,
         )
     }
 }

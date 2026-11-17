@@ -10,12 +10,7 @@ package me.avinas.tempo.ui.details
  */
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -33,8 +28,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForwardIos
-import androidx.compose.material.icons.automirrored.filled.CallSplit
-import androidx.compose.material.icons.automirrored.rounded.CallMerge
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
@@ -64,20 +57,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.palette.graphics.Palette
-import coil3.BitmapImage
-import coil3.imageLoader
-import coil3.request.ImageRequest
 import me.avinas.tempo.R
 import me.avinas.tempo.data.stats.ArtistDetails
 import me.avinas.tempo.data.stats.TopAlbum
@@ -103,6 +90,7 @@ fun ArtistDetailsScreen(
     onNavigateToSong: (Long) -> Unit,
     viewModel: ArtistDetailsViewModel = hiltViewModel()
 ) {
+    val appearancePalette = LocalTempoPalette.current
     // Load artist by ID or name
     LaunchedEffect(artistId, artistName) {
         if (artistId != null && artistId > 0) {
@@ -153,8 +141,8 @@ fun ArtistDetailsScreen(
                     OutlinedButton(
                         onClick = { viewModel.retry() },
                         shape = RoundedCornerShape(14.dp),
-                        border = BorderStroke(0.8.dp, GlassBorderMedium),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = TextPrimary),
+                        border = BorderStroke(0.8.dp, appearancePalette.border.copy(alpha = 0.65f)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = appearancePalette.onSurface),
                     ) {
                         Text(stringResource(R.string.common_retry).uppercase(Locale.getDefault()))
                     }
@@ -238,6 +226,7 @@ fun ArtistDetailsContent(
     onShowRenameDialog: () -> Unit = {},
     onShowSplitDialog: () -> Unit = {}
 ) {
+    val appearancePalette = LocalTempoPalette.current
     var showMenu by remember { mutableStateOf(false) }
     var showShareDialog by remember { mutableStateOf(false) }
     var showMergeDialog by remember { mutableStateOf(false) }
@@ -383,8 +372,8 @@ fun ArtistDetailsContent(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            TempoDarkBackground.copy(alpha = 0.94f),
-                            TempoDarkBackground.copy(alpha = 0.60f),
+                            appearancePalette.background.copy(alpha = 0.94f),
+                            appearancePalette.background.copy(alpha = 0.60f),
                             Color.Transparent,
                         )
                     )
@@ -476,6 +465,7 @@ private fun ArtistTopBarNavigation(
     onShare: () -> Unit,
     onMenuClick: () -> Unit,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -501,7 +491,7 @@ private fun ArtistTopBarNavigation(
                     text = title,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
+                    color = appearancePalette.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center
@@ -510,7 +500,7 @@ private fun ArtistTopBarNavigation(
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.labelSmall,
-                        color = TextTertiary,
+                        color = appearancePalette.mutedText,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         textAlign = TextAlign.Center
@@ -547,19 +537,20 @@ private fun FrostedHeaderButton(
     contentDescription: String,
     onClick: () -> Unit,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Box(
         modifier = Modifier
             .size(40.dp)
             .clip(CircleShape)
             .background(GlassFrostMedium)
-            .border(0.8.dp, GlassBorderSoft, CircleShape)
+            .border(0.8.dp, appearancePalette.border.copy(alpha = 0.45f), CircleShape)
             .premiumClickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = TextPrimary,
+            tint = appearancePalette.onSurface,
             modifier = Modifier.size(18.dp),
         )
     }
@@ -572,12 +563,13 @@ private fun FrostedHeaderButton(
 @Composable
 fun ArtistHeroSection(
     artistDetails: ArtistDetails,
-    accent: Color = TempoPrimary,
+    accent: Color = LocalTempoPalette.current.accent,
     onRefreshImage: () -> Unit,
     isRefreshingImage: Boolean = false,
     onShowRenameDialog: () -> Unit = {},
     onNamePositioned: (Float) -> Unit = {},
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -614,12 +606,12 @@ fun ArtistHeroSection(
                         .shadow(
                             elevation = 22.dp,
                             shape = CircleShape,
-                            ambientColor = GlassShadowTeal,
+                            ambientColor = appearancePalette.surfaceSunken.copy(alpha = 0.30f),
                             spotColor = accent.copy(alpha = 0.22f),
                         )
                         .clip(CircleShape)
-                        .background(TempoDarkSurfaceSunken)
-                        .border(1.dp, GlassBorderStrong, CircleShape),
+                        .background(appearancePalette.surfaceSunken)
+                        .border(1.dp, appearancePalette.border, CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
                     if (imageUrl.isNullOrBlank()) {
@@ -639,7 +631,7 @@ fun ArtistHeroSection(
                                     fontFamily = DisplayFontFamily,
                                 ),
                                 fontWeight = FontWeight.Bold,
-                                color = TextPrimary,
+                                color = appearancePalette.onSurface,
                             )
                         }
                     } else {
@@ -666,8 +658,8 @@ fun ArtistHeroSection(
                             spotColor = Color.Black.copy(alpha = 0.55f),
                         )
                         .clip(CircleShape)
-                        .background(TempoDarkSurfaceElevated.copy(alpha = 0.90f))
-                        .border(1.dp, GlassBorderStrong, CircleShape)
+                        .background(appearancePalette.elevatedSurface.copy(alpha = 0.90f))
+                        .border(1.dp, appearancePalette.border, CircleShape)
                         .premiumClickable(onClick = onRefreshImage),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -681,7 +673,7 @@ fun ArtistHeroSection(
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = stringResource(R.string.details_refresh_artist_image),
-                            tint = TextPrimary,
+                            tint = appearancePalette.onSurface,
                             modifier = Modifier.size(16.dp),
                         )
                     }
@@ -709,7 +701,7 @@ fun ArtistHeroSection(
                     letterSpacing = (-0.5).sp,
                 ),
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = appearancePalette.onSurface,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -722,14 +714,14 @@ fun ArtistHeroSection(
                     .size(36.dp)
                     .clip(CircleShape)
                     .background(GlassFrostSoft)
-                    .border(0.6.dp, GlassBorderSoft, CircleShape)
+                    .border(0.6.dp, appearancePalette.border.copy(alpha = 0.45f), CircleShape)
                     .premiumClickable(onClick = onShowRenameDialog),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Default.Edit,
                     contentDescription = stringResource(R.string.details_rename_artist),
-                    tint = TextTertiary,
+                    tint = appearancePalette.mutedText,
                     modifier = Modifier.size(15.dp),
                 )
             }
@@ -754,13 +746,13 @@ fun ArtistHeroSection(
                     modifier = Modifier
                         .width(28.dp)
                         .height(0.8.dp)
-                        .background(GlassBorderMedium),
+                        .background(appearancePalette.border.copy(alpha = 0.65f)),
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = metaParts.joinToString("  ·  ").uppercase(Locale.getDefault()),
                     style = KickerSmall,
-                    color = TextTertiary,
+                    color = appearancePalette.mutedText,
                     letterSpacing = 1.4.sp,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
@@ -772,7 +764,7 @@ fun ArtistHeroSection(
                     modifier = Modifier
                         .width(28.dp)
                         .height(0.8.dp)
-                        .background(GlassBorderMedium),
+                        .background(appearancePalette.border.copy(alpha = 0.65f)),
                 )
             }
         }
@@ -786,12 +778,13 @@ fun ArtistHeroSection(
 // ──────────────────────────────────────────────────────────────
 
 @Composable
-fun ArtistStatMasthead(artistDetails: ArtistDetails, accent: Color = TempoPrimary) {
+fun ArtistStatMasthead(artistDetails: ArtistDetails, accent: Color = LocalTempoPalette.current.accent) {
+    val appearancePalette = LocalTempoPalette.current
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
         variant = GlassCardVariant.Obsidian,
-        borderColor = GlassBorderSoft,
+        borderColor = appearancePalette.border.copy(alpha = 0.45f),
         borderWidth = 0.8.dp,
         contentPadding = PaddingValues(0.dp),
     ) {
@@ -827,7 +820,7 @@ fun ArtistStatMasthead(artistDetails: ArtistDetails, accent: Color = TempoPrimar
                     modifier = Modifier
                         .fillMaxHeight()
                         .width(0.8.dp)
-                        .background(GlassBorderSoft),
+                        .background(appearancePalette.border.copy(alpha = 0.45f)),
                 )
 
                 MastheadSecondaryStat(
@@ -850,7 +843,7 @@ fun ArtistStatMasthead(artistDetails: ArtistDetails, accent: Color = TempoPrimar
 fun FanStandingCard(
     playCount: Int,
     percentile: Double? = null,
-    accent: Color = TempoPrimary,
+    accent: Color = LocalTempoPalette.current.accent,
 ) {
     val tier = if (percentile != null) {
         when {
@@ -1057,7 +1050,8 @@ private data class FanStandingTierStyle(
 // ──────────────────────────────────────────────────────────────
 
 @Composable
-fun ListeningJourneySection(artistDetails: ArtistDetails, tint: Color = TempoPrimary) {
+fun ListeningJourneySection(artistDetails: ArtistDetails, tint: Color = LocalTempoPalette.current.accent) {
+    val appearancePalette = LocalTempoPalette.current
     val firstListen = artistDetails.firstListenedDate ?: artistDetails.firstDiscovery?.firstListenTimestamp
     val lastListen = artistDetails.lastListenedDate
     // "N days in a row with this artist" is still a streak, so it goes with the rest of them.
@@ -1098,9 +1092,14 @@ fun ListeningJourneySection(artistDetails: ArtistDetails, tint: Color = TempoPri
 
     // Same ink treatment as the song timeline: contrast flips when the
     // accent-derived backdrop gets bright.
-    val ink = remember(tint) {
-        val backdrop = lerp(tint, TempoDarkBackground, 0.65f)
-        if (backdrop.luminance() > 0.25f) BrightRoomInk else DarkRoomInk
+    val ink = remember(tint, appearancePalette) {
+        val backdrop = lerp(tint, appearancePalette.background, 0.65f)
+        if (backdrop.luminance() > 0.25f) BrightRoomInk else FlatTimelineInk(
+            title = appearancePalette.mutedText,
+            value = appearancePalette.onSurface,
+            icon = appearancePalette.mutedText,
+            divider = appearancePalette.border.copy(alpha = 0.45f),
+        )
     }
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -1141,8 +1140,9 @@ fun ListeningJourneySection(artistDetails: ArtistDetails, tint: Color = TempoPri
 fun TopSongsPanel(
     songs: List<TopTrack>,
     onNavigateToSong: (Long) -> Unit,
-    accent: Color = TempoPrimary,
+    accent: Color = LocalTempoPalette.current.accent,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     if (songs.isEmpty()) return
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -1196,7 +1196,7 @@ fun TopSongsPanel(
                                 text = song.title,
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold,
-                                color = TextPrimary,
+                                color = appearancePalette.onSurface,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -1204,7 +1204,7 @@ fun TopSongsPanel(
                             Text(
                                 text = song.album ?: stringResource(R.string.details_unknown_album),
                                 style = CaptionSmall,
-                                color = TextTertiary,
+                                color = appearancePalette.mutedText,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -1217,19 +1217,19 @@ fun TopSongsPanel(
                                     fontFamily = DisplayFontFamily,
                                 ),
                                 fontWeight = FontWeight.Bold,
-                                color = TextPrimary
+                                color = appearancePalette.onSurface
                             )
                             Text(
                                 text = stringResource(R.string.details_plays).uppercase(Locale.getDefault()),
                                 style = CaptionSmall,
-                                color = TextTertiary,
+                                color = appearancePalette.mutedText,
                             )
                         }
 
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.ArrowForwardIos,
                             contentDescription = null,
-                            tint = TextTertiary,
+                            tint = appearancePalette.mutedText,
                             modifier = Modifier
                                 .padding(start = 10.dp)
                                 .size(11.dp)
@@ -1242,7 +1242,7 @@ fun TopSongsPanel(
                                 .padding(start = 16.dp)
                                 .fillMaxWidth()
                                 .height(0.6.dp)
-                                .background(GlassBorderSoft)
+                                .background(appearancePalette.border.copy(alpha = 0.45f))
                         )
                     }
                 }
@@ -1256,7 +1256,8 @@ fun TopSongsPanel(
 // ──────────────────────────────────────────────────────────────
 
 @Composable
-fun TopAlbumCard(album: TopAlbum, accent: Color = TempoPrimary) {
+fun TopAlbumCard(album: TopAlbum, accent: Color = LocalTempoPalette.current.accent) {
+    val appearancePalette = LocalTempoPalette.current
     Column(
         modifier = Modifier
             .width(140.dp)
@@ -1269,12 +1270,12 @@ fun TopAlbumCard(album: TopAlbum, accent: Color = TempoPrimary) {
                 .shadow(
                     elevation = 10.dp,
                     shape = RoundedCornerShape(14.dp),
-                    ambientColor = GlassShadowTeal,
+                    ambientColor = appearancePalette.surfaceSunken.copy(alpha = 0.30f),
                     spotColor = accent.copy(alpha = 0.18f),
                 )
                 .clip(RoundedCornerShape(14.dp))
-                .background(TempoDarkSurfaceSunken)
-                .border(0.8.dp, GlassBorderSoft, RoundedCornerShape(14.dp)),
+                .background(appearancePalette.surfaceSunken)
+                .border(0.8.dp, appearancePalette.border.copy(alpha = 0.45f), RoundedCornerShape(14.dp)),
             contentAlignment = Alignment.Center
         ) {
             if (album.albumArtUrl.isNullOrBlank()) {
@@ -1282,7 +1283,7 @@ fun TopAlbumCard(album: TopAlbum, accent: Color = TempoPrimary) {
                     imageVector = Icons.Rounded.Album,
                     contentDescription = null,
                     modifier = Modifier.size(40.dp),
-                    tint = TextTertiary
+                    tint = appearancePalette.mutedText
                 )
             } else {
                 CachedAsyncImage(
@@ -1300,7 +1301,7 @@ fun TopAlbumCard(album: TopAlbum, accent: Color = TempoPrimary) {
             text = album.album,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
-            color = TextPrimary,
+            color = appearancePalette.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(horizontal = 2.dp)
@@ -1309,7 +1310,7 @@ fun TopAlbumCard(album: TopAlbum, accent: Color = TempoPrimary) {
         Text(
             text = stringResource(R.string.details_plays_count, album.playCount),
             style = CaptionSmall,
-            color = TextTertiary,
+            color = appearancePalette.mutedText,
             modifier = Modifier.padding(horizontal = 2.dp)
         )
     }
@@ -1320,33 +1321,7 @@ fun TopAlbumCard(album: TopAlbum, accent: Color = TempoPrimary) {
 // ──────────────────────────────────────────────────────────────
 
 @Composable
-private fun rememberArtistAccentColor(imageUrl: String?): Color {
-    var accent by remember { mutableStateOf(TempoPrimary) }
-    val context = LocalContext.current
-
-    LaunchedEffect(imageUrl) {
-        if (imageUrl.isNullOrBlank()) return@LaunchedEffect
-        val result = context.imageLoader.execute(
-            ImageRequest.Builder(context)
-                .data(imageUrl)
-                .size(64, 64)
-                .build(),
-        )
-        var bitmap = (result.image as? BitmapImage)?.bitmap ?: return@LaunchedEffect
-        if (bitmap.config == android.graphics.Bitmap.Config.HARDWARE) {
-            bitmap = bitmap.copy(android.graphics.Bitmap.Config.ARGB_8888, false)
-        }
-        Palette.from(bitmap).generate { palette ->
-            val color = palette?.let {
-                it.vibrantSwatch?.rgb
-                    ?: it.mutedSwatch?.rgb
-                    ?: it.dominantSwatch?.rgb
-            }?.let { conditionedAccent(Color(it)) } ?: TempoPrimary
-            accent = color
-        }
-    }
-    return accent
-}
+private fun rememberArtistAccentColor(imageUrl: String?): Color = rememberArtworkAccent(imageUrl)
 
 // ──────────────────────────────────────────────────────────────
 // Formatting helpers (formatListeningTime is used by other screens)
@@ -1378,6 +1353,7 @@ fun formatListeningTime(millis: Long): String {
 
 @Composable
 private fun ArtistDetailsFooter() {
+    val appearancePalette = LocalTempoPalette.current
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1386,13 +1362,13 @@ private fun ArtistDetailsFooter() {
             modifier = Modifier
                 .width(36.dp)
                 .height(1.dp)
-                .background(GlassBorderSoft),
+                .background(appearancePalette.border.copy(alpha = 0.45f)),
         )
         Spacer(modifier = Modifier.height(14.dp))
         Text(
             text = stringResource(R.string.details_footer).uppercase(Locale.getDefault()),
             style = KickerSmall,
-            color = TextTertiary,
+            color = appearancePalette.mutedText,
             letterSpacing = 2.sp,
         )
     }

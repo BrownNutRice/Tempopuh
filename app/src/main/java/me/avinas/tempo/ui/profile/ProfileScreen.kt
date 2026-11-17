@@ -228,6 +228,7 @@ internal fun SectionCatalogKicker(
     label: String,
     modifier: Modifier = Modifier,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
@@ -237,19 +238,19 @@ internal fun SectionCatalogKicker(
             text = number,
             style = KickerSmall,
             fontWeight = FontWeight.Bold,
-            color = TextPrimary,
+            color = appearancePalette.onSurface,
         )
         Box(
             modifier =
                 Modifier
                     .width(10.dp)
                     .height(0.8.dp)
-                    .background(GlassBorderMedium),
+                    .background(appearancePalette.border.copy(alpha = 0.65f)),
         )
         Text(
             text = label.uppercase(Locale.getDefault()),
             style = KickerSmall,
-            color = TextTertiary,
+            color = appearancePalette.mutedText,
             letterSpacing = 1.2.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -264,6 +265,7 @@ private fun EditorialSectionHeader(
     subtitle: String,
     trailing: (@Composable () -> Unit)? = null,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -278,7 +280,7 @@ private fun EditorialSectionHeader(
         Text(
             text = subtitle,
             style = CaptionSmall,
-            color = TextTertiary,
+            color = appearancePalette.mutedText,
         )
     }
 }
@@ -294,6 +296,7 @@ internal fun MastheadHeroMetric(
     suffix: String,
     accentTint: Color,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val reducedMotion = rememberReducedMotion()
     val pulseScale by if (reducedMotion) {
         remember { mutableFloatStateOf(1f) }
@@ -329,7 +332,7 @@ internal fun MastheadHeroMetric(
             Text(
                 text = label.uppercase(Locale.getDefault()),
                 style = KickerSmall,
-                color = TextTertiary,
+                color = appearancePalette.mutedText,
                 letterSpacing = 1.4.sp,
             )
         }
@@ -345,14 +348,14 @@ internal fun MastheadHeroMetric(
                         letterSpacing = (-1.5).sp,
                     ),
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = appearancePalette.onSurface,
                 lineHeight = 44.sp,
             )
             if (suffix.isNotBlank()) {
                 Text(
                     text = suffix,
                     style = MaterialTheme.typography.titleSmall,
-                    color = TextSecondary,
+                    color = appearancePalette.mutedText,
                     modifier = Modifier.padding(bottom = 6.dp),
                 )
             }
@@ -366,8 +369,9 @@ internal fun MastheadSecondaryStat(
     value: String,
     subtext: String,
     modifier: Modifier = Modifier,
-    valueColor: Color = TextPrimary,
+    valueColor: Color = LocalTempoPalette.current.onSurface,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -375,7 +379,7 @@ internal fun MastheadSecondaryStat(
         Text(
             text = label.uppercase(Locale.getDefault()),
             style = KickerSmall,
-            color = TextTertiary,
+            color = appearancePalette.mutedText,
             letterSpacing = 1.2.sp,
             fontSize = 10.sp,
         )
@@ -389,7 +393,7 @@ internal fun MastheadSecondaryStat(
             Text(
                 text = subtext,
                 style = CaptionSmall,
-                color = TextTertiary,
+                color = appearancePalette.mutedText,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -405,7 +409,7 @@ internal fun MastheadSecondaryStat(
 private fun ProgressTrack(
     progress: Float,
     modifier: Modifier = Modifier,
-    color: Color = TempoPrimary,
+    color: Color = LocalTempoPalette.current.accent,
     brush: Brush? = null,
     trackColor: Color = Color.White.copy(alpha = 0.08f),
     height: Dp = 6.dp,
@@ -508,6 +512,7 @@ private fun CollapsingProfileTitle(
     level: Int,
     title: String,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     AnimatedVisibility(
         visible = visible,
         enter = fadeIn(tween(180)) + slideInVertically(tween(180)) { -10 },
@@ -521,7 +526,7 @@ private fun CollapsingProfileTitle(
                 text = userName,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = appearancePalette.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -547,12 +552,13 @@ internal fun SkeletonBlock(
     cornerRadius: Dp,
     alpha: Float = 0.65f,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Box(
         modifier
             .graphicsLayer { this.alpha = alpha }
             .clip(RoundedCornerShape(cornerRadius))
             .background(GlassFrostMedium)
-            .border(0.8.dp, GlassBorderSoft, RoundedCornerShape(cornerRadius)),
+            .border(0.8.dp, appearancePalette.border.copy(alpha = 0.45f), RoundedCornerShape(cornerRadius)),
     )
 }
 
@@ -894,6 +900,7 @@ private fun HeroProfileSection(
     tierAccent: Color,
     compact: Boolean = false,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val animatedProgress by animateFloatAsState(
         targetValue = userLevel.levelProgress,
         animationSpec = tween(durationMillis = 1200, easing = FastOutSlowInEasing),
@@ -936,7 +943,7 @@ private fun HeroProfileSection(
                             letterSpacing = (-0.5).sp,
                         ),
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
+                    color = appearancePalette.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -967,7 +974,7 @@ private fun HeroProfileSection(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
             variant = GlassCardVariant.Obsidian,
-            borderColor = GlassBorderSoft,
+            borderColor = appearancePalette.border.copy(alpha = 0.45f),
             borderWidth = 0.8.dp,
             contentPadding = PaddingValues(16.dp),
         ) {
@@ -983,7 +990,7 @@ private fun HeroProfileSection(
                     Text(
                         text = "LEVEL ${userLevel.currentLevel} PROGRESS",
                         style = KickerSmall,
-                        color = TextTertiary,
+                        color = appearancePalette.mutedText,
                         letterSpacing = 1.1.sp,
                     )
                     ProgressPercentLabel(progress = animatedProgress, tierAccent = tierAccent)
@@ -1003,12 +1010,12 @@ private fun HeroProfileSection(
                     Text(
                         text = String.format(Locale.getDefault(), "%,d XP total", userLevel.totalXp),
                         style = CaptionSmall,
-                        color = TextSecondary,
+                        color = appearancePalette.mutedText,
                     )
                     Text(
                         text = String.format(Locale.getDefault(), "%,d XP to next level", userLevel.xpRemaining),
                         style = CaptionSmall,
-                        color = TextTertiary,
+                        color = appearancePalette.mutedText,
                     )
                 }
             }
@@ -1037,6 +1044,7 @@ private fun InnerAvatarCircle(
     userName: String,
     profileImagePath: String?,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Box(
         modifier =
             Modifier
@@ -1044,11 +1052,11 @@ private fun InnerAvatarCircle(
                 .shadow(
                     elevation = 16.dp,
                     shape = CircleShape,
-                    ambientColor = GlassShadowTeal,
+                    ambientColor = appearancePalette.surfaceSunken.copy(alpha = 0.30f),
                     spotColor = tierAccent.copy(alpha = 0.25f),
                 ).clip(CircleShape)
-                .background(TempoDarkSurfaceSunken)
-                .border(1.dp, GlassBorderStrong, CircleShape),
+                .background(appearancePalette.surfaceSunken)
+                .border(1.dp, appearancePalette.border, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
         if (profileImagePath.isNullOrBlank()) {
@@ -1059,7 +1067,7 @@ private fun InnerAvatarCircle(
                         fontFamily = DisplayFontFamily,
                         fontWeight = FontWeight.Bold,
                     ),
-                color = TextPrimary,
+                color = appearancePalette.onSurface,
             )
         } else {
             CachedAsyncImage(
@@ -1081,6 +1089,7 @@ private fun HeroAvatar(
     tierAccent: Color,
     compact: Boolean = false,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val ringSize = if (compact) 84.dp else 96.dp
     val innerSize = if (compact) 66.dp else 76.dp
     val haloSize = ringSize + 20.dp
@@ -1160,7 +1169,7 @@ private fun HeroAvatar(
                     .align(Alignment.BottomCenter)
                     .offset(y = (-2).dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(TempoDarkSurface)
+                    .background(appearancePalette.surface)
                     .border(0.8.dp, tierAccent.copy(alpha = 0.55f), RoundedCornerShape(8.dp))
                     .padding(horizontal = 9.dp, vertical = 3.dp),
         ) {
@@ -1192,6 +1201,7 @@ private fun MasterStatMasthead(
     compact: Boolean,
     hideStreaks: Boolean = false,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val currentStreak = userLevel.currentStreak
     val animatedStreak by animateIntAsState(
         targetValue = currentStreak,
@@ -1221,7 +1231,7 @@ private fun MasterStatMasthead(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
         variant = GlassCardVariant.Obsidian,
-        borderColor = if (streakAtRisk) TempoErrorSoft.copy(alpha = 0.35f) else GlassBorderSoft,
+        borderColor = if (streakAtRisk) TempoErrorSoft.copy(alpha = 0.35f) else appearancePalette.border.copy(alpha = 0.45f),
         borderWidth = 0.8.dp,
         contentPadding = PaddingValues(0.dp),
     ) {
@@ -1247,7 +1257,7 @@ private fun MasterStatMasthead(
                         Modifier
                             .fillMaxWidth()
                             .height(0.8.dp)
-                            .background(GlassBorderSoft),
+                            .background(appearancePalette.border.copy(alpha = 0.45f)),
                 )
                 Spacer(modifier = Modifier.height(14.dp))
             }
@@ -1273,7 +1283,7 @@ private fun MasterStatMasthead(
                             Modifier
                                 .fillMaxHeight()
                                 .width(0.8.dp)
-                                .background(GlassBorderSoft),
+                                .background(appearancePalette.border.copy(alpha = 0.45f)),
                     )
                 }
 
@@ -1294,7 +1304,7 @@ private fun MasterStatMasthead(
                         Modifier
                             .fillMaxHeight()
                             .width(0.8.dp)
-                            .background(GlassBorderSoft),
+                            .background(appearancePalette.border.copy(alpha = 0.45f)),
                 )
 
                 MastheadSecondaryStat(
@@ -1305,7 +1315,7 @@ private fun MasterStatMasthead(
                         Modifier
                             .weight(1f)
                             .padding(start = if (compact) 10.dp else 16.dp),
-                    valueColor = if (earnedCount > 0) TempoWarning else TextPrimary,
+                    valueColor = if (earnedCount > 0) TempoWarning else appearancePalette.onSurface,
                 )
             }
         }
@@ -1317,6 +1327,7 @@ private fun StreakRiskBanner(
     streakDurationMinutes: Long,
     timeRemaining: String,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val riskColor =
         when {
             streakDurationMinutes > 360 -> TempoErrorSoft
@@ -1357,12 +1368,12 @@ private fun StreakRiskBanner(
                     text = "Streak at risk",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
+                    color = appearancePalette.onSurface,
                 )
                 Text(
                     text = "Play a track in the next $timeRemaining to keep your streak alive.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary,
+                    color = appearancePalette.mutedText,
                 )
             }
         }
@@ -1379,13 +1390,14 @@ private fun TabSwitcher(
     selectedTab: Int,
     onTabSelected: (Int) -> Unit,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     BoxWithConstraints(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
-                .background(TempoDarkSurfaceSunken)
-                .border(0.8.dp, GlassBorderSoft, RoundedCornerShape(16.dp))
+                .background(appearancePalette.surfaceSunken)
+                .border(0.8.dp, appearancePalette.border.copy(alpha = 0.45f), RoundedCornerShape(16.dp))
                 .padding(4.dp),
     ) {
         val tabWidth = maxWidth / tabs.size
@@ -1406,8 +1418,8 @@ private fun TabSwitcher(
                         }.width(tabWidth)
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(TempoPrimary.copy(alpha = 0.16f))
-                        .border(0.8.dp, TempoPrimary.copy(alpha = 0.42f), RoundedCornerShape(12.dp)),
+                        .background(appearancePalette.accent.copy(alpha = 0.16f))
+                        .border(0.8.dp, appearancePalette.accent.copy(alpha = 0.42f), RoundedCornerShape(12.dp)),
             )
         }
         Row(modifier = Modifier.fillMaxWidth()) {
@@ -1417,7 +1429,7 @@ private fun TabSwitcher(
                     text = title,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                    color = if (selected) TextPrimary else TextTertiary,
+                    color = if (selected) appearancePalette.onSurface else appearancePalette.mutedText,
                     maxLines = 1,
                     textAlign = TextAlign.Center,
                     modifier =
@@ -1469,7 +1481,7 @@ private fun LazyListScope.challengesSection(
             ProgressTrack(
                 progress = if (challenges.isEmpty()) 0f else completedCount.toFloat() / challenges.size,
                 modifier = Modifier.fillMaxWidth(),
-                color = TempoPrimary,
+                color = LocalTempoPalette.current.accent,
             )
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -1486,11 +1498,12 @@ private fun LazyListScope.challengesSection(
 
 @Composable
 private fun EmptyChallengesState(modifier: Modifier = Modifier) {
+    val appearancePalette = LocalTempoPalette.current
     GlassCard(
         modifier = modifier,
         variant = GlassCardVariant.Obsidian,
         shape = RoundedCornerShape(20.dp),
-        borderColor = GlassBorderSoft,
+        borderColor = appearancePalette.border.copy(alpha = 0.45f),
         borderWidth = 0.8.dp,
         contentPadding = PaddingValues(28.dp),
     ) {
@@ -1504,14 +1517,14 @@ private fun EmptyChallengesState(modifier: Modifier = Modifier) {
                     Modifier
                         .size(52.dp)
                         .clip(CircleShape)
-                        .background(TempoDarkSurfaceSunken)
-                        .border(0.8.dp, GlassBorderSoft, CircleShape),
+                        .background(appearancePalette.surfaceSunken)
+                        .border(0.8.dp, appearancePalette.border.copy(alpha = 0.45f), CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Schedule,
                     contentDescription = null,
-                    tint = TextTertiary,
+                    tint = appearancePalette.mutedText,
                     modifier = Modifier.size(26.dp),
                 )
             }
@@ -1519,12 +1532,12 @@ private fun EmptyChallengesState(modifier: Modifier = Modifier) {
                 text = "Nothing queued yet",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = TextSecondary,
+                color = appearancePalette.mutedText,
             )
             Text(
                 text = "Pull to refresh or continue listening — new daily quests will appear here.",
                 style = MaterialTheme.typography.bodySmall,
-                color = TextTertiary,
+                color = appearancePalette.mutedText,
                 textAlign = TextAlign.Center,
             )
         }
@@ -1546,6 +1559,7 @@ private fun ChallengePercentText(
 
 @Composable
 private fun ChallengeCard(challenge: DailyChallenge) {
+    val appearancePalette = LocalTempoPalette.current
     val isCompleted = challenge.isCompleted
     val accent = if (isCompleted) TempoSuccessDeep else getDifficultyColor(challenge.difficulty)
     val animatedProgress by animateFloatAsState(
@@ -1558,7 +1572,7 @@ private fun ChallengeCard(challenge: DailyChallenge) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         variant = GlassCardVariant.Obsidian,
-        borderColor = if (isCompleted) TempoSuccessDeep.copy(alpha = 0.25f) else GlassBorderSoft,
+        borderColor = if (isCompleted) TempoSuccessDeep.copy(alpha = 0.25f) else appearancePalette.border.copy(alpha = 0.45f),
         borderWidth = 0.8.dp,
         contentPadding = PaddingValues(18.dp),
     ) {
@@ -1602,7 +1616,7 @@ private fun ChallengeCard(challenge: DailyChallenge) {
                         text = challenge.category.replace("_", " ").uppercase(Locale.getDefault()),
                         style = KickerSmall,
                         fontWeight = FontWeight.Medium,
-                        color = TextTertiary,
+                        color = appearancePalette.mutedText,
                         letterSpacing = 0.8.sp,
                         fontSize = 10.sp,
                     )
@@ -1648,7 +1662,7 @@ private fun ChallengeCard(challenge: DailyChallenge) {
                         Modifier
                             .size(44.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(TempoDarkSurfaceSunken)
+                            .background(appearancePalette.surfaceSunken)
                             .border(0.8.dp, accent.copy(alpha = if (isCompleted) 0.40f else 0.20f), RoundedCornerShape(12.dp)),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -1667,12 +1681,12 @@ private fun ChallengeCard(challenge: DailyChallenge) {
                         text = challenge.title.withoutLeadingEmoji(),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = TextPrimary,
+                        color = appearancePalette.onSurface,
                     )
                     Text(
                         text = challenge.description,
                         style = MaterialTheme.typography.bodySmall,
-                        color = TextSecondary,
+                        color = appearancePalette.mutedText,
                         lineHeight = 18.sp,
                     )
                 }
@@ -1696,7 +1710,7 @@ private fun ChallengeCard(challenge: DailyChallenge) {
                     text = "${challenge.currentProgress} / ${challenge.targetValue}",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (isCompleted) TempoSuccessDeep else TextSecondary,
+                    color = if (isCompleted) TempoSuccessDeep else appearancePalette.mutedText,
                 )
 
                 if (isCompleted) {
@@ -1751,6 +1765,7 @@ private fun LazyListScope.badgeSection(
 ) {
     val collectionProgress = if (totalCount == 0) 0f else earnedCount.toFloat() / totalCount
     item(key = "badges_header") {
+        val appearancePalette = LocalTempoPalette.current
         val beginnerIds = GamificationEngine.BEGINNER_BADGES
         val almostThereBadge =
             remember(allBadges) {
@@ -1796,15 +1811,15 @@ private fun LazyListScope.badgeSection(
                     label = { Text("All") },
                     colors =
                         FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = TempoPrimary.copy(alpha = 0.14f),
+                            selectedContainerColor = appearancePalette.accent.copy(alpha = 0.14f),
                             containerColor = Color.Transparent,
-                            labelColor = TextSecondary,
-                            selectedLabelColor = TextPrimary,
+                            labelColor = appearancePalette.mutedText,
+                            selectedLabelColor = appearancePalette.onSurface,
                         ),
                     border =
                         FilterChipDefaults.filterChipBorder(
-                            borderColor = GlassBorderMedium,
-                            selectedBorderColor = TempoPrimary.copy(alpha = 0.40f),
+                            borderColor = appearancePalette.border.copy(alpha = 0.65f),
+                            selectedBorderColor = appearancePalette.accent.copy(alpha = 0.40f),
                             enabled = true,
                             selected = selectedCategory == null,
                         ),
@@ -1816,15 +1831,15 @@ private fun LazyListScope.badgeSection(
                         label = { Text(getCategoryLabel(category)) },
                         colors =
                             FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = TempoPrimary.copy(alpha = 0.14f),
+                                selectedContainerColor = appearancePalette.accent.copy(alpha = 0.14f),
                                 containerColor = Color.Transparent,
-                                labelColor = TextSecondary,
-                                selectedLabelColor = TextPrimary,
+                                labelColor = appearancePalette.mutedText,
+                                selectedLabelColor = appearancePalette.onSurface,
                             ),
                         border =
                             FilterChipDefaults.filterChipBorder(
-                                borderColor = GlassBorderMedium,
-                                selectedBorderColor = TempoPrimary.copy(alpha = 0.40f),
+                                borderColor = appearancePalette.border.copy(alpha = 0.65f),
+                                selectedBorderColor = appearancePalette.accent.copy(alpha = 0.40f),
                                 enabled = true,
                                 selected = selectedCategory == category,
                             ),
@@ -1869,7 +1884,8 @@ private fun SpotlightBadgeCard(
     isAlmostThere: Boolean,
     onClick: () -> Unit,
 ) {
-    val accent = if (isAlmostThere) TempoPrimary else TempoWarning
+    val appearancePalette = LocalTempoPalette.current
+    val accent = if (isAlmostThere) appearancePalette.accent else TempoWarning
     val remaining = (badge.maxProgress - badge.progress).coerceAtLeast(0)
     val remainingLabel = "$remaining"
     val progressLabel = "${badge.progress} / ${badge.maxProgress}"
@@ -1947,7 +1963,7 @@ private fun SpotlightBadgeCard(
                     text = progressLabel,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = TextSecondary,
+                    color = appearancePalette.mutedText,
                 )
             }
 
@@ -1969,14 +1985,14 @@ private fun SpotlightBadgeCard(
                         text = badge.name,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = TextPrimary,
+                        color = appearancePalette.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
                         text = badge.description,
                         style = MaterialTheme.typography.bodySmall,
-                        color = TextSecondary,
+                        color = appearancePalette.mutedText,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -1988,7 +2004,7 @@ private fun SpotlightBadgeCard(
                                 "Tier achieved — push for the next star."
                             },
                         style = CaptionSmall,
-                        color = TextTertiary,
+                        color = appearancePalette.mutedText,
                     )
                 }
             }
@@ -2009,6 +2025,7 @@ private fun BadgeCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val isEarned = badge.isEarned
     val intrinsicColor = getUniqueBadgeColor(badge.badgeId)
     val rarity = GamificationEngine.getRarity(badge.badgeId)
@@ -2042,7 +2059,7 @@ private fun BadgeCard(
         shape = RoundedCornerShape(18.dp),
         variant = if (isEarned) GlassCardVariant.TintedSolid else GlassCardVariant.Obsidian,
         accentColor = if (isEarned) intrinsicColor else null,
-        borderColor = if (isEarned) intrinsicColor.copy(alpha = 0.32f) else GlassBorderSoft,
+        borderColor = if (isEarned) intrinsicColor.copy(alpha = 0.32f) else appearancePalette.border.copy(alpha = 0.45f),
         borderWidth = 0.8.dp,
         contentPadding = PaddingValues(14.dp),
     ) {
@@ -2056,7 +2073,7 @@ private fun BadgeCard(
                 text = badge.name,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
-                color = if (isEarned) TextPrimary else TextSecondary,
+                color = if (isEarned) appearancePalette.onSurface else appearancePalette.mutedText,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -2065,7 +2082,7 @@ private fun BadgeCard(
             Text(
                 text = badge.description,
                 style = MaterialTheme.typography.bodySmall,
-                color = if (isEarned) TextSecondary else TextTertiary,
+                color = if (isEarned) appearancePalette.mutedText else appearancePalette.mutedText,
                 textAlign = TextAlign.Center,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -2125,7 +2142,7 @@ private fun BadgeCard(
                         Text(
                             text = "${badge.progress} / ${badge.maxProgress}  →  ★${badge.stars + 1}",
                             style = MaterialTheme.typography.labelSmall,
-                            color = TextTertiary,
+                            color = appearancePalette.mutedText,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 9.sp,
                         )
@@ -2151,7 +2168,7 @@ private fun BadgeCard(
                 Text(
                     text = "${badge.progress} / ${badge.maxProgress}",
                     style = MaterialTheme.typography.labelSmall,
-                    color = TextTertiary,
+                    color = appearancePalette.mutedText,
                     fontWeight = FontWeight.Bold,
                     fontSize = 9.sp,
                 )
@@ -2380,6 +2397,7 @@ fun BadgeDetailsOverlay(
     onDismiss: () -> Unit,
     onShareBadge: ((Badge) -> Unit)? = null,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val intrinsicColor = getUniqueBadgeColor(badge.badgeId)
     val rarity = GamificationEngine.getRarity(badge.badgeId)
     val rarityColor = getRarityColor(rarity)
@@ -2578,13 +2596,13 @@ fun BadgeDetailsOverlay(
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = (-0.5).sp,
                             ),
-                        color = TextPrimary,
+                        color = appearancePalette.onSurface,
                         textAlign = TextAlign.Center,
                     )
                     Text(
                         text = badge.description,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary,
+                        color = appearancePalette.mutedText,
                         textAlign = TextAlign.Center,
                     )
                     Row(
@@ -2616,7 +2634,7 @@ fun BadgeDetailsOverlay(
                             text = "STAR TIERS",
                             style = KickerSmall,
                             fontWeight = FontWeight.Bold,
-                            color = TextTertiary,
+                            color = appearancePalette.mutedText,
                             letterSpacing = 1.4.sp,
                         )
 
@@ -2632,14 +2650,14 @@ fun BadgeDetailsOverlay(
                                 Text(
                                     text = "A participation badge — yours from the first moment.",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = TextTertiary,
+                                    color = appearancePalette.mutedText,
                                 )
                             } else {
                                 Text(
                                     text = "${badge.progress} / ${badge.maxProgress}",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = TextPrimary,
+                                    color = appearancePalette.onSurface,
                                 )
                                 ProgressTrack(
                                     progress = animatedProgress,
@@ -2676,7 +2694,7 @@ fun BadgeDetailsOverlay(
                                                 text = "Star $tier",
                                                 style = MaterialTheme.typography.labelMedium,
                                                 fontWeight = FontWeight.SemiBold,
-                                                color = if (achieved || isNext) TextPrimary else TextSecondary,
+                                                color = if (achieved || isNext) appearancePalette.onSurface else appearancePalette.mutedText,
                                             )
                                             if (isNext) {
                                                 val remaining = (threshold - badge.progress).coerceAtLeast(0)
@@ -2692,7 +2710,7 @@ fun BadgeDetailsOverlay(
                                             text = "%,d".format(threshold),
                                             style = MaterialTheme.typography.labelMedium,
                                             fontWeight = FontWeight.Bold,
-                                            color = if (achieved) intrinsicColor else TextTertiary,
+                                            color = if (achieved) intrinsicColor else appearancePalette.mutedText,
                                         )
                                     }
                                     if (isNext && !badge.isMaxed) {
@@ -2735,7 +2753,7 @@ fun BadgeDetailsOverlay(
                     modifier =
                         Modifier
                             .clip(RoundedCornerShape(50))
-                            .background(TempoDarkSurfaceElevated.copy(alpha = 0.85f))
+                            .background(appearancePalette.elevatedSurface.copy(alpha = 0.85f))
                             .border(0.8.dp, intrinsicColor.copy(alpha = 0.45f), RoundedCornerShape(50))
                             .clickable {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -2753,7 +2771,7 @@ fun BadgeDetailsOverlay(
                     Text(
                         text = "Share Trophy",
                         style = CaptionSmall,
-                        color = TextPrimary,
+                        color = appearancePalette.onSurface,
                         fontWeight = FontWeight.Bold,
                     )
                 }
@@ -2763,8 +2781,8 @@ fun BadgeDetailsOverlay(
                 modifier =
                     Modifier
                         .clip(RoundedCornerShape(50))
-                        .background(TempoDarkSurfaceElevated.copy(alpha = 0.85f))
-                        .border(0.8.dp, GlassBorderSoft, RoundedCornerShape(50))
+                        .background(appearancePalette.elevatedSurface.copy(alpha = 0.85f))
+                        .border(0.8.dp, appearancePalette.border.copy(alpha = 0.45f), RoundedCornerShape(50))
                         .clickable { dismissSmoothly() }
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -2773,13 +2791,13 @@ fun BadgeDetailsOverlay(
                 Icon(
                     imageVector = Icons.Rounded.Close,
                     contentDescription = null,
-                    tint = TextTertiary,
+                    tint = appearancePalette.mutedText,
                     modifier = Modifier.size(14.dp),
                 )
                 Text(
                     text = "Close",
                     style = CaptionSmall,
-                    color = TextSecondary,
+                    color = appearancePalette.mutedText,
                     fontWeight = FontWeight.Medium,
                 )
             }
@@ -2830,6 +2848,7 @@ fun CompactLevelRing(
     modifier: Modifier = Modifier,
     size: Dp = 48.dp,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Box(modifier = modifier.size(size), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val strokeWidth = 4.dp.toPx()
@@ -2869,7 +2888,7 @@ fun CompactLevelRing(
             text = "$level",
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
-            color = TextPrimary,
+            color = appearancePalette.onSurface,
         )
     }
 }

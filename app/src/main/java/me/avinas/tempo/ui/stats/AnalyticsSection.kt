@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import me.avinas.tempo.ui.theme.LocalTempoPalette
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,6 +51,7 @@ fun AnalyticsContent(
 
 @Composable
 fun OverviewSection(overview: ListeningOverview) {
+    val palette = LocalTempoPalette.current
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -57,20 +59,20 @@ fun OverviewSection(overview: ListeningOverview) {
         // Total Time Card
         StatCard(
             modifier = Modifier.weight(1f),
-            gradientColors = listOf(Color(0xFF5B21B6).copy(alpha = 0.6f), Color(0xFF5B21B6).copy(alpha = 0.2f))
+            gradientColors = listOf(palette.elevatedSurface, palette.surface)
         ) {
             Column {
                 Text(
                     text = "Total Time",
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.7f)
+                    color = palette.mutedText
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = formatListeningTime(overview.totalListeningTimeMs),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = palette.onSurface
                 )
             }
         }
@@ -78,20 +80,20 @@ fun OverviewSection(overview: ListeningOverview) {
         // Play Count Card
         StatCard(
             modifier = Modifier.weight(1f),
-            gradientColors = listOf(Color(0xFF1E3A8A).copy(alpha = 0.6f), Color(0xFF1E3A8A).copy(alpha = 0.2f))
+            gradientColors = listOf(palette.elevatedSurface, palette.surface)
         ) {
             Column {
                 Text(
                     text = "Plays",
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.7f)
+                    color = palette.mutedText
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "${overview.totalPlayCount}",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = palette.onSurface
                 )
             }
         }
@@ -105,22 +107,22 @@ fun OverviewSection(overview: ListeningOverview) {
         // Unique Tracks
         StatCard(modifier = Modifier.weight(1f)) {
              Column {
-                Text("Tracks", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f))
-                Text("${overview.uniqueTracksCount}", style = MaterialTheme.typography.titleMedium, color = Color.White)
+                Text("Tracks", style = MaterialTheme.typography.labelSmall, color = palette.mutedText)
+                Text("${overview.uniqueTracksCount}", style = MaterialTheme.typography.titleMedium, color = palette.onSurface)
             }
         }
         // Unique Artists
         StatCard(modifier = Modifier.weight(1f)) {
             Column {
-                Text("Artists", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f))
-                Text("${overview.uniqueArtistsCount}", style = MaterialTheme.typography.titleMedium, color = Color.White)
+                Text("Artists", style = MaterialTheme.typography.labelSmall, color = palette.mutedText)
+                Text("${overview.uniqueArtistsCount}", style = MaterialTheme.typography.titleMedium, color = palette.onSurface)
             }
         }
         // Unique Albums
         StatCard(modifier = Modifier.weight(1f)) {
              Column {
-                Text("Albums", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f))
-                Text("${overview.uniqueAlbumsCount}", style = MaterialTheme.typography.titleMedium, color = Color.White)
+                Text("Albums", style = MaterialTheme.typography.labelSmall, color = palette.mutedText)
+                Text("${overview.uniqueAlbumsCount}", style = MaterialTheme.typography.titleMedium, color = palette.onSurface)
             }
         }
     }
@@ -128,13 +130,14 @@ fun OverviewSection(overview: ListeningOverview) {
 
 @Composable
 fun HourlyChart(hourlyData: List<HourlyDistribution>) {
+    val palette = LocalTempoPalette.current
     StatCard {
         Column {
             Text(
                 text = "Listening Activity",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = palette.onSurface
             )
             Spacer(modifier = Modifier.height(16.dp))
             
@@ -174,10 +177,10 @@ fun HourlyChart(hourlyData: List<HourlyDistribution>) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("12 AM", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
-                Text("6 AM", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
-                Text("12 PM", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
-                Text("6 PM", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
+                Text("12 AM", style = MaterialTheme.typography.labelSmall, color = palette.mutedText, fontSize = 10.sp)
+                Text("6 AM", style = MaterialTheme.typography.labelSmall, color = palette.mutedText, fontSize = 10.sp)
+                Text("12 PM", style = MaterialTheme.typography.labelSmall, color = palette.mutedText, fontSize = 10.sp)
+                Text("6 PM", style = MaterialTheme.typography.labelSmall, color = palette.mutedText, fontSize = 10.sp)
             }
         }
     }

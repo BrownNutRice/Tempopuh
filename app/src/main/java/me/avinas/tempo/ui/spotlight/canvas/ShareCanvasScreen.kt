@@ -55,6 +55,7 @@ fun ShareCanvasScreen(
     onClose: () -> Unit,
     viewModel: ShareCanvasViewModel = hiltViewModel()
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val captureController = rememberCaptureController()
@@ -136,11 +137,11 @@ fun ShareCanvasScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = Color.White)
+                    CircularProgressIndicator(color = appearancePalette.accent)
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "Loading your cards...",
-                        color = Color.White.copy(alpha = 0.7f),
+                        color = appearancePalette.mutedText,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -345,14 +346,14 @@ fun ShareCanvasScreen(
                 modifier = Modifier
                     .size(44.dp)
                     .clip(CircleShape)
-                    .background(Color.Black.copy(alpha = 0.4f))
+                    .background(appearancePalette.surfaceSunken.copy(alpha = 0.8f))
                     .clickable(onClick = onClose),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Close",
-                    tint = Color.White,
+                    tint = appearancePalette.onSurface,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -361,7 +362,7 @@ fun ShareCanvasScreen(
             Text(
                 text = "Share Story",
                 style = MaterialTheme.typography.titleMedium,
-                color = Color.White.copy(alpha = 0.95f),
+                color = appearancePalette.onSurface.copy(alpha = 0.95f),
                 fontWeight = FontWeight.SemiBold
             )
             
@@ -412,7 +413,7 @@ fun ShareCanvasScreen(
                                 modifier = Modifier
                                     .height(24.dp)
                                     .width(1.dp)
-                                    .background(Color.White.copy(alpha = 0.1f))
+                                    .background(appearancePalette.onSurface.copy(alpha = 0.1f))
                             )
                             
                             DockItem(
@@ -442,7 +443,7 @@ fun ShareCanvasScreen(
                                 modifier = Modifier
                                     .height(24.dp)
                                     .width(1.dp)
-                                    .background(Color.White.copy(alpha = 0.1f))
+                                    .background(appearancePalette.onSurface.copy(alpha = 0.1f))
                             )
 
                             DockItem(
@@ -460,11 +461,7 @@ fun ShareCanvasScreen(
                             modifier = Modifier
                                 .height(56.dp)
                                 .clip(RoundedCornerShape(28.dp))
-                                .background(
-                                    Brush.linearGradient(
-                                        listOf(Color(0xFF8B5CF6), Color(0xFFA855F7), Color(0xFFD946EF))
-                                    )
-                                )
+                                .background(appearancePalette.accent)
                                 .clickable(
                                     enabled = canvasState.canvasItems.isNotEmpty() || canvasState.textItems.isNotEmpty(),
                                     onClick = {
@@ -481,7 +478,7 @@ fun ShareCanvasScreen(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     "Share",
-                                    color = Color.White,
+                                    color = appearancePalette.onAccent,
                                     fontWeight = FontWeight.Bold,
                                     style = MaterialTheme.typography.titleSmall,
                                     maxLines = 1 // Prevent wrapping
@@ -490,7 +487,7 @@ fun ShareCanvasScreen(
                                 Icon(
                                     imageVector = Icons.Default.Share,
                                     contentDescription = null,
-                                    tint = Color.White,
+                                    tint = appearancePalette.onAccent,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -672,6 +669,7 @@ private fun DockItem(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Column(
         modifier = modifier
             .fillMaxHeight()
@@ -684,14 +682,14 @@ private fun DockItem(
         Icon(
             imageVector = icon,
             contentDescription = label,
-            tint = if (enabled) Color.White else Color.White.copy(alpha = 0.3f),
+            tint = if (enabled) appearancePalette.onSurface else appearancePalette.onSurface.copy(alpha = 0.3f),
             modifier = Modifier.size(26.dp)
         )
         Spacer(Modifier.height(4.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = if (enabled) Color.White.copy(alpha = 0.9f) else Color.White.copy(alpha = 0.3f),
+            color = if (enabled) appearancePalette.onSurface.copy(alpha = 0.9f) else appearancePalette.onSurface.copy(alpha = 0.3f),
             fontSize = 10.sp,
             fontWeight = FontWeight.Medium,
             maxLines = 1

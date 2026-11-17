@@ -87,6 +87,7 @@ fun AlbumDetailsScreen(
     onNavigateToAlbum: (Long) -> Unit = {},
     viewModel: AlbumDetailsViewModel = hiltViewModel(),
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val uiState by viewModel.uiState.collectAsState()
     val albumDetails = uiState.albumDetails
 
@@ -127,8 +128,8 @@ fun AlbumDetailsScreen(
                 OutlinedButton(
                     onClick = viewModel::refresh,
                     shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(0.8.dp, GlassBorderMedium),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TextPrimary),
+                    border = BorderStroke(0.8.dp, appearancePalette.border.copy(alpha = 0.65f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = appearancePalette.onSurface),
                 ) {
                     Text(stringResource(R.string.common_retry).uppercase(Locale.getDefault()))
                 }
@@ -196,7 +197,8 @@ private fun AlbumDetailsContent(
     onAddClick: () -> Unit,
     onRemoveTrack: (TrackWithStats) -> Unit,
 ) {
-    var dominantColor by remember { mutableStateOf<Color>(TempoPrimary) }
+    val appearancePalette = LocalTempoPalette.current
+    val dominantColor = rememberArtworkAccent(albumDetails.album.artworkUrl)
     var showMenu by remember { mutableStateOf(false) }
     var showMergeDialog by remember { mutableStateOf(false) }
 
@@ -239,7 +241,6 @@ private fun AlbumDetailsContent(
                     AlbumHeroEditorialStage(
                         albumDetails = albumDetails,
                         dominantColor = dominantColor,
-                        onPaletteExtracted = { color -> dominantColor = conditionedAccent(color) },
                         onNavigateToArtist = onNavigateToArtist,
                         onTitlePositioned = { top ->
                             val collapsed = top <= headerBottomPx
@@ -325,8 +326,8 @@ private fun AlbumDetailsContent(
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                TempoDarkBackground.copy(alpha = 0.94f),
-                                TempoDarkBackground.copy(alpha = 0.60f),
+                                appearancePalette.background.copy(alpha = 0.94f),
+                                appearancePalette.background.copy(alpha = 0.60f),
                                 Color.Transparent,
                             )
                         )
@@ -397,6 +398,7 @@ private fun AlbumTopBar(
     onAddClick: () -> Unit,
     onMenuClick: () -> Unit,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -422,7 +424,7 @@ private fun AlbumTopBar(
                     text = title,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
+                    color = appearancePalette.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,
@@ -430,7 +432,7 @@ private fun AlbumTopBar(
                 Text(
                     text = artist,
                     style = MaterialTheme.typography.labelSmall,
-                    color = TextTertiary,
+                    color = appearancePalette.mutedText,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,
@@ -459,9 +461,9 @@ private fun AlbumTopBar(
                     if (isEditMode) R.string.album_action_done_cd else R.string.album_action_edit_cd
                 ),
                 onClick = onToggleEdit,
-                iconTint = if (isEditMode) TempoPrimary else TextPrimary,
-                containerColor = if (isEditMode) TempoPrimary.copy(alpha = 0.16f) else GlassFrostMedium,
-                borderColor = if (isEditMode) TempoPrimary.copy(alpha = 0.40f) else GlassBorderSoft,
+                iconTint = if (isEditMode) appearancePalette.accent else appearancePalette.onSurface,
+                containerColor = if (isEditMode) appearancePalette.accent.copy(alpha = 0.16f) else GlassFrostMedium,
+                borderColor = if (isEditMode) appearancePalette.accent.copy(alpha = 0.40f) else appearancePalette.border.copy(alpha = 0.45f),
             )
             AlbumTopBarAction(
                 icon = Icons.Default.MoreVert,
@@ -477,9 +479,9 @@ private fun AlbumTopBarAction(
     icon: ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
-    iconTint: Color = TextPrimary,
+    iconTint: Color = LocalTempoPalette.current.onSurface,
     containerColor: Color = GlassFrostMedium,
-    borderColor: Color = GlassBorderSoft,
+    borderColor: Color = LocalTempoPalette.current.border.copy(alpha = 0.45f),
 ) {
     Box(
         modifier = Modifier
@@ -507,10 +509,10 @@ private fun AlbumTopBarAction(
 private fun AlbumHeroEditorialStage(
     albumDetails: AlbumDetails,
     dominantColor: Color,
-    onPaletteExtracted: (Color) -> Unit,
     onNavigateToArtist: (Long) -> Unit,
     onTitlePositioned: (Float) -> Unit,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -542,19 +544,18 @@ private fun AlbumHeroEditorialStage(
                     .shadow(
                         elevation = 22.dp,
                         shape = RoundedCornerShape(22.dp),
-                        ambientColor = GlassShadowTeal,
+                        ambientColor = appearancePalette.surfaceSunken.copy(alpha = 0.30f),
                         spotColor = dominantColor.copy(alpha = 0.22f),
                     )
                     .clip(RoundedCornerShape(22.dp))
-                    .background(TempoDarkSurfaceSunken)
-                    .border(1.dp, GlassBorderStrong, RoundedCornerShape(22.dp)),
+                    .background(appearancePalette.surfaceSunken)
+                    .border(1.dp, appearancePalette.border, RoundedCornerShape(22.dp)),
             ) {
                 AlbumArtImage(
                     albumArtUrl = albumDetails.album.artworkUrl,
                     contentDescription = stringResource(
                         R.string.details_cover_artwork_cd, albumDetails.album.title
                     ),
-                    onPaletteExtracted = onPaletteExtracted,
                 )
             }
         }
@@ -577,7 +578,7 @@ private fun AlbumHeroEditorialStage(
                     letterSpacing = (-0.5).sp,
                 ),
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = appearancePalette.onSurface,
                 textAlign = TextAlign.Center,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
@@ -604,13 +605,13 @@ private fun AlbumHeroEditorialStage(
                     modifier = Modifier
                         .width(28.dp)
                         .height(0.8.dp)
-                        .background(GlassBorderMedium),
+                        .background(appearancePalette.border.copy(alpha = 0.65f)),
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = metaParts.joinToString("  ·  ").uppercase(Locale.getDefault()),
                     style = KickerSmall,
-                    color = TextTertiary,
+                    color = appearancePalette.mutedText,
                     letterSpacing = 1.4.sp,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
@@ -622,7 +623,7 @@ private fun AlbumHeroEditorialStage(
                     modifier = Modifier
                         .width(28.dp)
                         .height(0.8.dp)
-                        .background(GlassBorderMedium),
+                        .background(appearancePalette.border.copy(alpha = 0.65f)),
                 )
             }
         }
@@ -640,6 +641,7 @@ private fun AlbumStatMasthead(
     albumDetails: AlbumDetails,
     dominantColor: Color,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val hasPlays = albumDetails.totalPlayCount > 0
     val completion = albumDetails.completionRate
     val completionText = if (hasPlays) {
@@ -662,7 +664,7 @@ private fun AlbumStatMasthead(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
         variant = GlassCardVariant.Obsidian,
-        borderColor = GlassBorderSoft,
+        borderColor = appearancePalette.border.copy(alpha = 0.45f),
         borderWidth = 0.8.dp,
         contentPadding = PaddingValues(0.dp),
     ) {
@@ -684,7 +686,7 @@ private fun AlbumStatMasthead(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(0.8.dp)
-                    .background(GlassBorderSoft)
+                    .background(appearancePalette.border.copy(alpha = 0.45f))
             )
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -711,7 +713,7 @@ private fun AlbumStatMasthead(
                     modifier = Modifier
                         .fillMaxHeight()
                         .width(0.8.dp)
-                        .background(GlassBorderSoft),
+                        .background(appearancePalette.border.copy(alpha = 0.45f)),
                 )
 
                 MastheadSecondaryStat(
@@ -719,7 +721,7 @@ private fun AlbumStatMasthead(
                     value = completionText,
                     subtext = completionSubtext,
                     valueColor = when {
-                        !hasPlays -> TextPrimary
+                        !hasPlays -> appearancePalette.onSurface
                         completion >= 70 -> TempoSuccess
                         else -> TempoWarning
                     },
@@ -746,6 +748,7 @@ private fun AlbumTrackSheetHeader(
     isEditMode: Boolean,
     onAddClick: () -> Unit,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -767,7 +770,7 @@ private fun AlbumTrackSheetHeader(
                     trackCount,
                 ),
                 style = CaptionSmall,
-                color = TextTertiary,
+                color = appearancePalette.mutedText,
                 fontWeight = FontWeight.Medium,
             )
             if (isEditMode) {
@@ -779,6 +782,7 @@ private fun AlbumTrackSheetHeader(
 
 @Composable
 private fun AlbumEmptyTracksCard(tint: Color) {
+    val appearancePalette = LocalTempoPalette.current
     GlassCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -793,7 +797,7 @@ private fun AlbumEmptyTracksCard(tint: Color) {
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.QueueMusic,
                 contentDescription = null,
-                tint = TextTertiary,
+                tint = appearancePalette.mutedText,
                 modifier = Modifier.size(30.dp),
             )
             Spacer(modifier = Modifier.height(12.dp))
@@ -801,13 +805,13 @@ private fun AlbumEmptyTracksCard(tint: Color) {
                 text = stringResource(R.string.album_no_tracks),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
-                color = TextPrimary,
+                color = appearancePalette.onSurface,
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = stringResource(R.string.album_no_tracks_hint),
                 style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary,
+                color = appearancePalette.mutedText,
                 textAlign = TextAlign.Center,
             )
         }
@@ -835,6 +839,7 @@ private fun AlbumTrackRow(
     isLast: Boolean,
     onNavigateToSong: (Long) -> Unit,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val rowShape = RoundedCornerShape(
         topStart = if (isFirst) 20.dp else 0.dp,
         topEnd = if (isFirst) 20.dp else 0.dp,
@@ -879,7 +884,7 @@ private fun AlbumTrackRow(
                             text = track.track.title,
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
-                            color = TextPrimary,
+                            color = appearancePalette.onSurface,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -894,7 +899,7 @@ private fun AlbumTrackRow(
                             Text(
                                 text = durationLabel,
                                 style = CaptionSmall,
-                                color = TextTertiary,
+                                color = appearancePalette.mutedText,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -910,18 +915,18 @@ private fun AlbumTrackRow(
                                 fontFamily = DisplayFontFamily,
                             ),
                             fontWeight = FontWeight.Bold,
-                            color = TextPrimary
+                            color = appearancePalette.onSurface
                         )
                         Text(
                             text = stringResource(R.string.details_plays).uppercase(Locale.getDefault()),
                             style = CaptionSmall,
-                            color = TextTertiary,
+                            color = appearancePalette.mutedText,
                         )
                     }
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.ArrowForwardIos,
                         contentDescription = null,
-                        tint = TextTertiary,
+                        tint = appearancePalette.mutedText,
                         modifier = Modifier
                             .padding(start = 10.dp)
                             .size(11.dp)
@@ -933,7 +938,7 @@ private fun AlbumTrackRow(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(0.8.dp)
-                            .background(GlassBorderSoft)
+                            .background(appearancePalette.border.copy(alpha = 0.45f))
                     )
                 }
             }
@@ -973,6 +978,7 @@ private fun AddSongPill(onClick: () -> Unit) {
 
 @Composable
 private fun AlbumDetailsFooter() {
+    val appearancePalette = LocalTempoPalette.current
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -981,13 +987,13 @@ private fun AlbumDetailsFooter() {
             modifier = Modifier
                 .width(36.dp)
                 .height(1.dp)
-                .background(GlassBorderSoft),
+                .background(appearancePalette.border.copy(alpha = 0.45f)),
         )
         Spacer(modifier = Modifier.height(14.dp))
         Text(
             text = stringResource(R.string.album_footer).uppercase(Locale.getDefault()),
             style = KickerSmall,
-            color = TextTertiary,
+            color = appearancePalette.mutedText,
             letterSpacing = 2.sp,
         )
     }
@@ -1007,14 +1013,15 @@ private fun AddTrackToAlbumDialog(
     onTrackSelected: (Track) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Dialog(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(max = 600.dp)
                 .clip(TempoDialogShape.shape)
-                .background(TempoSurfaceDialog)
-                .border(1.dp, GlassBorderSoft, TempoDialogShape.shape)
+                .background(appearancePalette.elevatedSurface)
+                .border(1.dp, appearancePalette.border.copy(alpha = 0.45f), TempoDialogShape.shape)
                 .padding(20.dp)
         ) {
                 Row(
@@ -1026,7 +1033,7 @@ private fun AddTrackToAlbumDialog(
                         text = stringResource(R.string.album_add_song_title),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = TextPrimary,
+                        color = appearancePalette.onSurface,
                     )
                     IconButton(
                         onClick = onDismiss,
@@ -1038,7 +1045,7 @@ private fun AddTrackToAlbumDialog(
                         Icon(
                             Icons.Rounded.Close,
                             contentDescription = stringResource(R.string.album_close_cd),
-                            tint = TextSecondary,
+                            tint = appearancePalette.mutedText,
                             modifier = Modifier.size(18.dp),
                         )
                     }
@@ -1051,7 +1058,7 @@ private fun AddTrackToAlbumDialog(
                         stringResource(R.string.album_add_song_search)
                     },
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary,
+                    color = appearancePalette.mutedText,
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
@@ -1061,23 +1068,23 @@ private fun AddTrackToAlbumDialog(
                     placeholder = {
                         Text(
                             stringResource(R.string.album_add_song_search),
-                            color = TextTertiary,
+                            color = appearancePalette.mutedText,
                         )
                     },
                     leadingIcon = {
                         Icon(
                             Icons.Rounded.Search,
                             contentDescription = null,
-                            tint = TextTertiary,
+                            tint = appearancePalette.mutedText,
                         )
                     },
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary,
-                        cursorColor = TempoPrimary,
-                        focusedBorderColor = TempoPrimary,
+                        focusedTextColor = appearancePalette.onSurface,
+                        unfocusedTextColor = appearancePalette.onSurface,
+                        cursorColor = appearancePalette.accent,
+                        focusedBorderColor = appearancePalette.accent,
                         unfocusedBorderColor = TextQuaternary,
                     ),
                 )
@@ -1090,7 +1097,7 @@ private fun AddTrackToAlbumDialog(
                                 .height(120.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            CircularProgressIndicator(color = TempoPrimary)
+                            CircularProgressIndicator(color = appearancePalette.accent)
                         }
                     }
 
@@ -1103,7 +1110,7 @@ private fun AddTrackToAlbumDialog(
                         ) {
                             Text(
                                 text = stringResource(R.string.album_no_candidates),
-                                color = TextSecondary,
+                                color = appearancePalette.mutedText,
                                 textAlign = TextAlign.Center,
                             )
                         }
@@ -1130,6 +1137,7 @@ private fun RemoveFromAlbumDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Dialog(onDismissRequest = onDismiss) {
         TempoDialogSurface {
             TempoDialogIcon(
@@ -1145,7 +1153,7 @@ private fun RemoveFromAlbumDialog(
             Text(
                 text = stringResource(R.string.album_remove_note),
                 style = MaterialTheme.typography.bodySmall,
-                color = TextTertiary,
+                color = appearancePalette.mutedText,
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(24.dp))
