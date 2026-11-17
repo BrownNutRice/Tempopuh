@@ -1128,4 +1128,5 @@
     <string name="settings_backup_overview_failed">Letztes Backup fehlgeschlagen – Einstellungen prüfen</string>
     <string name="settings_backup_overview_running">Backup läuft</string>
     <string name="settings_backup_overview_last_success">Letztes erfolgreiches Backup: %1$s</string>
+    <string name="settings_backup_status_shared_destination">Dieser Status umfasst lokale und Google-Drive-Backups.</string>
 </resources>

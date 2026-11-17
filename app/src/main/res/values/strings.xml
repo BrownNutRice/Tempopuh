@@ -1586,4 +1586,5 @@
     <string name="settings_backup_overview_failed">Latest backup failed — review backup settings</string>
     <string name="settings_backup_overview_running">Backup in progress</string>
     <string name="settings_backup_overview_last_success">Last successful backup: %1$s</string>
+    <string name="settings_backup_status_shared_destination">This status covers both device and Google Drive backups.</string>
 </resources>

@@ -1126,4 +1126,5 @@
     <string name="settings_backup_overview_failed">Dernière sauvegarde échouée — vérifier les paramètres</string>
     <string name="settings_backup_overview_running">Sauvegarde en cours</string>
     <string name="settings_backup_overview_last_success">Dernière sauvegarde réussie : %1$s</string>
+    <string name="settings_backup_status_shared_destination">Cet état concerne les sauvegardes locales et Google Drive.</string>
 </resources>
