@@ -82,6 +82,7 @@ object SpotifyBroadcastPresence {
         positionMs: Long,
         durationMs: Long,
         deviceName: String?,
+        albumArtUri: String? = null,
     ) {
         if (title.isBlank() || artist.isBlank()) return
         val now = System.currentTimeMillis()
@@ -101,6 +102,7 @@ object SpotifyBroadcastPresence {
                         album = current.album ?: album,
                         durationMs = current.durationMs.takeIf { it > 0L } ?: durationMs,
                         verifiedByApiAtMs = now,
+                        albumArtUri = current.albumArtUri ?: albumArtUri,
                     )
                 isLocal && current != null && now - current.updatedAtMs < 90_000L ->
                     current
@@ -114,6 +116,7 @@ object SpotifyBroadcastPresence {
                     updatedAtMs = now,
                     source = deviceName?.takeIf { it.isNotBlank() }
                         ?.let { "Spotify Connect · $it" } ?: "Spotify Web API",
+                    albumArtUri = albumArtUri,
                 )
             }
         }

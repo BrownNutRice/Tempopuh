@@ -62,6 +62,7 @@ class SpotifyPlaybackVerifier @Inject constructor(
                         positionMs = snapshot.progressMs ?: 0L,
                         durationMs = track.durationMs ?: 0L,
                         deviceName = snapshot.device?.name,
+                        albumArtUri = track.album?.nowPlayingArtworkUrl,
                     )
                 }
                 401, 403 -> {

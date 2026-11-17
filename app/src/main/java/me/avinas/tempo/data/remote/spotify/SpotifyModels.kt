@@ -36,7 +36,18 @@ data class SpotifyPlaybackItem(
 data class SpotifyPlaybackArtist(val name: String? = null)
 
 @JsonClass(generateAdapter = true)
-data class SpotifyPlaybackAlbum(val name: String? = null)
+data class SpotifyPlaybackAlbum(
+    val name: String? = null,
+    val images: List<SpotifyImage>? = null,
+) {
+    // The snapshot already contains these URLs; prefer a small screen-sized
+    // cover instead of requesting a new Spotify endpoint or a 1000px asset.
+    val nowPlayingArtworkUrl: String?
+        get() = images.orEmpty().firstOrNull {
+            val width = it.width ?: 0
+            width in 200..640 && it.url.startsWith("https://")
+        }?.url ?: images.orEmpty().firstOrNull { it.url.startsWith("https://") }?.url
+}
 
 @JsonClass(generateAdapter = true)
 data class SpotifyPlaybackDevice(
