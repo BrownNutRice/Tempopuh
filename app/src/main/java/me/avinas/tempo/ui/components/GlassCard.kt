@@ -294,6 +294,7 @@ fun SectionCatalogKicker(
     label: String,
     modifier: Modifier = Modifier,
 ) {
+    val palette = LocalTempoPalette.current
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
@@ -303,7 +304,7 @@ fun SectionCatalogKicker(
             text = number,
             style = KickerSmall,
             fontWeight = FontWeight.Bold,
-            color = TextPrimary,
+            color = palette.onSurface,
         )
         Box(
             modifier = Modifier
@@ -314,7 +315,7 @@ fun SectionCatalogKicker(
         Text(
             text = label.uppercase(Locale.getDefault()),
             style = KickerSmall,
-            color = TextTertiary,
+            color = palette.mutedText,
             letterSpacing = 1.2.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -333,6 +334,7 @@ fun TelemetryMiniCell(
     modifier: Modifier = Modifier,
     valueColor: Color = LocalTempoPalette.current.onSurface,
 ) {
+    val palette = LocalTempoPalette.current
     Column(
         modifier = modifier.padding(horizontal = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -340,7 +342,7 @@ fun TelemetryMiniCell(
         Text(
             text = label.uppercase(Locale.getDefault()),
             style = KickerSmall,
-            color = TextTertiary,
+            color = palette.mutedText,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
