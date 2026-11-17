@@ -447,13 +447,12 @@ class SettingsViewModel
 
         suspend fun startSpotifyAuthorization(clientId: String): Intent? = withContext(Dispatchers.IO) {
             val auth = spotifyAuthManager.get()
-            val storage = spotifyTokenStorage.get()
             val value = clientId.trim()
             if (auth.isConnected()) return@withContext null
             if (value.isNotEmpty() && !value.matches(Regex("[0-9a-fA-F]{32}"))) {
                 return@withContext null
             }
-            storage.setCustomClientId(value)
+            auth.setClientId(value)
             if (auth.isConfigured()) auth.startLoginFlow() else null
         }
 

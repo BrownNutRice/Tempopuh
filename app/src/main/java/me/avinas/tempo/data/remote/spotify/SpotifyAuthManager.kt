@@ -6,13 +6,23 @@ import android.net.Uri
 import android.util.Base64
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.Response
+import java.io.IOException
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -59,6 +69,7 @@ class SpotifyAuthManager @Inject constructor(
     
     // Mutex to prevent race condition during token refresh
     private val tokenRefreshMutex = Mutex()
+    private val sessions = AccountSessionGate<Call> { it.cancel() }
 
     init {
         checkStoredTokens()
@@ -79,212 +90,170 @@ class SpotifyAuthManager @Inject constructor(
         return tokenStorage.getAccessToken() != null
     }
 
-    /** Null if not authenticated or if the refresh fails. */
-    suspend fun getValidAccessToken(): String? = tokenRefreshMutex.withLock {
-        val accessToken = tokenStorage.getAccessToken()
-        val expiresAt = tokenStorage.getTokenExpiresAt()
-        
-        if (accessToken == null) {
-            Log.d(TAG, "No access token stored")
-            return@withLock null
-        }
-
-        // Check if token is expired or about to expire
-        if (expiresAt != null && System.currentTimeMillis() > expiresAt - TOKEN_REFRESH_BUFFER_MS) {
-            Log.d(TAG, "Token expired or expiring soon, refreshing...")
-            return@withLock refreshAccessToken()
-        }
-
-        accessToken
-    }
-
-    /** Returns the Spotify authorization page as an Intent; the caller launches it. */
-    fun startLoginFlow(): Intent {
-        require(isConfigured()) { "Enter a valid Spotify Client ID before connecting" }
-        _authState.value = AuthState.Connecting
-
-        val codeVerifier = generateCodeVerifier()
-        val codeChallenge = generateCodeChallenge(codeVerifier)
-        
-        // Generate random state for CSRF protection
-        val state = generateCodeVerifier() // Reuse same generation logic
-        
-        // Store verifier and state in encrypted storage (persists across process death)
-        tokenStorage.savePendingAuth(codeVerifier, state)
-
-        val authUrl = buildAuthorizationUrl(codeChallenge, state)
-        
-        Log.d(TAG, "Starting Spotify login flow")
-        
-        return Intent(Intent.ACTION_VIEW, Uri.parse(authUrl))
-    }
-
-    /**
-     * Entry point for the `tempo://spotify-callback` redirect. Returns false when the callback
-     * carries an `error`, no code, or a `state` that doesn't match the pending auth.
-     */
-    suspend fun handleCallback(uri: Uri): Boolean {
-        Log.d(TAG, "Handling Spotify callback")
-
-        val error = uri.getQueryParameter("error")
-        if (error != null) {
-            val errorMessage = when (error) {
-                "access_denied" -> "You cancelled the Spotify login"
-                "invalid_scope" -> "Permission error, please try again"
-                "server_error" -> "Spotify server error, please try again later"
-                else -> "Authentication failed: $error"
-            }
-            Log.e(TAG, "Auth error: $error")
-            _authState.value = AuthState.Error(errorMessage)
-            tokenStorage.clearPendingAuth()
-            return false
-        }
-
-        val code = uri.getQueryParameter("code")
-        if (code == null) {
-            Log.e(TAG, "No authorization code in callback")
-            _authState.value = AuthState.Error("No authorization code received")
-            tokenStorage.clearPendingAuth()
-            return false
-        }
-        
-        // CSRF protection: the state must match the value stored at login
-        val state = uri.getQueryParameter("state")
-        if (state == null) {
-            Log.e(TAG, "No state parameter in callback")
-            _authState.value = AuthState.Error("Invalid authentication response")
-            tokenStorage.clearPendingAuth()
-            return false
-        }
-
-        val pendingAuth = tokenStorage.getPendingAuth(state)
-        if (pendingAuth == null) {
-            Log.e(TAG, "No matching pending auth found or expired")
-            _authState.value = AuthState.Error("Authentication expired or invalid")
-            return false
-        }
-
-        return exchangeCodeForTokens(code, pendingAuth.codeVerifier)
-    }
-
-    private suspend fun exchangeCodeForTokens(code: String, codeVerifier: String): Boolean {
-        return withContext(Dispatchers.IO) {
-            try {
-                val formBody = FormBody.Builder()
-                    .add("client_id", effectiveClientId())
-                    .add("grant_type", "authorization_code")
-                    .add("code", code)
-                    .add("redirect_uri", SpotifyApi.REDIRECT_URI)
-                    .add("code_verifier", codeVerifier)
-                    .build()
-
-                val request = Request.Builder()
-                    .url(SpotifyApi.TOKEN_URL)
-                    .post(formBody)
-                    .header("Content-Type", "application/x-www-form-urlencoded")
-                    .build()
-
-                val response = okHttpClient.newCall(request).execute()
-                val responseBody = response.body?.string()
-
-                if (response.isSuccessful && responseBody != null) {
-                    val json = JSONObject(responseBody)
-                    val accessToken = json.getString("access_token")
-                    val refreshToken = json.optString("refresh_token")
-                    val expiresIn = json.getInt("expires_in")
-                    val scope = json.optString("scope")
-
-                    val expiresAt = System.currentTimeMillis() + (expiresIn * 1000L)
-
-                    tokenStorage.saveTokens(
-                        accessToken = accessToken,
-                        refreshToken = refreshToken,
-                        expiresAt = expiresAt,
-                        scope = scope
-                    )
-                    
-                    tokenStorage.clearPendingAuth()
-
-                    Log.i(TAG, "Successfully authenticated with Spotify")
-                    _authState.value = AuthState.Connected(null)
-                    true
-                } else {
-                    Log.e(TAG, "Token exchange failed: ${response.code} - $responseBody")
-                    _authState.value = AuthState.Error("Failed to get access token")
-                    tokenStorage.clearPendingAuth()
-                    false
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Token exchange error", e)
-                _authState.value = AuthState.Error("Authentication error: ${e.message}")
-                tokenStorage.clearPendingAuth()
-                false
-            }
+    /** Null if not authenticated, invalidated while waiting, or if refresh fails. */
+    suspend fun getValidAccessToken(): String? {
+        val generation = sessions.read { it }
+        return tokenRefreshMutex.withLock {
+            val session = sessions.ifCurrent(generation) {
+                TokenSession(generation, effectiveClientId(), tokenStorage.getAccessToken(),
+                    tokenStorage.getRefreshToken(), tokenStorage.getTokenExpiresAt(), tokenStorage.getScope())
+            } ?: return@withLock null
+            if (session.accessToken == null) return@withLock null
+            if (session.expiresAt != null && System.currentTimeMillis() > session.expiresAt - TOKEN_REFRESH_BUFFER_MS) {
+                refreshAccessToken(session)
+            } else sessions.ifCurrent(generation) { session.accessToken }
         }
     }
 
-    private suspend fun refreshAccessToken(): String? {
-        return withContext(Dispatchers.IO) {
-            try {
-                val refreshToken = tokenStorage.getRefreshToken()
-                if (refreshToken == null) {
-                    Log.e(TAG, "No refresh token available")
-                    disconnect()
-                    return@withContext null
-                }
-
-                val formBody = FormBody.Builder()
-                    .add("client_id", effectiveClientId())
-                    .add("grant_type", "refresh_token")
-                    .add("refresh_token", refreshToken)
-                    .build()
-
-                val request = Request.Builder()
-                    .url(SpotifyApi.TOKEN_URL)
-                    .post(formBody)
-                    .header("Content-Type", "application/x-www-form-urlencoded")
-                    .build()
-
-                val response = okHttpClient.newCall(request).execute()
-                val responseBody = response.body?.string()
-
-                if (response.isSuccessful && responseBody != null) {
-                    val json = JSONObject(responseBody)
-                    val newAccessToken = json.getString("access_token")
-                    val newRefreshToken = json.optString("refresh_token", refreshToken)
-                    val expiresIn = json.getInt("expires_in")
-
-                    val expiresAt = System.currentTimeMillis() + (expiresIn * 1000L)
-
-                    tokenStorage.saveTokens(
-                        accessToken = newAccessToken,
-                        refreshToken = newRefreshToken,
-                        expiresAt = expiresAt,
-                        scope = tokenStorage.getScope()
-                    )
-
-                    Log.i(TAG, "Successfully refreshed access token")
-                    newAccessToken
-                } else {
-                    Log.e(TAG, "Token refresh failed: ${response.code} - $responseBody")
-                    // If refresh fails with 400/401, the refresh token is invalid
-                    if (response.code in listOf(400, 401)) {
-                        disconnect()
-                    }
-                    null
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Token refresh error", e)
-                null
-            }
-        }
-    }
-
-    fun disconnect() {
-        Log.i(TAG, "Disconnecting from Spotify")
-        tokenStorage.clearTokens()
+    /** Route client configuration through the same invalidation boundary as auth requests. */
+    fun setClientId(clientId: String) = sessions.replace {
+        tokenStorage.setCustomClientId(clientId)
+        tokenStorage.clearPendingAuth()
         _authState.value = AuthState.NotConnected
     }
+
+    /** Returns the authorization page; each new attempt invalidates older responses. */
+    fun startLoginFlow(): Intent = sessions.replace {
+        require(isConfigured()) { "Enter a valid Spotify Client ID before connecting" }
+        tokenStorage.clearTokens()
+        tokenStorage.clearPendingAuth()
+        val verifier = generateCodeVerifier()
+        val state = generateCodeVerifier()
+        tokenStorage.savePendingAuth(verifier, state)
+        _authState.value = AuthState.Connecting
+        Intent(Intent.ACTION_VIEW, Uri.parse(buildAuthorizationUrl(generateCodeChallenge(verifier), state)))
+    }
+
+    /** Only a callback matching the current, single-use persisted state can alter auth state. */
+    suspend fun handleCallback(uri: Uri): Boolean {
+        val state = uri.getQueryParameter("state") ?: return false
+        val code = uri.getQueryParameter("code")
+        val error = uri.getQueryParameter("error")
+        val attempt = sessions.read { generation ->
+            // Missing, expired and superseded callbacks cannot change a newer attempt's UI.
+            val pending = tokenStorage.getPendingAuth(state) ?: return@read null
+            tokenStorage.clearPendingAuth()
+            if (error != null || code == null) {
+                _authState.value = AuthState.Error(
+                    if (error == "access_denied") "You cancelled the Spotify login"
+                    else "Authentication failed. Please try again."
+                )
+                return@read null
+            }
+            ExchangeAttempt(generation, effectiveClientId(), pending.codeVerifier)
+        } ?: return false
+        return exchangeCodeForTokens(requireNotNull(code), attempt)
+    }
+
+    private suspend fun exchangeCodeForTokens(code: String, attempt: ExchangeAttempt): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val body = FormBody.Builder()
+                .add("client_id", attempt.clientId)
+                .add("grant_type", "authorization_code")
+                .add("code", code)
+                .add("redirect_uri", SpotifyApi.REDIRECT_URI)
+                .add("code_verifier", attempt.verifier).build()
+            val response = requestTokens(body, attempt.generation) ?: return@withContext false
+            currentCoroutineContext().ensureActive()
+            if (response.code in 200..299 && response.body != null) {
+                val json = JSONObject(response.body)
+                sessions.ifCurrent(attempt.generation) {
+                    tokenStorage.saveTokens(
+                        json.getString("access_token"), json.optString("refresh_token"),
+                        System.currentTimeMillis() + json.getInt("expires_in") * 1000L,
+                        json.optString("scope")
+                    )
+                    _authState.value = AuthState.Connected(null)
+                    true
+                } ?: false
+            } else {
+                sessions.ifCurrent(attempt.generation) { _authState.value = AuthState.Error("Failed to get access token") }
+                false
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Exception) {
+            // A cancelled/obsolete call must not overwrite a newer login or disconnected state.
+            sessions.ifCurrent(attempt.generation) { _authState.value = AuthState.Error("Spotify authentication failed") }
+            Log.w(TAG, "Spotify token exchange failed")
+            false
+        }
+    }
+
+    private suspend fun refreshAccessToken(session: TokenSession): String? = withContext(Dispatchers.IO) {
+        try {
+            if (session.refreshToken == null) {
+                sessions.ifCurrent(session.generation) { disconnect() }
+                return@withContext null
+            }
+            val body = FormBody.Builder().add("client_id", session.clientId)
+                .add("grant_type", "refresh_token").add("refresh_token", session.refreshToken).build()
+            val response = requestTokens(body, session.generation) ?: return@withContext null
+            currentCoroutineContext().ensureActive()
+            if (response.code in 200..299 && response.body != null) {
+                val json = JSONObject(response.body)
+                sessions.ifCurrent(session.generation) {
+                    val token = json.getString("access_token")
+                    tokenStorage.saveTokens(token, json.optString("refresh_token", session.refreshToken),
+                        System.currentTimeMillis() + json.getInt("expires_in") * 1000L, session.scope)
+                    token
+                }
+            } else {
+                if (response.code == 400 || response.code == 401) {
+                    sessions.ifCurrent(session.generation) { disconnect() }
+                }
+                null
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Exception) {
+            Log.w(TAG, "Spotify token refresh failed")
+            null
+        }
+    }
+
+    /** Async OkHttp allows coroutine cancellation and disconnect to cancel outstanding calls. */
+    private suspend fun requestTokens(body: FormBody, generation: Long): TokenResponse? {
+        val call = okHttpClient.newCall(Request.Builder().url(SpotifyApi.TOKEN_URL)
+            .post(body).header("Content-Type", "application/x-www-form-urlencoded").build())
+        if (!sessions.register(generation, call)) return null
+        try {
+            return suspendCancellableCoroutine { continuation ->
+                continuation.invokeOnCancellation { call.cancel() }
+                call.enqueue(object : Callback {
+                    override fun onFailure(call: Call, e: IOException) {
+                        continuation.resumeWithException(e)
+                    }
+                    override fun onResponse(call: Call, response: Response) {
+                        try {
+                            val result = response.use { TokenResponse(it.code, it.body?.string()) }
+                            continuation.resume(result)
+                        } catch (failure: Exception) {
+                            continuation.resumeWithException(failure)
+                        }
+                    }
+                })
+            }
+        } finally {
+            sessions.finish(call)
+        }
+    }
+
+    fun disconnect() = sessions.replace {
+        try {
+            tokenStorage.clearTokens()
+        } finally {
+            try { tokenStorage.clearPendingAuth() }
+            finally { _authState.value = AuthState.NotConnected }
+        }
+    }
+
+    private data class ExchangeAttempt(val generation: Long, val clientId: String, val verifier: String)
+    private data class TokenSession(
+        val generation: Long, val clientId: String, val accessToken: String?,
+        val refreshToken: String?, val expiresAt: Long?, val scope: String?
+    )
+    private data class TokenResponse(val code: Int, val body: String?)
 
     private fun buildAuthorizationUrl(codeChallenge: String, state: String): String {
         return Uri.parse(SpotifyApi.AUTH_URL).buildUpon()

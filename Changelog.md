@@ -6,6 +6,9 @@ Fork-specific changes. Published tags and artifacts are listed in the [release c
 
 ### Fixed
 
+- Backup export stages database JSON in one Room transaction, validates references and copies images/compresses the ZIP after releasing the database transaction.
+- Spotify disconnect, new login and client-ID changes invalidate pending token operations; cancelled or stale responses cannot restore credentials or overwrite newer auth state.
+
 - Automatic local backup retention now records per-document creation order and always protects the verified destination. Undated legacy files are retained conservatively instead of sorted by random UUID.
 - Backup restore stages artwork privately, validates the archive before promotion and uses a unique destination namespace. Rejected archives and transaction-body failures cannot overwrite existing artwork.
 

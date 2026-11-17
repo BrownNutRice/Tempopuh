@@ -9,14 +9,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import androidx.room.withTransaction
-import me.avinas.tempo.BuildConfig
 import me.avinas.tempo.data.local.AppDatabase
 import me.avinas.tempo.data.local.dao.isLocalBackupArtwork
 import me.avinas.tempo.data.local.entities.*
 import me.avinas.tempo.data.profile.ProfileIdentityManager
 import me.avinas.tempo.utils.ImageUrlHostAllowlist
 import com.squareup.moshi.JsonReader
-import com.squareup.moshi.JsonWriter
 import me.avinas.tempo.worker.PostRestoreCacheWorker
 import okio.buffer
 import okio.sink
@@ -53,11 +51,6 @@ class ImportExportManager @Inject constructor(
         private const val MAX_DATA_JSON_BYTES = 1024L * 1024L * 1024L
         private const val MAX_IMPORTED_EVENTS = 5_000_000
         private const val MAX_IMPORTED_ARCHIVE_ROWS = 2_000_000
-
-        // Page size for keyset-streaming the unbounded tables (listening events,
-        // scrobble archive) during export. Keeps peak memory flat regardless of
-        // library size.
-        private const val EXPORT_PAGE_SIZE = 2000
 
         // Chunk size for feeding streamed import rows into the dedup pipeline.
         private const val EVENT_IMPORT_CHUNK = 5000
@@ -145,198 +138,75 @@ class ImportExportManager @Inject constructor(
         }
     }
 
-    /**
-     * Write the full backup ZIP into [target] and verify its integrity before
-     * reporting success. Reads run against a point-in-time snapshot: id bounds
-     * are captured up front and keyset paging stops at them, so rows inserted
-     * by live tracking mid-export are excluded rather than exported without
-     * their track rows (which would get silently dropped on restore).
-     */
+    /** Stages consistent database JSON first; image copying and ZIP compression hold no DB lock. */
     private suspend fun writeBackupArchive(
         target: File,
         includeLocalImages: Boolean
     ): ImportExportResult = withContext(Dispatchers.IO) {
+        val snapshotFile = File(context.cacheDir, "export_snapshot_${java.util.UUID.randomUUID()}.json")
         try {
             _progress.value = ImportExportProgress("Collecting data...", 0, 100, true)
-
-            // Snapshot boundary — MUST be captured before any table read below.
-            val maxEventId = database.listeningEventDao().getMaxEventId()
-            val maxArchiveId = database.scrobbleArchiveDao().getMaxArchiveId()
-            
-            // Collect all bounded tables. The two unbounded tables (listening events,
-            // scrobble archive) are NOT loaded here — they are streamed page by page
-            // straight into the JSON writer below, so peak memory stays flat no
-            // matter how large the library is.
-            val tracks = database.trackDao().getAllSync()
-            val artists = database.artistDao().getAllArtistsSync()
-            val albums = database.albumDao().getAllSync()
-            val trackArtists = database.trackArtistDao().getAllSync()
-            val enrichedMetadata = database.enrichedMetadataDao().getAllSync()
-            val userPrefs = database.userPreferencesDao().getSync()
-            val artistAliases = database.artistAliasDao().getAllSync()
-            
-            // v5: Collect new entities
-            val trackAliases = database.trackAliasDao().getAllSync()
-            val manualContentMarks = database.manualContentMarkDao().getAllSync()
-            val appPreferences = database.appPreferenceDao().getAllSync()
-            val lastFmImportMetadata = database.lastFmImportMetadataDao().getAll()
-            
-            // v6: Collect gamification data
-            val userLevel = database.gamificationDao().getUserLevel()
-            val badges = database.gamificationDao().getAllBadges()
-
-            // v7+: Collect profile identity from DataStore
-            val profileIdentity = profileIdentityManager.getProfileIdentity()
-
-            // v8: Collect user-known artists and daily challenge history (completed only)
-            val userKnownArtists = database.userKnownArtistDao().getAll()
-            val dailyChallenges = database.gamificationDao().getAllCompletedChallenges()
-            
-            _progress.value = ImportExportProgress("Analyzing images...", 20, 100)
-            
-            // Classify image URLs
-            val (localPaths, hotlinkUrls) = collectImageUrls(tracks, artists, albums, enrichedMetadata)
-            val profileImagePath = profileIdentity.profileImagePath
-            val backupImagePaths = buildSet {
-                addAll(localPaths)
-                profileImagePath?.takeIf { it.startsWith("file://") }?.let(::add)
-            }
-            
-            Log.i(TAG, "Found ${backupImagePaths.size} local images, ${hotlinkUrls.size} hotlinks")
-            
-            // Build local image manifest (only if including local images)
-            val localImageManifest = mutableMapOf<String, String>()
-            
-            _progress.value = ImportExportProgress("Creating backup...", 40, 100)
-            
-            val result = target.outputStream().use { outputStream ->
-                ZipOutputStream(BufferedOutputStream(outputStream)).use { zipOut ->
-                    
-                    // Bundle local images if enabled
-                    var bundledCount = 0
-                    if (backupImagePaths.isNotEmpty()) {
-                        val bundleCount = if (includeLocalImages) backupImagePaths.size else if (profileImagePath != null) 1 else 0
-                        _progress.value = ImportExportProgress("Bundling $bundleCount images...", 50, 100)
-                        
-                        backupImagePaths.forEachIndexed { index, filePath ->
-                            if (!includeLocalImages && filePath != profileImagePath) return@forEachIndexed
-                            try {
-                                val file = resolveExportableLocalImage(filePath)
-                                if (file != null) {
-                                    val bundledName = "img_${index}_${file.name}"
-                                    zipOut.putNextEntry(ZipEntry("$IMAGES_DIR$bundledName"))
-                                    file.inputStream().use { it.copyTo(zipOut) }
-                                    zipOut.closeEntry()
-                                    localImageManifest[bundledName] = filePath
-                                    bundledCount++
-                                } else {
-                                    Log.w(TAG, "Skipping non-app-local image path in export")
-                                }
-                            } catch (e: Exception) {
-                                Log.w(TAG, "Failed to bundle image", e)
-                            }
-                        }
+            // DataStore is a separate persistence system; capture identity once, outside Room.
+            val profile = profileIdentityManager.getProfileIdentity()
+            val imageSources = linkedMapOf<String, File>()
+            val result = BackupSnapshotWriter(database, codec).write(snapshotFile, profile) { shell ->
+                val (localPaths, hotlinks) = collectImageUrls(
+                    shell.tracks, shell.artists, shell.albums, shell.enrichedMetadata
+                )
+                val paths = buildSet {
+                    if (includeLocalImages) addAll(localPaths)
+                    profile.profileImagePath?.takeIf { it.startsWith("file://") }?.let(::add)
+                }
+                val manifest = linkedMapOf<String, String>()
+                paths.forEachIndexed { index, path ->
+                    val file = resolveExportableLocalImage(path) ?: return@forEachIndexed
+                    // Keep archive names within the restore format's length/safety limits.
+                    val name = "img_${index}_${file.name}".take(128)
+                    if (sanitizeBundledImageName(name) != null) {
+                        imageSources[name] = file
+                        manifest[name] = path
                     }
-                    
-                    _progress.value = ImportExportProgress("Writing data...", 80, 100)
-                    
-                    // Shell document carrying every bounded table. The codec streams
-                    // listening events and scrobble archive rows page by page through
-                    // the lambdas below (keyset pagination on the primary key), so
-                    // neither table is ever held in memory whole.
-                    val exportData = TempoExportData(
-                        appVersion = BuildConfig.VERSION_NAME,
-                        schemaVersion = AppDatabase.VERSION,
-                        userName = profileIdentity.userName,
-                        userProfileImagePath = profileImagePath,
-                        tracks = tracks,
-                        artists = artists,
-                        albums = albums,
-                        trackArtists = trackArtists,
-                        listeningEvents = emptyList(),
-                        enrichedMetadata = enrichedMetadata,
-                        userPreferences = userPrefs,
-                        userLevel = userLevel,
-                        badges = badges,
-                        userKnownArtists = userKnownArtists,
-                        dailyChallenges = dailyChallenges,
-                        artistAliases = artistAliases,
-                        trackAliases = trackAliases,
-                        manualContentMarks = manualContentMarks,
-                        appPreferences = appPreferences,
-                        scrobbleArchive = emptyList(),
-                        lastFmImportMetadata = lastFmImportMetadata,
-                        localImageManifest = localImageManifest,
-                        hotlinkedUrls = hotlinkUrls
-                    )
+                }
+                shell.copy(localImageManifest = manifest, hotlinkedUrls = hotlinks)
+            }
 
-                    var lastEventId = 0L
-                    var eventsWritten = 0
-                    var lastArchiveId = 0L
-
-                    zipOut.putNextEntry(ZipEntry(TempoExportData.DATA_FILENAME))
-                    val dataSink = zipOut.sink().buffer()
-                    val jsonWriter = JsonWriter.of(dataSink)
-                    codec.write(
-                        writer = jsonWriter,
-                        shell = exportData,
-                        eventPages = {
-                            val page = database.listeningEventDao()
-                                .getEventsPage(lastEventId, maxEventId, EXPORT_PAGE_SIZE)
-                            if (page.isNotEmpty()) {
-                                lastEventId = page.last().id
-                                eventsWritten += page.size
-                            }
-                            page
-                        },
-                        archivePages = {
-                            val page = database.scrobbleArchiveDao()
-                                .getArchivePage(lastArchiveId, maxArchiveId, EXPORT_PAGE_SIZE)
-                            if (page.isNotEmpty()) lastArchiveId = page.last().id
-                            page
-                        }
-                    )
-                    dataSink.flush()
-                    zipOut.closeEntry()
-                    
-                    _progress.value = ImportExportProgress("Validating archive...", 95, 100)
-
-                    ImportExportResult.Success(
-                        tracksCount = tracks.size,
-                        artistsCount = artists.size,
-                        albumsCount = albums.size,
-                        eventsCount = eventsWritten,
-                        imagesCount = bundledCount
-                    )
+            _progress.value = ImportExportProgress("Creating backup...", 60, 100)
+            target.outputStream().use { output ->
+                ZipOutputStream(BufferedOutputStream(output)).use { zip ->
+                    for ((name, file) in imageSources) {
+                        currentCoroutineContext().ensureActive()
+                        zip.putNextEntry(ZipEntry("$IMAGES_DIR$name"))
+                        // A disappearing image aborts the backup, rather than publishing a
+                        // manifest that claims a missing/partially copied image was included.
+                        file.inputStream().use { it.copyTo(zip) }
+                        zip.closeEntry()
+                    }
+                    currentCoroutineContext().ensureActive()
+                    zip.putNextEntry(ZipEntry(TempoExportData.DATA_FILENAME))
+                    snapshotFile.inputStream().use { it.copyTo(zip) }
+                    zip.closeEntry()
                 }
             }
-
-
-
-            // Post-write integrity check: the archive must be a readable ZIP that
-            // actually contains data.json. Catches disk-full truncation BEFORE the
-            // file is uploaded to Drive or copied over a user's existing backup.
+            currentCoroutineContext().ensureActive()
+            _progress.value = ImportExportProgress("Validating archive...", 95, 100)
             validateBackupArchive(target)?.let { message ->
-                Log.e(TAG, "Backup validation failed: $message")
                 target.delete()
                 return@withContext ImportExportResult.Error(message)
             }
-
             _progress.value = ImportExportProgress("Export complete!", 100, 100)
             result
-            
         } catch (e: CancellationException) {
             target.delete()
             throw e
         } catch (e: Exception) {
+            target.delete()
             Log.e(TAG, "Export failed", e)
-            ImportExportResult.Error(
-                "Export failed: ${e::class.java.simpleName}: ${e.message}",
-                e
-            )
+            ImportExportResult.Error("Export failed: ${e::class.java.simpleName}: ${e.message}", e)
+        } finally {
+            snapshotFile.delete()
         }
     }
-    
+
     suspend fun importData(
         uri: Uri,
         conflictStrategy: ImportConflictStrategy

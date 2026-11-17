@@ -39,6 +39,12 @@ The current tree is an incremental MVVM/repository architecture, not a completed
 - Scope screen work to visibility and coordinate background ownership. See the [performance plan](https://github.com/matchalattewithbanana/Tempo/issues/85).
 - Use theme roles and shared accessible controls. See the [UI audit](https://github.com/matchalattewithbanana/Tempo/issues/68) and [Profile proposal](https://github.com/matchalattewithbanana/Tempo/issues/74).
 
+## Focused backup and account boundaries
+
+`data/importexport/BackupSnapshotWriter.kt` owns the Room transaction and streamed JSON snapshot. `ImportExportManager` owns operation progress, temporary-file lifecycle, ZIP/image I/O and restore orchestration. `RestoreArtworkStaging` owns only the current restore's artwork files.
+
+`data/remote/spotify/AccountSessionGate.kt` serializes short credential/state commits and invalidates obsolete token calls. The refresh mutex coalesces refreshes; it is not held by disconnect while waiting for network I/O.
+
 ## Organization backlog
 
 Large tracking, statistics, import and Profile files should be split by responsibility through focused follow-ups with migration/API and behavior tests. This maintenance pass establishes the map and contributor boundaries; it does not claim those runtime refactors are complete.
