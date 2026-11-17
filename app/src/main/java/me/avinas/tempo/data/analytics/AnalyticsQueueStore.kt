@@ -33,6 +33,8 @@ class AnalyticsQueueStore @Inject constructor(
 
     private val mutex = Mutex()
 
+    private val atomicQueue by lazy { android.util.AtomicFile(queueFile) }
+
     private val queueFile: File
         get() = File(context.filesDir, FILE_NAME)
 
@@ -58,7 +60,7 @@ class AnalyticsQueueStore @Inject constructor(
     }
 
     suspend fun purge() = mutex.withLock {
-        withContext(Dispatchers.IO) { queueFile.delete() }
+        withContext(Dispatchers.IO) { atomicQueue.delete() }
         Unit
     }
 
@@ -67,8 +69,8 @@ class AnalyticsQueueStore @Inject constructor(
     }
 
     private fun read(): List<QueuedAnalyticsEvent> {
-        if (!queueFile.exists()) return emptyList()
-        return runCatching { adapter.fromJson(queueFile.readText()) }
+        if (!queueFile.exists() && !File(queueFile.path + ".bak").exists()) return emptyList()
+        return runCatching { atomicQueue.openRead().bufferedReader().use { adapter.fromJson(it.readText()) } }
             .getOrNull()
             // A corrupt or partially written file is discarded rather than retried forever,
             // and never allowed to take the process down.
@@ -76,12 +78,13 @@ class AnalyticsQueueStore @Inject constructor(
     }
 
     private fun write(events: List<QueuedAnalyticsEvent>) {
-        runCatching {
-            if (events.isEmpty()) {
-                queueFile.delete()
-            } else {
-                queueFile.writeText(adapter.toJson(events))
-            }
+        val stream = atomicQueue.startWrite()
+        try {
+            stream.write(adapter.toJson(events).toByteArray(Charsets.UTF_8))
+            atomicQueue.finishWrite(stream)
+        } catch (failure: Exception) {
+            atomicQueue.failWrite(stream)
+            throw failure
         }
     }
 

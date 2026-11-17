@@ -855,7 +855,14 @@ fun SettingsScreen(
                             },
                             onClick = {
                                 if (!spotifyConnected) scope.launch {
-                                    val intent = viewModel.startSpotifyAuthorization(spotifyClientId)
+                                    val intent = try {
+                                        viewModel.startSpotifyAuthorization(spotifyClientId)
+                                    } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                                        throw cancelled
+                                    } catch (failure: Exception) {
+                                        Toast.makeText(context, context.getString(R.string.spotify_secure_storage_unavailable), Toast.LENGTH_LONG).show()
+                                        return@launch
+                                    }
                                     if (intent == null) {
                                         Toast.makeText(context, "Enter a valid Spotify Client ID first.", Toast.LENGTH_LONG).show()
                                     } else {

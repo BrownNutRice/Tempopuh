@@ -1220,4 +1220,5 @@
     <string name="appearance_insights">Einblicke</string>
     <string name="appearance_transfer_failed">Diese Darstellungsdatei konnte nicht übertragen werden. Prüfe die Datei und versuche es erneut.</string>
     <string name="now_playing_last_detected">Zuletzt erkannt</string>
+    <string name="spotify_secure_storage_unavailable">Der sichere Spotify-Speicher ist nicht verfügbar. Entsperre dein Gerät und versuche es erneut. Deine verschlüsselten Daten bleiben erhalten.</string>
 </resources>

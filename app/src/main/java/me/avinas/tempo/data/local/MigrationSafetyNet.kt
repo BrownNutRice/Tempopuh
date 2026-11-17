@@ -16,7 +16,7 @@ import java.io.File
  * This net takes a one-time raw file snapshot of the database BEFORE Room ever
  * opens/migrates it on this install. If the migration were to fail on some
  * unforeseen third schema shape, the untouched pre-migration files remain on
- * disk for manual recovery (rename back to tempo.db — the previous version can
+ * disk in a tempo-pre* directory for manual recovery (restore as tempo.db — the previous version can
  * open it again).
  *
  * Design constraints:
@@ -61,30 +61,33 @@ object MigrationSafetyNet {
                 return
             }
 
-            val stamp = java.text.SimpleDateFormat(
-                "yyyyMMdd-HHmmss", java.util.Locale.US
-            ).format(java.util.Date())
-
-            var copied = 0
-            for (suffix in DB_FILE_SUFFIXES) {
-                val source = File(dbFile.parentFile, "tempo.db$suffix")
-                if (!source.exists()) continue
-                val target = File(dbFile.parentFile, "tempo.db.pre$GUARDED_VERSION-$stamp$suffix")
-                try {
-                    source.copyTo(target, overwrite = false)
-                    copied++
-                } catch (e: Exception) {
-                    Log.w(TAG, "Failed to snapshot ${source.name}", e)
+            val snapshotDir = File(dbFile.parentFile, "tempo-pre$GUARDED_VERSION-${java.util.UUID.randomUUID()}")
+            check(snapshotDir.mkdir()) { "Unable to create migration snapshot directory" }
+            var complete = false
+            try {
+                val sources = DB_FILE_SUFFIXES.map { File(dbFile.parentFile, "tempo.db$it") }
+                    .filter { it.exists() }
+                check(sources.any { it == dbFile }) { "Database disappeared before snapshot" }
+                sources.forEach { source ->
+                    val target = File(snapshotDir, source.name)
+                    source.inputStream().use { input ->
+                        java.io.FileOutputStream(target).use { output ->
+                            input.copyTo(output)
+                            output.fd.sync()
+                        }
+                    }
+                    check(target.length() == source.length()) { "Incomplete migration snapshot" }
                 }
+                check(prefs.edit().putInt(KEY_SNAPSHOT_DONE_FOR_VERSION, GUARDED_VERSION).commit()) {
+                    "Unable to record complete migration snapshot"
+                }
+                complete = true
+                Log.i(TAG, "Pre-migration snapshot complete (${sources.size} files)")
+            } finally {
+                // Failed attempts cannot suppress the next attempt or accumulate partial copies.
+                if (!complete) snapshotDir.deleteRecursively()
             }
 
-            // Mark done regardless of partial success: retrying every launch would
-            // stack snapshots; a partial snapshot is still better than none.
-            prefs.edit().putInt(KEY_SNAPSHOT_DONE_FOR_VERSION, GUARDED_VERSION).apply()
-
-            if (copied > 0) {
-                Log.i(TAG, "Pre-migration safety snapshot taken ($copied file(s)) before opening schema $GUARDED_VERSION")
-            }
         } catch (e: Exception) {
             // Absolutely never block startup because of the safety net itself.
             Log.w(TAG, "Safety snapshot skipped due to error", e)

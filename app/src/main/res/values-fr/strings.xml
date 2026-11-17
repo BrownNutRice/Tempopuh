@@ -1218,4 +1218,5 @@
     <string name="appearance_insights">Analyses</string>
     <string name="appearance_transfer_failed">Impossible de transférer ce fichier d’apparence. Vérifiez le fichier et réessayez.</string>
     <string name="now_playing_last_detected">Dernière détection</string>
+    <string name="spotify_secure_storage_unavailable">Le stockage sécurisé Spotify est indisponible. Déverrouillez votre appareil et réessayez. Vos données chiffrées sont conservées.</string>
 </resources>

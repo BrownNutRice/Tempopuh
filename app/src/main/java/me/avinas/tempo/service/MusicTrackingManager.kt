@@ -1,5 +1,7 @@
 package me.avinas.tempo.service
 
+import kotlinx.coroutines.ensureActive
+
 import android.util.Log
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -49,6 +51,7 @@ class MusicTrackingManager(
     
     // Offline queue for events that couldn't be saved
     private val offlineQueue = ConcurrentHashMap<String, PendingEvent>()
+    private val offlineWakeup = Channel<Unit>(Channel.CONFLATED)
     
     // Deduplication: recent event hashes
     private val recentEventHashes = ConcurrentHashMap<String, Long>()
@@ -442,9 +445,13 @@ class MusicTrackingManager(
         if (offlineQueue.size >= MAX_OFFLINE_QUEUE_SIZE) {
             Log.w(TAG, "Offline queue past soft capacity; preserving unsaved events")
         }
-        offlineQueue[pending.key()] = pending.copy(retryCount = (pending.retryCount + 1).coerceAtMost(64))
+        offlineQueue[pending.key()] = pending.copy(
+            retryCount = (pending.retryCount + 1).coerceAtMost(64),
+            nextAttemptAt = System.currentTimeMillis() + calculateRetryDelay(pending.retryCount),
+        )
         updateMetrics { it.copy(eventsInOfflineQueue = offlineQueue.size) }
         persistOfflineQueue()
+        offlineWakeup.trySend(Unit)
     }
 
     /** Mirror the in-memory offline queue to durable storage (best effort). */
@@ -467,10 +474,10 @@ class MusicTrackingManager(
                     (60_000L * (1 shl consecutiveEmptyChecks.coerceAtMost(3))).coerceAtMost(300_000L)
                 } else {
                     consecutiveEmptyChecks = 0
-                    60_000L // Check every minute when we have items
+                    1_000L // Retry due work promptly without a sleep for each event
                 }
                 
-                delay(checkInterval)
+                withTimeoutOrNull(checkInterval) { offlineWakeup.receive() }
                 
                 // Only process if there are items
                 if (offlineQueue.isNotEmpty()) {
@@ -488,12 +495,13 @@ class MusicTrackingManager(
         // Crash-safe: remove each event from the queue (and durable storage) only
         // AFTER it has been successfully inserted. A durable retry may outlive a later
         // manual classification, so current persistence rules are re-checked as well.
-        val toProcess = offlineQueue.values.toList()
+        val now = System.currentTimeMillis()
+        val toProcess = offlineQueue.values.filter { it.nextAttemptAt <= now }
+            .sortedBy { it.nextAttemptAt }.take(100)
 
         for (pending in toProcess) {
             try {
-                val delay = calculateRetryDelay(pending.retryCount)
-                delay(delay)
+                kotlinx.coroutines.currentCoroutineContext().ensureActive()
 
                 if (!shouldPersistEvent(pending.event)) {
                     offlineQueue.remove(pending.key())
@@ -630,7 +638,8 @@ data class PendingEvent(
     val event: ListeningEvent,
     val sessionId: String,
     val queuedAt: Long,
-    val retryCount: Int
+    val retryCount: Int,
+    val nextAttemptAt: Long = 0L,
 ) {
     /** Stable identity for the offline queue map and durable storage. */
     fun key(): String = "${sessionId}_${event.track_id}_${event.timestamp}"

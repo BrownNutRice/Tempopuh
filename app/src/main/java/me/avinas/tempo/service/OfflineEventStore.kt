@@ -41,6 +41,7 @@ class OfflineEventStore(context: Context) {
      */
     @Synchronized fun save(events: Collection<PendingEvent>) {
         try {
+            preserveCorruptQueue()
             if (events.isEmpty()) {
                 check(prefs.edit().remove(KEY_EVENTS).commit()) { "Unable to clear offline events" }
                 return
@@ -54,18 +55,40 @@ class OfflineEventStore(context: Context) {
         }
     }
 
-    /** Load previously persisted events. Returns an empty list on any failure. */
+    private var corruptionPending: Pair<String, String>? = null
+
+    /** Preserve unreadable payloads before allowing any replacement queue to be written. */
+    private fun preserveCorruptQueue() {
+        if (corruptionPending == null) {
+            val raw = prefs.getString(KEY_EVENTS, null) ?: return
+            if (runCatching { requireNotNull(adapter.fromJson(raw)) }.isSuccess) return
+            corruptionPending = "quarantined_events_${java.util.UUID.randomUUID()}" to raw
+        }
+        val (key, raw) = requireNotNull(corruptionPending)
+        // Retain pending bytes in memory too: commit(false) still mutates SharedPreferences memory.
+        check(prefs.edit().putString(key, raw).remove(KEY_EVENTS)
+            .putBoolean("queue_recovery_required", true).commit()) {
+            "Unable to preserve corrupt offline queue; refusing overwrite"
+        }
+        corruptionPending = null
+    }
+
+    fun hasRecoveryData(): Boolean = prefs.getBoolean("queue_recovery_required", false)
+
+    /** Load active events; corrupt payloads remain available in the recovery entries. */
     @Synchronized fun load(): List<PendingEvent> {
         return try {
             val json = prefs.getString(KEY_EVENTS, null) ?: return emptyList()
-            adapter.fromJson(json) ?: emptyList()
+            requireNotNull(adapter.fromJson(json))
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to load offline events", e)
+            Log.e(TAG, "Failed to load offline events; preserving original queue", e)
+            preserveCorruptQueue()
             emptyList()
         }
     }
 
     @Synchronized fun clear() {
+        preserveCorruptQueue()
         check(prefs.edit().remove(KEY_EVENTS).commit()) { "Unable to clear offline events" }
     }
 }
