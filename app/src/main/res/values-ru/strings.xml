@@ -1447,4 +1447,5 @@
     <string name="appearance_transfer_failed">Не удалось передать файл оформления. Проверьте файл и повторите попытку.</string>
     <string name="now_playing_last_detected">Последнее обнаружение</string>
     <string name="spotify_secure_storage_unavailable">Защищённое хранилище Spotify недоступно. Разблокируйте устройство и повторите попытку. Зашифрованные данные сохранены.</string>
+    <string name="home_session_start_attribution">Время прослушивания относится к дате начала каждого сеанса.</string>
 </resources>

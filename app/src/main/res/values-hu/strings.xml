@@ -855,4 +855,5 @@
     <string name="appearance_transfer_failed">A megjelenési fájl átvitele sikertelen. Ellenőrizd a fájlt, és próbáld újra.</string>
     <string name="now_playing_last_detected">Utoljára észlelve</string>
     <string name="spotify_secure_storage_unavailable">A Spotify biztonságos tárhelye nem érhető el. Oldd fel az eszközt, és próbáld újra. A titkosított adatok megmaradtak.</string>
+    <string name="home_session_start_attribution">A hallgatási idő ahhoz a naphoz kerül, amikor a lejátszás elkezdődött.</string>
 </resources>

@@ -313,6 +313,13 @@ fun HeroCard(
                     )
                 }
             }
+            if (selectedRange == TimeRange.TODAY || selectedRange == TimeRange.THIS_WEEK) {
+                Text(
+                    text = stringResource(R.string.home_session_start_attribution),
+                    style = CaptionSmall,
+                    color = appearancePalette.mutedText
+                )
+            }
         }
     }
 }

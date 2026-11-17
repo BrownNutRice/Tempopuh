@@ -1679,4 +1679,5 @@
     <string name="appearance_transfer_failed">Could not transfer this appearance file. Check the file and try again.</string>
     <string name="now_playing_last_detected">Last detected</string>
     <string name="spotify_secure_storage_unavailable">Secure Spotify storage is unavailable. Unlock your device and try again. Your encrypted data has been preserved.</string>
+    <string name="home_session_start_attribution">Listening time is grouped by the date each session started.</string>
 </resources>

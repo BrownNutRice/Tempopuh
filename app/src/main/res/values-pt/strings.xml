@@ -1330,4 +1330,5 @@
     <string name="appearance_transfer_failed">Não foi possível transferir este ficheiro de aparência. Verifique o ficheiro e tente novamente.</string>
     <string name="now_playing_last_detected">Última deteção</string>
     <string name="spotify_secure_storage_unavailable">O armazenamento seguro do Spotify está indisponível. Desbloqueie o dispositivo e tente novamente. Os dados encriptados foram preservados.</string>
+    <string name="home_session_start_attribution">O tempo de audição é atribuído à data em que cada sessão começou.</string>
 </resources>
