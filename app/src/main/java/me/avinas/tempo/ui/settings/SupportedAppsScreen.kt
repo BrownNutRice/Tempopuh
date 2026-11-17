@@ -139,21 +139,21 @@ fun SupportedAppsScreen(
         containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.settings_manage_apps), color = TextPrimary) },
+                title = { Text(stringResource(R.string.settings_manage_apps), color = MaterialTheme.colorScheme.onSurface) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.settings_back), tint = TextPrimary)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.settings_back), tint = MaterialTheme.colorScheme.onSurface)
                     }
                 },
                 actions = {
                     IconButton(onClick = { showAddAppDialog = true }) {
-                        Icon(Icons.Default.Add, contentDescription = "Add App", tint = TextPrimary)
+                        Icon(Icons.Default.Add, contentDescription = "Add App", tint = MaterialTheme.colorScheme.onSurface)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
-                    titleContentColor = TextPrimary,
-                    navigationIconContentColor = TextPrimary
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
         }
@@ -179,17 +179,17 @@ fun SupportedAppsScreen(
                         placeholder = {
                             Text(
                                 "Search apps on this device...", 
-                                color = TextTertiary,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         },
                         leadingIcon = {
-                            Icon(Icons.Default.Search, contentDescription = null, tint = TextSecondary)
+                            Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         },
                         trailingIcon = {
                             if (uiState.searchQuery.isNotEmpty()) {
                                 IconButton(onClick = { viewModel.setSearchQuery("") }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Clear", tint = TextSecondary)
+                                    Icon(Icons.Default.Close, contentDescription = "Clear", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                         },
@@ -199,9 +199,9 @@ fun SupportedAppsScreen(
                             disabledContainerColor = Color.Transparent,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
-                            cursorColor = TextPrimary,
-                            focusedTextColor = TextPrimary,
-                            unfocusedTextColor = TextPrimary
+                            cursorColor = MaterialTheme.colorScheme.onSurface,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                         ),
                         singleLine = true,
                         textStyle = MaterialTheme.typography.bodyMedium
@@ -213,7 +213,7 @@ fun SupportedAppsScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(color = TempoPrimary)
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
                 } else {
                     LazyColumn(
@@ -254,7 +254,7 @@ fun SupportedAppsScreen(
                                         "Allow one if it is a music source you want in your " +
                                         "journal, or block it so Tempo stops offering it.",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = TextTertiary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                                     modifier = Modifier.padding(horizontal = 8.dp)
                                 )
                             }
@@ -346,7 +346,7 @@ fun SupportedAppsScreen(
                                     text = "Not tracked. Allow an app to start journaling its " +
                                         "playback, or block it to keep it out of the way.",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = TextTertiary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                                     modifier = Modifier.padding(horizontal = 8.dp)
                                 )
                             }
@@ -405,7 +405,7 @@ fun SupportedAppsScreen(
                                         "never music — so Tempo does not track them and cannot " +
                                         "be asked to.",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = TextTertiary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                                     modifier = Modifier.padding(horizontal = 8.dp)
                                 )
                             }
@@ -444,7 +444,7 @@ fun SupportedAppsScreen(
                                     Text(
                                         text = "No apps found",
                                         style = MaterialTheme.typography.bodyLarge,
-                                        color = TextTertiary
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
                                     )
                                 }
                             }
@@ -455,7 +455,7 @@ fun SupportedAppsScreen(
                             Text(
                                 text = stringResource(R.string.tracking_rules_help),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = TextTertiary,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                                 modifier = Modifier
                                     .padding(horizontal = 8.dp)
                             )
@@ -575,7 +575,7 @@ private fun TrackingRulesCard(
                 Icon(
                     imageVector = Icons.Default.Android,
                     contentDescription = null,
-                    tint = TempoPrimary,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(22.dp)
                 )
                 Spacer(modifier = Modifier.width(14.dp))
@@ -583,23 +583,23 @@ private fun TrackingRulesCard(
                     Text(
                         text = "Track unrecognized apps",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = TextPrimary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "Off by default. Tempo tracks only apps it knows are music " +
                             "players, and lists anything else for review.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = TextTertiary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
                     )
                 }
                 Switch(
                     checked = trackUnrecognizedApps,
                     onCheckedChange = onTrackUnrecognizedChange,
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = TextOnAccent,
+                        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
                         checkedTrackColor = MaterialTheme.colorScheme.primary,
-                        uncheckedThumbColor = TextTertiary,
-                        uncheckedTrackColor = TempoDarkSurfaceElevated,
+                        uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
+                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                         checkedBorderColor = Color.Transparent,
                         uncheckedBorderColor = Color.Transparent
                     )
@@ -626,7 +626,7 @@ private fun TrackingRuleRow(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = TempoPrimary,
+            tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(22.dp)
         )
         Spacer(modifier = Modifier.width(14.dp))
@@ -634,12 +634,12 @@ private fun TrackingRuleRow(
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
-                color = TextPrimary
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = TextTertiary
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
             )
         }
     }
@@ -676,21 +676,21 @@ private fun AppPreferenceItem(
                     text = app.displayName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = app.packageName,
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextTertiary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = durationSummary,
                     style = MaterialTheme.typography.labelSmall,
-                    color = TempoPrimary.copy(alpha = 0.85f),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -700,7 +700,7 @@ private fun AppPreferenceItem(
                     Text(
                         text = "Installed • Start listening to track",
                         style = MaterialTheme.typography.labelSmall,
-                        color = TextSecondary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -713,7 +713,7 @@ private fun AppPreferenceItem(
                 Icon(
                     Icons.Default.Timer,
                     contentDescription = stringResource(R.string.tracking_duration_limit),
-                    tint = TempoPrimary.copy(alpha = 0.9f)
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
                 )
             }
 
@@ -722,7 +722,7 @@ private fun AppPreferenceItem(
                     Icon(
                         Icons.Default.Delete,
                         contentDescription = "Remove",
-                        tint = TextQuaternary
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
                     )
                 }
             }
@@ -732,7 +732,7 @@ private fun AppPreferenceItem(
                     Icon(
                         Icons.Default.Block,
                         contentDescription = "Block",
-                        tint = TextQuaternary
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
                     )
                 }
             }
@@ -741,10 +741,10 @@ private fun AppPreferenceItem(
                 checked = app.isEnabled,
                 onCheckedChange = onToggle,
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = TextOnAccent,
+                    checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
                     checkedTrackColor = MaterialTheme.colorScheme.primary,
-                    uncheckedThumbColor = TextTertiary,
-                    uncheckedTrackColor = TempoDarkSurfaceElevated,
+                    uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
+                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                     checkedBorderColor = Color.Transparent,
                     uncheckedBorderColor = Color.Transparent
                 )
@@ -785,14 +785,14 @@ private fun BlockedAppItem(
                     text = app.displayName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
-                    color = TextTertiary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = app.packageName,
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextQuaternary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -843,14 +843,14 @@ private fun DetectedAppItem(
                     text = app.displayName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = app.packageName,
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextQuaternary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -865,7 +865,7 @@ private fun DetectedAppItem(
                     Text(
                         text = detail,
                         style = MaterialTheme.typography.labelSmall,
-                        color = TempoPrimary.copy(alpha = 0.85f),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -874,7 +874,7 @@ private fun DetectedAppItem(
 
             TextButton(
                 onClick = onBlock,
-                colors = ButtonDefaults.textButtonColors(contentColor = TextTertiary)
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f))
             ) {
                 Text("Block")
             }
@@ -919,14 +919,14 @@ private fun AllowableAppItem(
                     text = app.displayName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = app.packageName,
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextQuaternary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -934,7 +934,7 @@ private fun AllowableAppItem(
 
             TextButton(
                 onClick = onBlock,
-                colors = ButtonDefaults.textButtonColors(contentColor = TextTertiary)
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f))
             ) {
                 Text("Block")
             }
@@ -980,14 +980,14 @@ private fun NeverTrackedAppItem(
                     text = app.displayName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
-                    color = TextTertiary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = app.packageName,
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextQuaternary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -996,7 +996,7 @@ private fun NeverTrackedAppItem(
             Text(
                 text = "Never tracked",
                 style = MaterialTheme.typography.labelSmall,
-                color = TextTertiary
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
             )
         }
 
@@ -1041,7 +1041,7 @@ fun AppIcon(packageName: String, modifier: Modifier = Modifier) {
             Icon(
                 imageVector = Icons.Default.Android,
                 contentDescription = null,
-                tint = TextTertiary,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                 modifier = Modifier.padding(4.dp)
             )
         }
@@ -1136,7 +1136,7 @@ private fun DefaultMaxDurationDialog(
                     Text(
                         stringResource(R.string.tracking_default_twenty_minutes),
                         style = MaterialTheme.typography.bodySmall,
-                        color = TextTertiary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
                     )
                 }
             }
@@ -1259,7 +1259,7 @@ private fun DurationModeRow(
             Text(
                 subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = TextTertiary
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
             )
         }
     }
@@ -1328,13 +1328,13 @@ private fun ContentOverridesDialog(
                 stringResource(R.string.tracking_content_exceptions),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary
+                color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 stringResource(R.string.tracking_content_exceptions_description),
                 style = MaterialTheme.typography.bodySmall,
-                color = TextTertiary
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
             )
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -1440,7 +1440,7 @@ private fun ContentOverrideItem(
                     stringResource(R.string.tracking_video_non_music)
                 },
                 style = MaterialTheme.typography.labelMedium,
-                color = if (isAlwaysMusic) TempoPrimary else TextSecondary
+                color = if (isAlwaysMusic) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 buildString {
@@ -1449,7 +1449,7 @@ private fun ContentOverrideItem(
                     append(if (rule.originalArtist.isBlank()) anyArtist else rule.originalArtist)
                 },
                 style = MaterialTheme.typography.bodySmall,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1458,7 +1458,7 @@ private fun ContentOverrideItem(
             Icon(
                 Icons.Default.Delete,
                 contentDescription = stringResource(R.string.tracking_delete_rule),
-                tint = TextTertiary
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
             )
         }
     }
@@ -1530,7 +1530,7 @@ private fun AddAppDialog(
                     text = "Add App",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -1550,12 +1550,12 @@ private fun AddAppDialog(
                         placeholder = {
                             Text(
                                 "Search installed apps...",
-                                color = TextTertiary,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         },
                         leadingIcon = {
-                            Icon(Icons.Default.Search, contentDescription = null, tint = TextSecondary)
+                            Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         },
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent,
@@ -1563,9 +1563,9 @@ private fun AddAppDialog(
                             disabledContainerColor = Color.Transparent,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
-                            cursorColor = TempoPrimary,
-                            focusedTextColor = TextPrimary,
-                            unfocusedTextColor = TextPrimary
+                            cursorColor = MaterialTheme.colorScheme.primary,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                         ),
                         singleLine = true,
                         textStyle = MaterialTheme.typography.bodyMedium
@@ -1601,14 +1601,14 @@ private fun AddAppDialog(
                                 Text(
                                     text = displayName,
                                     style = MaterialTheme.typography.bodyLarge,
-                                    color = TextPrimary,
+                                    color = MaterialTheme.colorScheme.onSurface,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
                                     text = packageName,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = TextTertiary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -1617,7 +1617,7 @@ private fun AddAppDialog(
                             Icon(
                                 imageVector = Icons.Default.Add,
                                 contentDescription = "Add",
-                                tint = TempoPrimary,
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -1630,7 +1630,7 @@ private fun AddAppDialog(
                                 contentAlignment = Alignment.Center
                             ) {
                                 CircularProgressIndicator(
-                                    color = TempoPrimary,
+                                    color = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(28.dp),
                                     strokeWidth = 3.dp
                                 )
@@ -1647,7 +1647,7 @@ private fun AddAppDialog(
                                 Text(
                                     "No apps found",
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = TextTertiary
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
                                 )
                             }
                         }
@@ -1661,7 +1661,7 @@ private fun AddAppDialog(
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("Cancel", color = TextTertiary)
+                        Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f))
                     }
                 }
             }
