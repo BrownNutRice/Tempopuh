@@ -99,9 +99,13 @@ fun LiveNowPlayingCard(
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // The player's own cover is the best match for the
+                    // currently playing release. Use the enriched image only
+                    // when local / MediaSession artwork cannot be loaded.
+                    val preferredArtwork = presence.albumArtUri ?: choice?.localUrl
                     AlbumArtImage(
-                        albumArtUrl = choice?.remoteUrl,
-                        localArtUrl = presence.albumArtUri ?: choice?.localUrl,
+                        albumArtUrl = preferredArtwork ?: choice?.remoteUrl,
+                        localArtUrl = if (preferredArtwork != null) choice?.remoteUrl else null,
                         contentDescription = "Cover art for ${presence.title}",
                         placeholderEmoji = "♫",
                         targetSizePx = 256,
