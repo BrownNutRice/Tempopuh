@@ -787,4 +787,11 @@
     <string name="appearance_glacier_desc">Hűvös jégkék éjszaka</string>
     <string name="appearance_preview_song">Most szól</string>
     <string name="appearance_preview_artist">A zenéd</string>
+    <string name="appearance_font_heading">Betűstílus</string>
+    <string name="appearance_font_description">Válassz címsorbetűt. A változás azonnal életbe lép.</string>
+    <string name="appearance_font_tempo">Tempo</string>
+    <string name="appearance_font_neo">Neo Sans</string>
+    <string name="appearance_font_archive">Archive Serif</string>
+    <string name="appearance_font_studio">Studio Mono</string>
+    <string name="appearance_font_selected">Kiválasztva</string>
 </resources>

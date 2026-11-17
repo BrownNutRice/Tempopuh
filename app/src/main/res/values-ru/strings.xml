@@ -1379,4 +1379,11 @@
     <string name="appearance_glacier_desc">Холодный ледяной синий ночью</string>
     <string name="appearance_preview_song">Сейчас играет</string>
     <string name="appearance_preview_artist">Ваша музыка</string>
+    <string name="appearance_font_heading">Типографика</string>
+    <string name="appearance_font_description">Выберите стиль заголовков. Выбор применяется сразу.</string>
+    <string name="appearance_font_tempo">Tempo</string>
+    <string name="appearance_font_neo">Neo Sans</string>
+    <string name="appearance_font_archive">Archive Serif</string>
+    <string name="appearance_font_studio">Studio Mono</string>
+    <string name="appearance_font_selected">Выбрано</string>
 </resources>
