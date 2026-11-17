@@ -428,7 +428,11 @@ fun SettingsScreen(
                         contentPadding = PaddingValues(0.dp),
                         variant = me.avinas.tempo.ui.components.GlassCardVariant.LowProminence,
                     ) {
-                        val latestStatus = when (backupOverview.lastBackupStatus) {
+                        // BackupSettingsManager is updated by the Drive worker.
+                        // Local folder backups have an independent WorkManager job.
+                        val latestStatus = if (!backupOverview.isGoogleDriveEnabled) {
+                            R.string.settings_backup_overview_disabled
+                        } else when (backupOverview.lastBackupStatus) {
                             BackupStatus.NEVER -> R.string.settings_backup_overview_never
                             BackupStatus.SUCCESS -> R.string.settings_backup_overview_success
                             BackupStatus.FAILED -> R.string.settings_backup_overview_failed
