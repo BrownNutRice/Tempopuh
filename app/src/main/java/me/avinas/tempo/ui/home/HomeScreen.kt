@@ -146,7 +146,7 @@ fun HomeScreen(
                         )
                     }
                     
-                    if (appearance.nowListening != AppearanceNowListening.HIDDEN) {
+                    if (appearance.nowListening == AppearanceNowListening.INLINE) {
                         item(key = "now_playing") { HomeNowPlaying() }
                     }
 
