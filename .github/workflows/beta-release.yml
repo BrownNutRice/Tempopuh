@@ -165,3 +165,5 @@ jobs:
 # Retry after importer compilation fixes.
 
 # Retry with manifest, Compose and resource lint fixes.
+
+# Retry with a stable collected painter state snapshot.
