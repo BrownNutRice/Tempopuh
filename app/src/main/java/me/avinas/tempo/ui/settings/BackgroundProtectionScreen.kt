@@ -69,13 +69,13 @@ fun BackgroundProtectionScreen(
         containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.settings_background_protection), color = TextPrimary) },
+                title = { Text(stringResource(R.string.settings_background_protection), color = MaterialTheme.colorScheme.onSurface) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.settings_back),
-                            tint = TextPrimary
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 },
@@ -105,7 +105,7 @@ fun BackgroundProtectionScreen(
                         Icon(
                             imageVector = Icons.Default.PhoneAndroid,
                             contentDescription = null,
-                            tint = TextPrimary,
+                            tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(32.dp)
                         )
                         Spacer(modifier = Modifier.width(12.dp))
@@ -113,13 +113,13 @@ fun BackgroundProtectionScreen(
                             Text(
                                 text = "Detected Device",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = TextTertiary
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
                             )
                             Text(
                                 text = osName,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = TextPrimary
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                         
@@ -130,7 +130,7 @@ fun BackgroundProtectionScreen(
                             OemBackgroundHelper.AutostartState.DISABLED -> 
                                 Triple(Icons.Default.Warning, TempoError, "Autostart OFF")
                             OemBackgroundHelper.AutostartState.UNKNOWN -> 
-                                Triple(Icons.AutoMirrored.Filled.HelpOutline, TextTertiary, "Unknown")
+                                Triple(Icons.AutoMirrored.Filled.HelpOutline, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f), "Unknown")
                         }
                         
                         Column(horizontalAlignment = Alignment.End) {
@@ -174,7 +174,7 @@ fun BackgroundProtectionScreen(
                             Text(
                                 text = "Autostart is disabled. Tempo may stop working in the background.",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = TextPrimary
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -186,13 +186,13 @@ fun BackgroundProtectionScreen(
                     text = "Configure Settings",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Xiaomi devices aggressively kill background apps. Complete these steps to ensure Tempo works reliably.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -267,7 +267,7 @@ fun BackgroundProtectionScreen(
                     onClick = { OemBackgroundHelper.openDontKillMyAppPage(context) },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = TextPrimary
+                        contentColor = MaterialTheme.colorScheme.onSurface
                     )
                 ) {
                     Icon(
@@ -306,7 +306,7 @@ private fun SettingsStep(
             modifier = Modifier
                 .size(32.dp)
                 .background(
-                    color = if (isCompleted) TempoSuccess else TempoPrimary.copy(alpha = 0.3f),
+                    color = if (isCompleted) TempoSuccess else MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
                     shape = RoundedCornerShape(16.dp)
                 ),
             contentAlignment = Alignment.Center
@@ -315,7 +315,7 @@ private fun SettingsStep(
                 Icon(
                     imageVector = Icons.Default.Check,
                     contentDescription = "Completed",
-                    tint = TextPrimary,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(18.dp)
                 )
             } else {
@@ -323,7 +323,7 @@ private fun SettingsStep(
                     text = stepNumber.toString(),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
@@ -334,7 +334,7 @@ private fun SettingsStep(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = TextSecondary,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(24.dp)
         )
         
@@ -346,12 +346,12 @@ private fun SettingsStep(
                 text = title,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                color = TextPrimary
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodySmall,
-                color = TextTertiary
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
             )
         }
         
@@ -360,7 +360,7 @@ private fun SettingsStep(
             TextButton(
                 onClick = onClick,
                 colors = ButtonDefaults.textButtonColors(
-                    contentColor = TempoPrimary
+                    contentColor = MaterialTheme.colorScheme.primary
                 )
             ) {
                 Text("Open")
