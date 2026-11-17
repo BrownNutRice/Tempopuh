@@ -25,7 +25,7 @@ fun SettingsSectionHeader(text: String) {
     Text(
         text = text.uppercase(Locale.getDefault()),
         style = KickerSmall,
-        color = TextTertiary,
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
         modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
     )
 }
@@ -35,7 +35,7 @@ fun SettingsOption(
     title: String,
     subtitle: String? = null,
     onClick: (() -> Unit)? = null,
-    textColor: Color = TextPrimary,
+    textColor: Color = LocalTempoPalette.current.onSurface,
     showArrow: Boolean = true
 ) {
     Row(
@@ -56,7 +56,7 @@ fun SettingsOption(
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = TextSecondary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -64,7 +64,7 @@ fun SettingsOption(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
-                tint = TextTertiary
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -88,14 +88,14 @@ fun SettingsSwitch(
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
-                color = TextPrimary
+                color = MaterialTheme.colorScheme.onSurface
             )
             if (subtitle != null) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = TextSecondary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
