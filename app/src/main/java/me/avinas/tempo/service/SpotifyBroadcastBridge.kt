@@ -91,7 +91,8 @@ internal class SpotifyBroadcastBridge(
                     // The last PLAYBACK state belongs to the *previous* track.
                     // Do not start a new track with stale playing=true or old position
                     // until the matching playback broadcast (or MediaSession) arrives.
-                    if (track?.title != candidate.title || track?.artist != candidate.artist) {
+                    if (track?.title != candidate.title || track?.artist != candidate.artist ||
+                        track?.album != candidate.album || track?.durationMs != candidate.durationMs) {
                         playing = null
                     }
                     track = candidate

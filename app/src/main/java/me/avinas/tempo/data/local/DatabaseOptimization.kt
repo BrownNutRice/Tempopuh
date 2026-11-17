@@ -291,8 +291,8 @@ class DatabaseOptimization @Inject constructor(
         // Analyze for query optimization
         analyzeDatabase()
         
-        // Cleanup old data
-        val deletedEvents = cleanupOldData()
+        // Routine maintenance preserves the complete listening archive.
+        val deletedEvents = 0
         
         // Vacuum if needed
         val statsBeforeVacuum = getDatabaseStats()

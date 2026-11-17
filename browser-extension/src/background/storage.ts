@@ -396,7 +396,7 @@ export async function cleanupOldRecords(): Promise<number> {
       const cursor = request.result;
       if (cursor) {
         const play = cursor.value as Play;
-        if (play.status === 'synced' || play.status === 'failed') {
+        if (play.status === 'synced') {
           cursor.delete();
           deleted++;
         }
@@ -462,7 +462,7 @@ export async function enforceMaxRecords(): Promise<void> {
       const cursor = request.result;
       if (cursor && collected < excess) {
         const play = cursor.value as Play;
-        if (play.id != null) {
+        if (play.id != null && play.status === 'synced') {
           toDelete.push(play.id);
           collected++;
         }
