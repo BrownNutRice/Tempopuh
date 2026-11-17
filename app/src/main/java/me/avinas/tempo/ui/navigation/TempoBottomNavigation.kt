@@ -28,6 +28,8 @@ import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Leaderboard
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -163,7 +165,7 @@ private fun TempoNavItem(
 
     // Separate selection bounce and touch-press animations
     val selectionScale by animateFloatAsState(
-        targetValue = if (selected) 1.1f else 1.0f,
+        targetValue = if (selected) 1.03f else 1.0f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessLow
@@ -177,16 +179,10 @@ private fun TempoNavItem(
         label = "pressScale"
     )
 
-    // Selection indicator dot alpha transition
-    val dotAlpha by animateFloatAsState(
-        targetValue = if (selected) 1f else 0f,
-        animationSpec = tween(150),
-        label = "dotAlpha"
-    )
-
+    // Labels make destinations discoverable; selected icon/text color is the indicator.
     Box(
         modifier = Modifier
-            .clip(CircleShape)
+            .clip(RoundedCornerShape(20.dp))
             .clickable(
                 interactionSource = interactionSource,
                 indication = null, // Scale press feedback instead of ripple
@@ -199,25 +195,26 @@ private fun TempoNavItem(
                 role = Role.Tab
                 this.selected = isSelected
             }
-            .padding(12.dp)
+            .padding(horizontal = 10.dp, vertical = 7.dp)
             .scale(selectionScale * pressScale),
         contentAlignment = Alignment.Center
     ) {
-        Icon(
-            imageVector = if (selected) icon else unselectedIcon,
-            contentDescription = label,
-            tint = iconColor,
-            modifier = Modifier.size(26.dp)
-        )
-
-        // Selection indicator dot positioned cleanly below without displacing the icon
-        Box(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .offset(y = 18.dp)
-                .size(4.dp)
-                .graphicsLayer { alpha = dotAlpha }
-                .background(selectedColor, CircleShape)
-        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Icon(
+                imageVector = if (selected) icon else unselectedIcon,
+                contentDescription = null, // Text supplies the accessible label.
+                tint = iconColor,
+                modifier = Modifier.size(24.dp)
+            )
+            Text(
+                text = label,
+                color = iconColor,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+            )
+        }
     }
 }
