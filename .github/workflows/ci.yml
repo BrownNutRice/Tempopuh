@@ -84,3 +84,30 @@ jobs:
           profile: pixel_6
           disable-animations: true
           script: ./gradlew :app:connectedDebugAndroidTest --stacktrace
+
+  browser-extension-validation:
+    name: Browser extension typecheck and smoke checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: browser-extension/package-lock.json
+
+      - name: Install extension dependencies
+        working-directory: browser-extension
+        run: npm ci
+
+      - name: Typecheck extension
+        working-directory: browser-extension
+        run: npm run typecheck
+
+      - name: Run extension smoke checks
+        working-directory: browser-extension
+        run: npm run smoke
