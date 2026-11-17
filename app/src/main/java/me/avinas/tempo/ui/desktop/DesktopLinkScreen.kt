@@ -89,14 +89,14 @@ fun DesktopLinkScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(stringResource(R.string.desktop_link_title), color = TextPrimary)
+                    Text(stringResource(R.string.desktop_link_title), color = MaterialTheme.colorScheme.onSurface)
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.settings_back),
-                            tint = TextPrimary
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 },
@@ -132,13 +132,13 @@ fun DesktopLinkScreen(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 CircularProgressIndicator(
-                                    color = TempoPrimary,
+                                    color = MaterialTheme.colorScheme.primary,
                                     strokeWidth = 2.dp,
                                     modifier = Modifier.size(24.dp)
                                 )
                                 Text(
                                     text = stringResource(R.string.ui_loading),
-                                    color = TextSecondary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             }
@@ -186,20 +186,20 @@ fun DesktopLinkScreen(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 CircularProgressIndicator(
-                                    color = TempoPrimary,
+                                    color = MaterialTheme.colorScheme.primary,
                                     strokeWidth = 3.dp,
                                     modifier = Modifier.size(48.dp)
                                 )
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Text(
                                     text = "Processing QR code...",
-                                    color = TextSecondary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
                                     text = "Please wait while we connect to your device",
-                                    color = TextTertiary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                                     style = MaterialTheme.typography.bodySmall,
                                     textAlign = TextAlign.Center
                                 )
@@ -237,7 +237,7 @@ private fun DesktopSyncHeroCard(uiState: DesktopLinkUiState) {
         uiState.isBatteryCritical -> TempoError
         isConnected && uiState.isServerRunning -> TempoSuccessBright
         isConnected -> TempoWarningBright
-        else -> TempoPrimary
+        else -> MaterialTheme.colorScheme.primary
     }
 
     GlassCard(
@@ -251,8 +251,8 @@ private fun DesktopSyncHeroCard(uiState: DesktopLinkUiState) {
                 .background(
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            TempoPrimary.copy(alpha = 0.22f),
-                            TempoDarkSurface.copy(alpha = 0.6f)
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)
                         )
                     )
                 )
@@ -271,12 +271,12 @@ private fun DesktopSyncHeroCard(uiState: DesktopLinkUiState) {
                         Icon(
                             Icons.Filled.Sync,
                             contentDescription = null,
-                            tint = TextPrimary,
+                            tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
                             text = stringResource(R.string.desktop_link_title),
-                            color = TextPrimary,
+                            color = MaterialTheme.colorScheme.onSurface,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -290,7 +290,7 @@ private fun DesktopSyncHeroCard(uiState: DesktopLinkUiState) {
 
                 Text(
                     text = stringResource(R.string.desktop_link_description),
-                    color = TextSecondary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
                     lineHeight = 18.sp
                 )
@@ -353,17 +353,17 @@ private fun MiniInfoTile(
             .padding(10.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(icon, contentDescription = null, tint = TempoPrimary, modifier = Modifier.size(14.dp))
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
             Text(
                 text = title,
-                color = TextTertiary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                 style = MaterialTheme.typography.labelSmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = subtitle,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
@@ -410,7 +410,7 @@ private fun DesktopScanningScreen(
             Box(
                 modifier = Modifier
                     .size(240.dp)
-                    .border(2.dp, TextPrimary, RoundedCornerShape(16.dp))
+                    .border(2.dp, MaterialTheme.colorScheme.onSurface, RoundedCornerShape(16.dp))
             )
 
             Column(
@@ -419,13 +419,13 @@ private fun DesktopScanningScreen(
             ) {
                 Text(
                     text = stringResource(R.string.desktop_scan_instruction),
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center
                 )
                 OutlinedButton(
                     onClick = onCancel,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TextPrimary),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
                     border = BorderStroke(1.dp, GlassBorderMedium)
                 ) {
                     Text(stringResource(R.string.desktop_cancel_scan))
@@ -460,7 +460,7 @@ private fun UnpairedContent(
             Icon(
                 Icons.Filled.QrCodeScanner,
                 contentDescription = null,
-                tint = TempoPrimary,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(48.dp)
             )
             Spacer(modifier = Modifier.height(12.dp))
@@ -468,20 +468,20 @@ private fun UnpairedContent(
                 text = stringResource(R.string.desktop_scan_qr_title),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = stringResource(R.string.desktop_scan_qr_subtitle),
                 style = MaterialTheme.typography.bodySmall,
-                color = TextTertiary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(16.dp))
             Button(
                 onClick = onScanClick,
-                colors = ButtonDefaults.buttonColors(containerColor = TempoPrimary),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -526,13 +526,13 @@ private fun ManualEntrySection(
                     text = stringResource(R.string.desktop_manual_entry),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 IconButton(onClick = { expanded = !expanded }, modifier = Modifier.size(32.dp)) {
                     Icon(
                         if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
                         contentDescription = null,
-                        tint = TextTertiary,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -562,7 +562,7 @@ private fun ManualEntrySection(
                 Spacer(modifier = Modifier.height(12.dp))
                 Button(
                     onClick = { onConnect(ip, port, token) },
-                    colors = ButtonDefaults.buttonColors(containerColor = TempoPrimary),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(stringResource(R.string.desktop_connect))
@@ -608,7 +608,7 @@ private fun PairedContent(
                         stringResource(R.string.desktop_receiver_stopped),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
             Spacer(modifier = Modifier.height(12.dp))
@@ -651,7 +651,7 @@ private fun PairedContent(
                     text = stringResource(R.string.desktop_auth_token),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 StatusPill(
                     text = if (uiState.isServerRunning) "Listening" else "Paused",
@@ -662,7 +662,7 @@ private fun PairedContent(
             Text(
                 text = session.authToken,
                 style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontFamily = FontFamily.Monospace,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
@@ -678,13 +678,13 @@ private fun PairedContent(
                 Icon(
                     Icons.Filled.ContentCopy,
                     contentDescription = null,
-                    tint = TempoPrimary,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(14.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = stringResource(R.string.desktop_copy_code),
-                    color = TempoPrimary,
+                    color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.labelSmall
                 )
             }
@@ -739,7 +739,7 @@ private fun DesktopStatsSection(stats: DesktopStats) {
         text = stringResource(R.string.desktop_stats_title),
         style = MaterialTheme.typography.titleMedium,
         fontWeight = FontWeight.SemiBold,
-        color = TextPrimary,
+        color = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier.fillMaxWidth()
     )
 
@@ -799,7 +799,7 @@ private fun DesktopStatsSection(stats: DesktopStats) {
                     text = stringResource(R.string.desktop_stats_top_listened),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 stats.topArtist?.let { artist ->
                     Spacer(modifier = Modifier.height(10.dp))
@@ -807,7 +807,7 @@ private fun DesktopStatsSection(stats: DesktopStats) {
                         Icon(
                             Icons.Filled.Person,
                             contentDescription = null,
-                            tint = TempoPrimary,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -815,13 +815,13 @@ private fun DesktopStatsSection(stats: DesktopStats) {
                             Text(
                                 text = stringResource(R.string.desktop_stats_top_artist),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = TextTertiary
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
                             )
                             Text(
                                 text = artist,
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Medium,
-                                color = TextPrimary
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -832,7 +832,7 @@ private fun DesktopStatsSection(stats: DesktopStats) {
                         Icon(
                             Icons.Filled.MusicNote,
                             contentDescription = null,
-                            tint = TempoPrimary,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -840,13 +840,13 @@ private fun DesktopStatsSection(stats: DesktopStats) {
                             Text(
                                 text = stringResource(R.string.desktop_stats_top_track),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = TextTertiary
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
                             )
                             Text(
                                 text = if (stats.topTrackArtist != null) "$track — ${stats.topTrackArtist}" else track,
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Medium,
-                                color = TextPrimary,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -871,7 +871,7 @@ private fun DesktopStatsSection(stats: DesktopStats) {
                     text = stringResource(R.string.desktop_stats_sources),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 stats.sourceBreakdown.forEach { source ->
@@ -885,14 +885,14 @@ private fun DesktopStatsSection(stats: DesktopStats) {
                         Text(
                             text = source.source.removePrefix("desktop:"),
                             style = MaterialTheme.typography.bodySmall,
-                            color = TextSecondary,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.weight(1f)
                         )
                         Text(
                             text = "${source.cnt}",
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.SemiBold,
-                            color = TempoPrimary
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -917,7 +917,7 @@ private fun DesktopStatCard(
             Icon(
                 icon,
                 contentDescription = null,
-                tint = TempoPrimary,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.height(6.dp))
@@ -925,13 +925,13 @@ private fun DesktopStatCard(
                 text = value,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
             )
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = TextTertiary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                 textAlign = TextAlign.Center,
                 lineHeight = 14.sp
             )
@@ -964,8 +964,8 @@ private fun DesktopAppDownloadButton(context: Context) {
                 Toast.makeText(context, "No browser found", Toast.LENGTH_SHORT).show()
             }
         },
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = TempoPrimary),
-        border = BorderStroke(1.dp, TempoPrimary.copy(alpha = 0.6f)),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)),
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -984,7 +984,7 @@ private fun DesktopAppDownloadButton(context: Context) {
             Text(
                 text = stringResource(R.string.desktop_download_app_desc),
                 style = MaterialTheme.typography.labelSmall,
-                color = TempoPrimary.copy(alpha = 0.75f)
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.75f)
             )
         }
     }
@@ -1008,14 +1008,14 @@ private fun InfoRow(
         Text(
             text = "$label:",
             style = MaterialTheme.typography.bodySmall,
-            color = TextTertiary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
             modifier = Modifier.width(72.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = value,
             style = MaterialTheme.typography.bodySmall,
-            color = TextPrimary,
+            color = MaterialTheme.colorScheme.onSurface,
             fontFamily = if (monospace) FontFamily.Monospace else FontFamily.Default,
             maxLines = if (truncate) 1 else Int.MAX_VALUE,
             overflow = if (truncate) TextOverflow.Ellipsis else TextOverflow.Clip,
@@ -1042,13 +1042,13 @@ private fun DesktopTextField(
             fontFamily = if (monospace) FontFamily.Monospace else FontFamily.Default
         ),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedTextColor = TextPrimary,
-            unfocusedTextColor = TextSecondary,
-            focusedBorderColor = TempoPrimary,
+            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+            unfocusedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
             unfocusedBorderColor = GlassBorderMedium,
-            focusedLabelColor = TempoPrimary,
-            unfocusedLabelColor = TextTertiary,
-            cursorColor = TempoPrimary
+            focusedLabelColor = MaterialTheme.colorScheme.primary,
+            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
+            cursorColor = MaterialTheme.colorScheme.primary
         ),
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp)
