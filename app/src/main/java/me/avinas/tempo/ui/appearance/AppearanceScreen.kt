@@ -168,8 +168,14 @@ fun AppearanceScreen(onNavigateBack: () -> Unit, viewModel: AppearanceViewModel 
                 { if (it == AppearanceTone.OLED) R.string.appearance_oled else R.string.appearance_dark }) {
                 draft = draft.copy(tone = it)
             }
-            SettingToggle(R.string.appearance_preview_light, previewLight, !busy && !previewSystem) { previewLight = it }
-            SettingToggle(R.string.appearance_preview_system, previewSystem, !busy) { previewSystem = it }
+            SettingToggle(R.string.appearance_preview_light, previewLight, !busy) {
+                previewLight = it
+                if (it) previewSystem = false
+            }
+            SettingToggle(R.string.appearance_preview_system, previewSystem, !busy) {
+                previewSystem = it
+                if (it) previewLight = false
+            }
             Text(stringResource(R.string.appearance_light_preview_notice), style = MaterialTheme.typography.bodySmall)
             AppearanceSection(R.string.appearance_layout_heading) {
                 AppearanceFontStyle.entries.chunked(2).forEach { pair -> Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
