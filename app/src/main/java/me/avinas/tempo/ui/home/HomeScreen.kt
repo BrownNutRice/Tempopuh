@@ -22,6 +22,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -31,9 +32,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import me.avinas.tempo.ui.components.DeepOceanBackground
 import me.avinas.tempo.ui.components.LiveNowPlayingCard
+import me.avinas.tempo.service.SpotifyBroadcastPresence
 import me.avinas.tempo.ui.components.TimePeriodSelector
 import me.avinas.tempo.ui.stats.StatsShareDialog
 import me.avinas.tempo.ui.stats.StatsTab
@@ -71,6 +74,9 @@ fun HomeScreen(
     val context = androidx.compose.ui.platform.LocalContext.current
     var isLaunchingReview by remember { mutableStateOf(false) }
     var showTodaysOverview by remember { mutableStateOf(false) }
+    // Focused dashboard by default: extended discovery cards are opt-in.
+    // Save across rotation/process recreation without changing app preferences.
+    var showExtendedInsights by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val lazyListState = rememberLazyListState()
 
@@ -134,7 +140,7 @@ fun HomeScreen(
                     }
                     
                     item(key = "now_playing") {
-                        LiveNowPlayingCard(modifier = Modifier.padding(horizontal = 16.dp))
+                        HomeNowPlaying()
                     }
 
                     if (uiState.hasData) {
@@ -189,6 +195,24 @@ fun HomeScreen(
                             }
                         }
 
+                        item(key = "insights_toggle") {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.End,
+                            ) {
+                                TextButton(onClick = { showExtendedInsights = !showExtendedInsights }) {
+                                    Text(
+                                        text = stringResource(
+                                            if (showExtendedInsights) R.string.home_hide_more_insights
+                                            else R.string.home_show_more_insights
+                                        ),
+                                        color = TempoPrimary,
+                                    )
+                                }
+                            }
+                        }
+
+                        if (showExtendedInsights) {
                         item(key = "spotlight") {
                             val walkthroughController = me.avinas.tempo.ui.components.LocalWalkthroughController.current
                             LaunchedEffect(uiState.hasData) {
@@ -263,6 +287,7 @@ fun HomeScreen(
                                 )
                             }
                         }
+                        } // optional Spotlight and top-track/artist cards
                     } else if (!flags.isLoading) {
                         item(key = "empty") {
                             me.avinas.tempo.ui.components.EmptyState(
@@ -307,7 +332,7 @@ fun HomeScreen(
                         }
                     }
 
-                    if (insights.isNotEmpty()) {
+                    if (showExtendedInsights && insights.isNotEmpty()) {
                         item(key = "insights_header") {
                             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                                 Text(
@@ -450,6 +475,16 @@ fun HomeScreen(
                 viewModel = analyticsDisclosureViewModel,
             )
         }
+    }
+}
+
+@Composable
+private fun HomeNowPlaying() {
+    // Subscribing inside this list item prevents high-frequency local presence
+    // updates from recomposing the entire Home dashboard.
+    val presence by SpotifyBroadcastPresence.presence.collectAsStateWithLifecycle()
+    if (presence != null) {
+        LiveNowPlayingCard(modifier = Modifier.padding(horizontal = 16.dp))
     }
 }
 

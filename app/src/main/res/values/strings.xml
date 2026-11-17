@@ -1554,4 +1554,6 @@
     <string name="settings_cover_source_title">Preferred cover source</string>
     <string name="settings_cover_source_description">Choose which service to try first for album artwork. If no cover is found, Tempo falls back to other services automatically.</string>
     <string name="settings_cover_source_automatic">Automatic (default)</string>
+    <string name="home_show_more_insights">Explore more insights</string>
+    <string name="home_hide_more_insights">Show fewer insights</string>
 </resources>
