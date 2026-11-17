@@ -59,6 +59,8 @@ fun TempoSnackbar(
     modifier: Modifier = Modifier,
     variant: TempoSnackbarVariant = TempoSnackbarVariant.fromMessage(data.visuals.message)
 ) {
+    val palette = LocalTempoPalette.current
+    val notificationTint = if (variant == TempoSnackbarVariant.Neutral) palette.accent else variant.tint
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -72,12 +74,12 @@ fun TempoSnackbar(
             .clip(TempoSnackbarShape)
             .background(
                 Brush.verticalGradient(
-                    listOf(TempoSurfaceRaised, TempoSurfaceDialog)
+                    listOf(palette.elevatedSurface, palette.surface)
                 )
             )
             .border(
                 width = 1.dp,
-                color = GlassBorderSoft,
+                color = palette.border.copy(alpha = 0.65f),
                 shape = TempoSnackbarShape
             )
     ) {
@@ -90,7 +92,7 @@ fun TempoSnackbar(
                     Brush.horizontalGradient(
                         listOf(
                             Color.Transparent,
-                            Color.White.copy(alpha = 0.15f),
+                            palette.onSurface.copy(alpha = 0.15f),
                             Color.Transparent
                         )
                     )
@@ -108,8 +110,8 @@ fun TempoSnackbar(
                 modifier = Modifier
                     .size(28.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(variant.tint.copy(alpha = 0.10f))
-                    .border(0.5.dp, variant.tint.copy(alpha = 0.20f), RoundedCornerShape(8.dp)),
+                    .background(notificationTint.copy(alpha = 0.10f))
+                    .border(0.5.dp, notificationTint.copy(alpha = 0.20f), RoundedCornerShape(8.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -120,7 +122,7 @@ fun TempoSnackbar(
                         TempoSnackbarVariant.Neutral -> TempoIcons.InfoCircle
                     },
                     contentDescription = null,
-                    tint = variant.tint,
+                    tint = notificationTint,
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -130,7 +132,7 @@ fun TempoSnackbar(
             Text(
                 text = data.visuals.message,
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextPrimary,
+                color = palette.onSurface,
                 modifier = Modifier.weight(1f, fill = false)
             )
 
@@ -139,8 +141,8 @@ fun TempoSnackbar(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(variant.tint.copy(alpha = 0.08f))
-                        .border(0.5.dp, variant.tint.copy(alpha = 0.22f), RoundedCornerShape(8.dp))
+                        .background(notificationTint.copy(alpha = 0.08f))
+                        .border(0.5.dp, notificationTint.copy(alpha = 0.22f), RoundedCornerShape(8.dp))
                         .clickable(
                             interactionSource = null,
                             indication = null
@@ -154,7 +156,7 @@ fun TempoSnackbar(
                         text = actionLabel,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = variant.tint
+                        color = notificationTint
                     )
                 }
             }
