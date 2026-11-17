@@ -1963,12 +1963,11 @@ class MusicTrackingService : NotificationListenerService() {
 
         autoSaveJob =
             serviceScope.launch {
+                // Checkpoint immediately instead of losing up to 30 seconds on an OEM kill.
+                saveSessionsToPersistence()
                 while (isActive) {
                     delay(SESSION_AUTOSAVE_INTERVAL_MS)
-                    if (!hasActivePlayback()) {
-                        Log.d(TAG, "No active playback, stopping auto-save")
-                        break
-                    }
+                    if (playbackStates.isEmpty()) break
                     saveSessionsToPersistence()
                 }
             }
@@ -2075,10 +2074,11 @@ class MusicTrackingService : NotificationListenerService() {
                 positionPollingJob = null
             }
 
-            if (autoSaveJob?.isActive == true) {
-                Log.d(TAG, "Stopping session auto-save (no active playback)")
+            if (playbackStates.isEmpty()) {
                 autoSaveJob?.cancel()
                 autoSaveJob = null
+            } else {
+                startSessionAutoSave()
             }
 
             // FIX: Check if we still have a valid (paused) session
@@ -2418,10 +2418,13 @@ class MusicTrackingService : NotificationListenerService() {
                     Log.e(TAG, "Error scanning active notifications", e)
                 }
 
-                // onCreate may try before NotificationManager binds the listener,
-                // so an initial SecurityException must not permanently disable
-                // MediaSession tracking for this service lifetime.
-                rescanActiveMediaSessions()
+                // If permissions are still settling, retry after the binding completes.
+                if (!isMediaSessionManagerInitialized) {
+                    serviceScope.launch {
+                        delay(2_000L)
+                        if (isListenerConnected) rescanActiveMediaSessions()
+                    }
+                }
 
                 // Update lifecycle after initial scan using the correct context
                 updateServiceLifecycle()
@@ -2696,7 +2699,12 @@ class MusicTrackingService : NotificationListenerService() {
                 // A notification refresh does not prove that a paused player resumed.
                 // Prefer its actual MediaSession state when available.
                 when (controllerState) {
-                    PlaybackState.STATE_PAUSED -> session.pause()
+                    PlaybackState.STATE_PAUSED -> {
+                        if (session.isPlaying) {
+                            session.pause()
+                            serviceScope.launch { saveSessionsToPersistence() }
+                        }
+                    }
                     PlaybackState.STATE_PLAYING -> session.resume()
                     null -> if (!session.isPlaying) session.resume() // notification-only source
                 }
@@ -3544,7 +3552,15 @@ class MusicTrackingService : NotificationListenerService() {
             return
         }
 
-        insertListeningEvent(trackId, session)
+        try {
+            insertListeningEvent(trackId, session)
+        } catch (e: CancellationException) {
+            session.eventSaveClaimed.set(false)
+            throw e
+        } catch (e: Exception) {
+            session.eventSaveClaimed.set(false)
+            throw e
+        }
     }
 
     private suspend fun insertListeningEvent(
@@ -3582,8 +3598,8 @@ class MusicTrackingService : NotificationListenerService() {
             session.calculateCompletionPercent()
         } else 0
 
-        val wasSkipped = session.wasSkipped() ||
-            (reliableDuration != null && completionPct < SKIP_COMPLETION_THRESHOLD)
+        // Zero coverage can mean unavailable position data, not a skip.
+        val wasSkipped = session.wasSkipped()
 
         // Check if this is a replay (same track played within 5 minutes)
         val isReplay =
@@ -3698,12 +3714,16 @@ class MusicTrackingService : NotificationListenerService() {
             // session-identity dedup applies on this path as well.
             try {
                 val result = trackingManager.saveEventImmediate(event)
+                if (result.isFailure) {
+                    throw result.exceptionOrNull() ?: IllegalStateException("Immediate save failed")
+                }
                 if (result.getOrDefault(0L) > 0L) {
                     Log.d(TAG, "Fallback event written to Room")
                     // onPersisted handles refresh for successful direct inserts.
                 }
             } catch (fallbackError: Exception) {
-                Log.e(TAG, "Direct insert also failed", fallbackError)
+                Log.e(TAG, "Direct insert also failed; session claim will be released", fallbackError)
+                throw fallbackError
             }
         }
     }
@@ -3728,16 +3748,17 @@ class MusicTrackingService : NotificationListenerService() {
             manager.addOnActiveSessionsChangedListener(listener, componentName)
             mediaSessionManager = manager
             activeSessionsChangedListener = listener
-            isMediaSessionManagerInitialized = true
-
-            // Process currently active sessions
+            // Active-session access can fail before NotificationListener has bound.
             val activeSessions = manager.getActiveSessions(componentName)
+            isMediaSessionManagerInitialized = true
             onActiveSessionsChanged(activeSessions)
 
             Log.i(TAG, "MediaSessionManager initialized with ${activeSessions?.size ?: 0} active sessions")
         } catch (e: SecurityException) {
+            releaseMediaSessionObservation()
             Log.w(TAG, "MediaSessionManager access denied - notification access may not be granted", e)
         } catch (e: Exception) {
+            releaseMediaSessionObservation()
             Log.e(TAG, "Failed to initialize MediaSessionManager", e)
         }
     }
@@ -3784,7 +3805,12 @@ class MusicTrackingService : NotificationListenerService() {
     private fun onActiveSessionsChanged(controllers: List<MediaController>?) {
         // One controller per package is the current tracking model. Deduplicate source
         // snapshots so two simultaneous tokens do not replace each other in one pass.
-        val currentControllers = controllers.orEmpty().distinctBy { it.packageName }
+        val currentControllers = controllers.orEmpty().groupBy { it.packageName }.values.map { group ->
+            group.firstOrNull { controller ->
+                try { controller.playbackState?.state == PlaybackState.STATE_PLAYING }
+                catch (_: Exception) { false }
+            } ?: group.first()
+        }
 
         // Debounce session change logs - avoid spam when count unchanged within 2 seconds
         val now = System.currentTimeMillis()
@@ -4297,6 +4323,7 @@ class MusicTrackingService : NotificationListenerService() {
                     Log.d(TAG, "Resumed: '$title' at position ${currentPosition}ms")
                 } else if (!isPlaying && currentSession.isPlaying) {
                     currentSession.pause()
+                    serviceScope.launch { saveSessionsToPersistence() }
                     Log.d(TAG, "Paused: '$title' at position ${currentPosition}ms, accumulated: ${currentSession.accumulatedPositionMs}ms")
                 }
                 if (duration > 0) {

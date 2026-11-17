@@ -96,7 +96,7 @@ class MusicTrackingManager(
         }
 
         // Check for duplicates atomically using compute
-        val eventHash = generateEventHash(event)
+        val eventHash = generateEventHash(event, sessionId)
         val now = System.currentTimeMillis()
         
         var isDuplicate = false
@@ -125,6 +125,9 @@ class MusicTrackingManager(
             retryCount = 0
         )
         
+        // Durably stage before the 750ms batch window; process kills cannot erase it.
+        offlineQueue[pendingEvent.key()] = pendingEvent
+        persistOfflineQueue()
         eventChannel.send(pendingEvent)
         updateMetrics { it.copy(eventsQueued = it.eventsQueued + 1) }
         
@@ -303,6 +306,9 @@ class MusicTrackingManager(
                 // Deduplicate by (sessionId, trackId, timestamp) to prevent re-saves across restarts.
                 val candidates =
                     filterSessionDuplicates(batch.filter { shouldPersistEvent(it.event) })
+                val candidateKeys = candidates.map { it.key() }.toSet()
+                batch.filterNot { it.key() in candidateKeys }.forEach { offlineQueue.remove(it.key()) }
+                persistOfflineQueue()
                 if (candidates.isEmpty()) {
                     updateMetrics { it.copy(batchesProcessed = it.batchesProcessed + 1) }
                     Log.d(TAG, "Batch contained no events allowed by current rules")
@@ -325,18 +331,21 @@ class MusicTrackingManager(
                 candidates.forEachIndexed { index, pending ->
                     val id = ids.getOrNull(index) ?: -1L
                     if (id == 0L) {
+                        offlineQueue.remove(pending.key())
                         // Room rejected this as a genuine cross-source duplicate.
                         // Retrying would only create a durable queue of duplicates.
                         updateMetrics { it.copy(duplicatesSkipped = it.duplicatesSkipped + 1) }
                     } else if (id < 0L) {
                         if (shouldPersistEvent(pending.event)) handleFailedEvent(pending)
                     } else if (shouldPersistEvent(pending.event)) {
+                        offlineQueue.remove(pending.key())
                         successCount++
                         savedEvents.add(pending.event)
                     } else {
                         // Complements the pre-insert check. If NON_MUSIC was committed
                         // during insertAll(), remove the row that was just created.
                         listeningRepository.deleteById(id)
+                        offlineQueue.remove(pending.key())
                         Log.d(TAG, "Removed event rejected after batch persistence: trackId=${pending.event.track_id}")
                     }
                 }
@@ -347,8 +356,15 @@ class MusicTrackingManager(
                         batchesProcessed = it.batchesProcessed + 1
                     ) 
                 }
+                persistOfflineQueue()
                 if (savedEvents.isNotEmpty()) notifyPersisted(savedEvents)
                 Log.d(TAG, "Batch saved: $successCount/${candidates.size} valid events")
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Batch processing error; retrying staged plays offline", e)
+                batch.forEach { handleFailedEvent(it) }
+                updateMetrics { it.copy(batchErrors = it.batchErrors + 1) }
             } finally {
                 isProcessing.value = false
             }
@@ -422,22 +438,11 @@ class MusicTrackingManager(
     }
 
     private fun handleFailedEvent(pending: PendingEvent) {
-        if (pending.retryCount >= MAX_RETRIES) {
-            Log.e(TAG, "Event exceeded max retries, discarding: trackId=${pending.event.track_id}")
-            updateMetrics { it.copy(eventsDropped = it.eventsDropped + 1) }
-            persistOfflineQueue()
-            return
-        }
-
+        // Bound retry *delay* instead of retry *count*; Room outages cannot erase plays.
         if (offlineQueue.size >= MAX_OFFLINE_QUEUE_SIZE) {
-            // Remove oldest event to make room
-            offlineQueue.entries.minByOrNull { it.value.queuedAt }?.key?.let {
-                offlineQueue.remove(it)
-                updateMetrics { m -> m.copy(eventsDropped = m.eventsDropped + 1) }
-            }
+            Log.w(TAG, "Offline queue past soft capacity; preserving unsaved events")
         }
-
-        offlineQueue[pending.key()] = pending.copy(retryCount = pending.retryCount + 1)
+        offlineQueue[pending.key()] = pending.copy(retryCount = (pending.retryCount + 1).coerceAtMost(64))
         updateMetrics { it.copy(eventsInOfflineQueue = offlineQueue.size) }
         persistOfflineQueue()
     }
@@ -527,6 +532,8 @@ class MusicTrackingManager(
                 } else {
                     handleFailedEvent(pending)
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.w(TAG, "Offline queue retry failed", e)
                 if (!shouldPersistEvent(pending.event)) {
@@ -565,6 +572,8 @@ class MusicTrackingManager(
         repeat(maxRetries) { attempt ->
             try {
                 return Result.success(block())
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 lastException = e
                 Log.w(TAG, "Attempt ${attempt + 1}/$maxRetries failed", e)
@@ -584,8 +593,10 @@ class MusicTrackingManager(
             .coerceAtMost(MAX_RETRY_DELAY_MS)
     }
     
-    private fun generateEventHash(event: ListeningEvent): String {
-        return "${event.track_id}_${event.timestamp / 1000}_${event.source}"
+    private fun generateEventHash(event: ListeningEvent, fallbackSessionId: String): String {
+        val sid = event.sessionId?.takeIf { it.isNotBlank() } ?: fallbackSessionId.takeIf { it.isNotBlank() }
+        return if (sid != null) "${sid}_${event.track_id}_${event.timestamp}"
+        else "${event.track_id}_${event.timestamp}_${event.source}"
     }
     
     private fun cleanupOldDeduplicationEntries(now: Long) {
@@ -622,7 +633,7 @@ data class PendingEvent(
     val retryCount: Int
 ) {
     /** Stable identity for the offline queue map and durable storage. */
-    fun key(): String = "${event.track_id}_${event.timestamp}"
+    fun key(): String = "${sessionId}_${event.track_id}_${event.timestamp}"
 }
 
 /**

@@ -39,22 +39,23 @@ class OfflineEventStore(context: Context) {
      * Persist the full offline queue (replaces whatever was stored before).
      * An empty collection removes the stored entry.
      */
-    fun save(events: Collection<PendingEvent>) {
+    @Synchronized fun save(events: Collection<PendingEvent>) {
         try {
             if (events.isEmpty()) {
-                prefs.edit().remove(KEY_EVENTS).apply()
+                check(prefs.edit().remove(KEY_EVENTS).commit()) { "Unable to clear offline events" }
                 return
             }
-            prefs.edit()
+            check(prefs.edit()
                 .putString(KEY_EVENTS, adapter.toJson(events.toList()))
-                .apply()
+                .commit()) { "Unable to persist offline events" }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to save offline events", e)
+            throw e
         }
     }
 
     /** Load previously persisted events. Returns an empty list on any failure. */
-    fun load(): List<PendingEvent> {
+    @Synchronized fun load(): List<PendingEvent> {
         return try {
             val json = prefs.getString(KEY_EVENTS, null) ?: return emptyList()
             adapter.fromJson(json) ?: emptyList()
@@ -64,7 +65,7 @@ class OfflineEventStore(context: Context) {
         }
     }
 
-    fun clear() {
-        prefs.edit().remove(KEY_EVENTS).apply()
+    @Synchronized fun clear() {
+        check(prefs.edit().remove(KEY_EVENTS).commit()) { "Unable to clear offline events" }
     }
 }

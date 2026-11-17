@@ -45,7 +45,7 @@ class SessionPersistence(private val context: Context) {
                 prefs.edit()
                     .remove(KEY_ACTIVE_SESSIONS)
                     .putLong(KEY_LAST_SAVE_TIMESTAMP, System.currentTimeMillis())
-                    .apply()
+                    .commit()
                 return@withContext
             }
             
@@ -55,7 +55,7 @@ class SessionPersistence(private val context: Context) {
             prefs.edit()
                 .putString(KEY_ACTIVE_SESSIONS, json)
                 .putLong(KEY_LAST_SAVE_TIMESTAMP, System.currentTimeMillis())
-                .apply()
+                .commit()
             
             Log.d(TAG, "Saved ${sessions.size} sessions to persistent storage")
         } catch (e: Exception) {
@@ -97,7 +97,7 @@ class SessionPersistence(private val context: Context) {
         prefs.edit()
             .remove(KEY_ACTIVE_SESSIONS)
             .putLong(KEY_LAST_SAVE_TIMESTAMP, System.currentTimeMillis())
-            .apply()
+            .commit()
         Log.d(TAG, "Cleared all persisted sessions")
     }
     
@@ -105,13 +105,13 @@ class SessionPersistence(private val context: Context) {
     fun markServiceActive() {
         prefs.edit()
             .putLong(KEY_SERVICE_LAST_ACTIVE, System.currentTimeMillis())
-            .apply()
+            .commit()
     }
     
     fun markServiceInactive() {
         prefs.edit()
             .putLong(KEY_SERVICE_LAST_ACTIVE, 0)
-            .apply()
+            .commit()
     }
     
     fun wasUncleanShutdown(): Boolean {
