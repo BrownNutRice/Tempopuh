@@ -98,6 +98,10 @@ class HistoryViewModel @Inject constructor(
         loadGeneration++
         historyLoadJob?.cancel()
         archiveLoadJob?.cancel()
+        // Canceled jobs no longer get to clear their transient loading flags.
+        _uiState.update {
+            it.copy(isLoadingMore = false, isLoadingMoreLastFm = false, isRefreshing = false)
+        }
     }
 
     // Cached import boundary (calculated once on init)

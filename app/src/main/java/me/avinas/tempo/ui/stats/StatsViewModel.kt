@@ -58,6 +58,9 @@ class StatsViewModel
             resultGeneration++
             loadJob?.cancel()
             loadMoreJob?.cancel()
+            // A canceled pagination/refresh job won't reach its cleanup path.
+            // Reset transient indicators whenever a newer request supersedes it.
+            _uiState.update { it.copy(isLoadingMore = false, isRefreshing = false) }
         }
 
         init {
