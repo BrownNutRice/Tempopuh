@@ -21,6 +21,9 @@ import me.avinas.tempo.data.local.entities.ListeningEvent
 import me.avinas.tempo.data.repository.ArtistLinkingService
 import me.avinas.tempo.data.repository.TrackResolver
 import okio.buffer
+import okio.BufferedSink
+import okio.Buffer
+import okio.sink
 import okio.source
 import java.io.FilterInputStream
 import java.io.IOException
@@ -40,6 +43,8 @@ class SpotifyJsonImportService @Inject constructor(
         private const val TAG = "SpotifyJsonImport"
         private const val BATCH_SIZE = 50
         private const val MAX_FILE_SIZE_BYTES = 500L * 1024 * 1024
+        private const val MAX_PARSED_ENTRIES_PER_FILE = 2_000_000
+        private const val MAX_NDJSON_LINE_BYTES = 1024L * 1024L
         private const val MAX_MS_PLAYED = 86_400_000L
         private const val MAX_STRING_LENGTH = 500
         private const val CANCELLATION_CHECK_INTERVAL = 100
@@ -137,49 +142,82 @@ class SpotifyJsonImportService @Inject constructor(
 
                 // ponytail: byte cap enforced during read — OpenableColumns.SIZE is
                 // null/spoofable on some providers, so the pre-check above is advisory only.
-                val parseResult = context.contentResolver.openInputStream(uri)?.use { raw ->
-                    CappedInputStream(raw, MAX_FILE_SIZE_BYTES).use { capped ->
-                        parseJsonStream(capped, fileName)
+                val stagedFile = File.createTempFile("tempo-spotify-", ".jsonl", context.cacheDir)
+                try {
+                    val parseResult = context.contentResolver.openInputStream(uri)?.use { raw ->
+                        CappedInputStream(raw, MAX_FILE_SIZE_BYTES).use { capped ->
+                            stagedFile.sink().buffer().use { sink -> parseJsonStream(capped, fileName, sink) }
+                        }
+                    } ?: ParseResult(0, 0, 0).also {
+                        addCappedError(errors, "Could not open: $fileName")
                     }
-                } ?: ParseResult(emptyList(), 0).also {
-                    addCappedError(errors, "Could not open: $fileName")
+
+                    if (parseResult.malformedCount > 0) {
+                        addCappedError(errors, "Skipped ${parseResult.malformedCount} malformed entries in $fileName")
+                    }
+
+                    if (parseResult.entryCount == 0 && parseResult.malformedCount == 0 &&
+                        !errors.any { it.contains(fileName) }) {
+                        addCappedError(errors, "No valid entries in: $fileName")
+                        continue
+                    }
+
+                    if (parseResult.entryCount == 0) continue
+
+                    val filePodcasts = parseResult.podcastCount
+
+                    totalEntries += parseResult.entryCount
+                    podcastsSkipped += filePodcasts
+
+                    var fileMusicProcessed = 0
+                    var tracksInFile = 0
+                    var eventsInFile = 0
+                    var duplicatesInFile = 0
+                    var lowQualityInFile = 0
+                    val chunk = ArrayList<ParsedEntry>(FLUSH_BATCH_SIZE)
+                    val entryAdapter = moshi.adapter(ParsedEntry::class.java)
+                    stagedFile.source().buffer().use { staged ->
+                        while (true) {
+                            coroutineContext.ensureActive()
+                            val line = staged.readUtf8Line() ?: break
+                            val entry = entryAdapter.fromJson(line) ?: continue
+                            if (entry.isPodcast) continue
+                            chunk.add(entry)
+                            if (chunk.size == FLUSH_BATCH_SIZE) {
+                                val counts = processAndFlushEntries(chunk, trackCache,
+                                    musicProcessedSoFar + fileMusicProcessed,
+                                    totalEntries - podcastsSkipped, errors)
+                                tracksInFile += counts.tracksImported
+                                eventsInFile += counts.eventsCreated
+                                duplicatesInFile += counts.duplicatesSkipped
+                                lowQualityInFile += counts.lowQualitySkipped
+                                fileMusicProcessed += chunk.size
+                                chunk.clear()
+                            }
+                        }
+                    }
+                    if (chunk.isNotEmpty()) {
+                        val counts = processAndFlushEntries(chunk, trackCache,
+                            musicProcessedSoFar + fileMusicProcessed,
+                            totalEntries - podcastsSkipped, errors)
+                        tracksInFile += counts.tracksImported
+                        eventsInFile += counts.eventsCreated
+                        duplicatesInFile += counts.duplicatesSkipped
+                        lowQualityInFile += counts.lowQualitySkipped
+                        fileMusicProcessed += chunk.size
+                    }
+
+                    musicProcessedSoFar += fileMusicProcessed
+                    tracksImported += tracksInFile
+                    eventsCreated += eventsInFile
+                    duplicatesSkipped += duplicatesInFile
+                    lowQualitySkipped += lowQualityInFile
+
+                    filesProcessed++
+                    Log.i(TAG, "Processed ${parseResult.entryCount} entries from $fileName")
+                } finally {
+                    stagedFile.delete()
                 }
-
-                if (parseResult.malformedCount > 0) {
-                    addCappedError(errors, "Skipped ${parseResult.malformedCount} malformed entries in $fileName")
-                }
-
-                if (parseResult.entries.isEmpty() && parseResult.malformedCount == 0 &&
-                    !errors.any { it.contains(fileName) }) {
-                    addCappedError(errors, "No valid entries in: $fileName")
-                    continue
-                }
-
-                if (parseResult.entries.isEmpty()) continue
-
-                val filePodcasts = parseResult.entries.count { it.isPodcast }
-                val musicEntries = parseResult.entries.filter { !it.isPodcast }
-                    .sortedBy { it.endTimeMillis }
-
-                totalEntries += parseResult.entries.size
-                podcastsSkipped += filePodcasts
-
-                val counts = processAndFlushEntries(
-                    musicEntries = musicEntries,
-                    trackCache = trackCache,
-                    progressBase = musicProcessedSoFar,
-                    progressTotal = totalEntries - podcastsSkipped,
-                    errors = errors
-                )
-
-                musicProcessedSoFar += musicEntries.size
-                tracksImported += counts.tracksImported
-                eventsCreated += counts.eventsCreated
-                duplicatesSkipped += counts.duplicatesSkipped
-                lowQualitySkipped += counts.lowQualitySkipped
-
-                filesProcessed++
-                Log.i(TAG, "Processed ${parseResult.entries.size} entries from $fileName")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to parse $fileName", e)
                 // ponytail: no e.message — exception text can carry paths/SQL internals.
@@ -335,13 +373,13 @@ class SpotifyJsonImportService @Inject constructor(
         override fun read(b: ByteArray, off: Int, len: Int): Int = super.read(b, off, len).also { count(it) }
     }
 
-    private data class ParseResult(val entries: List<ParsedEntry>, val malformedCount: Int)
+    private data class ParseResult(val entryCount: Int, val podcastCount: Int, val malformedCount: Int)
 
-    private fun parseJsonStream(inputStream: InputStream, fileName: String): ParseResult {
+    private fun parseJsonStream(inputStream: InputStream, fileName: String, sink: BufferedSink): ParseResult {
         val source = inputStream.source().buffer()
 
         if (fileName.contains("endsong", ignoreCase = true)) {
-            return parseEndsongStream(source)
+            return parseEndsongStream(source, sink)
         }
 
         // ponytail: Spotify extended data export ships as "Streaming_History_Audio_*.json"
@@ -349,11 +387,11 @@ class SpotifyJsonImportService @Inject constructor(
         // (ts, ms_played, master_metadata_*) in a JSON array. Legacy "StreamingHistory*.json"
         // (no underscores) uses the old endTime/trackName schema handled below.
         if (fileName.contains("streaming_history", ignoreCase = true)) {
-            return parseEndsongStream(source)
+            return parseEndsongStream(source, sink)
         }
 
         if (fileName.contains("StreamingHistory", ignoreCase = true)) {
-            return parseStreamingHistoryStream(source)
+            return parseStreamingHistoryStream(source, sink)
         }
 
         val peekSource = source.peek()
@@ -365,20 +403,15 @@ class SpotifyJsonImportService @Inject constructor(
                 // generically-named files still route to the correct parser.
                 // ponytail: key-presence check (ts/ms_played vs endTime), order-independent.
                 if (isArrayEndsongSchema(source.peek())) {
-                    parseEndsongStream(source)
+                    parseEndsongStream(source, sink)
                 } else {
-                    try {
-                        parseStreamingHistoryStream(source)
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Failed as StreamingHistory, trying endsong array format", e)
-                        parseEndsongStream(source)
-                    }
+                    parseStreamingHistoryStream(source, sink)
                 }
             }
-            firstChar == '{'.code.toLong() -> parseEndsongNdjsonStream(source)
+            firstChar == '{'.code.toLong() -> parseEndsongNdjsonStream(source, sink)
             else -> {
                 Log.w(TAG, "Unknown format for $fileName, attempting StreamingHistory parse")
-                parseStreamingHistoryStream(source)
+                parseStreamingHistoryStream(source, sink)
             }
         }
     }
@@ -410,23 +443,32 @@ class SpotifyJsonImportService @Inject constructor(
         return -1
     }
 
-    private fun parseStreamingHistoryStream(source: okio.BufferedSource): ParseResult {
+    private fun parseStreamingHistoryStream(source: okio.BufferedSource, sink: BufferedSink): ParseResult {
         val reader = JsonReader.of(source)
-        val entries = mutableListOf<ParsedEntry>()
+        var entries = 0
+        var podcasts = 0
         var malformed = 0
 
         reader.beginArray()
         while (reader.hasNext()) {
-            try {
-                val entry = readStreamingHistoryEntry(reader)
-                if (entry != null) entries.add(entry) else malformed++
+            val entry = try {
+                readStreamingHistoryEntry(reader)
             } catch (e: Exception) {
                 reader.skipValue()
+                malformed++
+                continue
+            }
+            if (entry != null) {
+                if (entries >= MAX_PARSED_ENTRIES_PER_FILE) throw IOException("Spotify export exceeds the row limit")
+                writeParsedEntry(sink, entry)
+                entries++
+                if (entry.isPodcast) podcasts++
+            } else {
                 malformed++
             }
         }
         reader.endArray()
-        return ParseResult(entries, malformed)
+        return ParseResult(entries, podcasts, malformed)
     }
 
     private fun readStreamingHistoryEntry(reader: JsonReader): ParsedEntry? {
@@ -467,52 +509,87 @@ class SpotifyJsonImportService @Inject constructor(
         )
     }
 
-    private fun parseEndsongStream(source: okio.BufferedSource): ParseResult {
+    private fun parseEndsongStream(source: okio.BufferedSource, sink: BufferedSink): ParseResult {
         val reader = JsonReader.of(source)
 
         val peekSource = source.peek()
         val firstChar = skipWhitespace(peekSource)
 
         if (firstChar == '['.code.toLong()) {
-            val entries = mutableListOf<ParsedEntry>()
+            var entries = 0
+            var podcasts = 0
             var malformed = 0
             reader.beginArray()
             while (reader.hasNext()) {
-                try {
-                    val entry = readEndsongEntry(reader)
-                    if (entry != null) entries.add(entry) else malformed++
+                val entry = try {
+                    readEndsongEntry(reader)
                 } catch (e: Exception) {
                     reader.skipValue()
+                    malformed++
+                    continue
+                }
+                if (entry != null) {
+                    if (entries >= MAX_PARSED_ENTRIES_PER_FILE) throw IOException("Spotify export exceeds the row limit")
+                    writeParsedEntry(sink, entry)
+                    entries++
+                    if (entry.isPodcast) podcasts++
+                } else {
                     malformed++
                 }
             }
             reader.endArray()
-            return ParseResult(entries, malformed)
+            return ParseResult(entries, podcasts, malformed)
         } else {
-            return parseEndsongNdjsonStream(source)
+            return parseEndsongNdjsonStream(source, sink)
         }
     }
 
-    private fun parseEndsongNdjsonStream(source: okio.BufferedSource): ParseResult {
-        val entries = mutableListOf<ParsedEntry>()
+    private fun parseEndsongNdjsonStream(source: okio.BufferedSource, sink: BufferedSink): ParseResult {
+        var entries = 0
+        var podcasts = 0
         var malformed = 0
         val adapter = moshi.adapter(SpotifyEndsongEntry::class.java)
 
         while (!source.exhausted()) {
-            val line = source.readUtf8Line() ?: break
+            val line = readBoundedNdjsonLine(source) ?: break
             if (line.isBlank()) continue
-            try {
+            val parsed = try {
                 val entry = adapter.fromJson(line)
-                val parsed = convertEndsongEntry(entry)
-                if (parsed != null) entries.add(parsed) else malformed++
+                convertEndsongEntry(entry)
             } catch (e: Exception) {
+                malformed++
+                continue
+            }
+            if (parsed != null) {
+                if (entries >= MAX_PARSED_ENTRIES_PER_FILE) throw IOException("Spotify export exceeds the row limit")
+                writeParsedEntry(sink, parsed)
+                entries++
+                if (parsed.isPodcast) podcasts++
+            } else {
                 malformed++
             }
         }
         if (malformed > 0) {
             Log.w(TAG, "Skipped $malformed malformed NDJSON lines")
         }
-        return ParseResult(entries, malformed)
+        return ParseResult(entries, podcasts, malformed)
+    }
+
+    private fun writeParsedEntry(sink: BufferedSink, entry: ParsedEntry) {
+        moshi.adapter(ParsedEntry::class.java).toJson(sink, entry)
+        sink.writeUtf8("\n")
+    }
+
+    /** Reads an NDJSON record incrementally so one hostile line cannot allocate the whole file. */
+    private fun readBoundedNdjsonLine(source: okio.BufferedSource): String? {
+        val line = Buffer()
+        while (!source.exhausted()) {
+            val next = source.readByte()
+            if (next == '\n'.code.toByte()) return line.readUtf8().removeSuffix("\r")
+            if (line.size >= MAX_NDJSON_LINE_BYTES) throw IOException("Spotify JSON line exceeds the size limit")
+            line.writeByte(next.toInt())
+        }
+        return if (line.size == 0L) null else line.readUtf8().removeSuffix("\r")
     }
 
     private fun readEndsongEntry(reader: JsonReader): ParsedEntry? {
