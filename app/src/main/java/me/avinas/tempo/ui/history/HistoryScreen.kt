@@ -204,7 +204,7 @@ fun HistoryScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator(
-                            color = TempoPrimary,
+                            color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(36.dp),
                             strokeWidth = 3.dp
                         )
@@ -262,7 +262,7 @@ fun HistoryScreen(
                                     Icon(
                                         imageVector = Icons.Default.Search,
                                         contentDescription = stringResource(R.string.history_search),
-                                        tint = if (uiState.searchQuery.isNotBlank()) TempoPrimary else TextTertiary,
+                                        tint = if (uiState.searchQuery.isNotBlank()) MaterialTheme.colorScheme.primary else TextTertiary,
                                         modifier = Modifier.size(20.dp)
                                     )
                                     Spacer(modifier = Modifier.width(10.dp))
@@ -281,7 +281,7 @@ fun HistoryScreen(
                                             singleLine = true,
                                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                                             keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
-                                            cursorBrush = SolidColor(TempoPrimary),
+                                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                                             modifier = Modifier.fillMaxWidth()
                                         )
                                     }
@@ -317,12 +317,12 @@ fun HistoryScreen(
                                                 .background(
                                                     Brush.verticalGradient(
                                                         listOf(
-                                                            TempoPrimary.copy(alpha = 0.25f),
-                                                            TempoPrimaryDeep.copy(alpha = 0.35f)
+                                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                                                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
                                                         )
                                                     )
                                                 )
-                                                .border(1.dp, TempoPrimary.copy(alpha = 0.6f), CircleShape)
+                                                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), CircleShape)
                                         } else {
                                             Modifier
                                                 .background(TempoDarkSurfaceElevated.copy(alpha = 0.85f))
@@ -341,7 +341,7 @@ fun HistoryScreen(
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.List,
                                     contentDescription = stringResource(R.string.history_filter_title),
-                                    tint = if (isFilterActive) TempoPrimary else TextSecondary,
+                                    tint = if (isFilterActive) MaterialTheme.colorScheme.primary else TextSecondary,
                                     modifier = Modifier.size(20.dp)
                                 )
 
@@ -411,7 +411,7 @@ fun HistoryFilterSheetContent(
                 text = stringResource(R.string.history_reset),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
-                color = if (selectedRange != "All Time" || !showSkips) TempoPrimary else TextTertiary,
+                color = if (selectedRange != "All Time" || !showSkips) MaterialTheme.colorScheme.primary else TextTertiary,
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
                     .clickable {
@@ -488,7 +488,7 @@ fun HistoryFilterSheetContent(
                                         .shadow(
                                             elevation = 4.dp,
                                             shape = RoundedCornerShape(21.dp),
-                                            spotColor = TempoPrimary.copy(alpha = 0.4f),
+                                            spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
                                             ambientColor = Color.Black.copy(alpha = 0.7f)
                                         )
                                         .clip(RoundedCornerShape(21.dp))
@@ -496,8 +496,8 @@ fun HistoryFilterSheetContent(
                                             Brush.verticalGradient(
                                                 listOf(
                                                     TempoAccentBright,
-                                                    TempoPrimary,
-                                                    TempoPrimaryDeep
+                                                    MaterialTheme.colorScheme.primary,
+                                                    MaterialTheme.colorScheme.primaryContainer
                                                 )
                                             )
                                         )
@@ -588,7 +588,7 @@ fun HistoryFilterSheetContent(
                     },
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = TextOnAccent,
-                        checkedTrackColor = TempoPrimary,
+                        checkedTrackColor = MaterialTheme.colorScheme.primary,
                         uncheckedThumbColor = TextTertiary,
                         uncheckedTrackColor = TempoDarkSurfaceElevated
                     )
@@ -606,15 +606,15 @@ fun HistoryFilterSheetContent(
                 .shadow(
                     elevation = 6.dp,
                     shape = RoundedCornerShape(24.dp),
-                    spotColor = TempoPrimary.copy(alpha = 0.4f)
+                    spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
                 )
                 .clip(RoundedCornerShape(24.dp))
                 .background(
                     Brush.verticalGradient(
                         listOf(
                             TempoAccentBright,
-                            TempoPrimary,
-                            TempoPrimaryDeep
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.primaryContainer
                         )
                     )
                 )
@@ -856,7 +856,7 @@ fun HistoryListContent(
                         title = stringResource(R.string.history_recent_activity),
                         subtitle = stringResource(R.string.history_recent_activity_subtitle),
                         icon = Icons.Default.PlayCircle,
-                        iconTint = TempoPrimary
+                        iconTint = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -923,7 +923,7 @@ fun HistoryListContent(
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator(
-                            color = TempoPrimary,
+                            color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(24.dp),
                             strokeWidth = 2.5.dp
                         )
@@ -1333,12 +1333,12 @@ fun HistorySectionHeader(title: String, isLastFmSection: Boolean = false) {
                     .clip(RoundedCornerShape(8.dp))
                     .background(
                         if (isLastFmSection) GoldDark.copy(alpha = 0.14f)
-                        else TempoPrimary.copy(alpha = 0.12f)
+                        else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                     )
                     .border(
                         0.8.dp,
                         if (isLastFmSection) GoldDark.copy(alpha = 0.35f)
-                        else TempoPrimary.copy(alpha = 0.3f),
+                        else MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
                         RoundedCornerShape(8.dp)
                     )
                     .padding(horizontal = 10.dp, vertical = 4.dp)
@@ -1589,7 +1589,7 @@ fun HistoryListItem(
             TempoDropdownMenuItem(
                 title = stringResource(R.string.history_always_music_track),
                 leadingIcon = Icons.Rounded.MusicNote,
-                leadingIconTint = TempoPrimary,
+                leadingIconTint = MaterialTheme.colorScheme.primary,
                 onClick = {
                     onMarkContent?.invoke("ALWAYS_MUSIC", false)
                     showMenu = false
@@ -1598,7 +1598,7 @@ fun HistoryListItem(
             TempoDropdownMenuItem(
                 title = stringResource(R.string.history_always_music_artist, item.artist),
                 leadingIcon = Icons.Rounded.MusicNote,
-                leadingIconTint = TempoPrimary,
+                leadingIconTint = MaterialTheme.colorScheme.primary,
                 enabled = !me.avinas.tempo.utils.ArtistParser.isUnknownArtist(item.artist),
                 onClick = {
                     onMarkArtist?.invoke("ALWAYS_MUSIC", false)
@@ -1719,15 +1719,15 @@ fun HistoryEmptyState() {
                 modifier = Modifier
                     .size(80.dp)
                     .clip(CircleShape)
-                    .background(TempoPrimary.copy(alpha = 0.08f))
-                    .border(1.dp, TempoPrimary.copy(alpha = 0.2f), CircleShape),
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.History,
                     contentDescription = null,
                     modifier = Modifier.size(36.dp),
-                    tint = TempoPrimary
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
@@ -1793,8 +1793,8 @@ fun SearchEmptyState(query: String, onClear: () -> Unit) {
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
-                    .background(TempoPrimary.copy(alpha = 0.12f))
-                    .border(1.dp, TempoPrimary.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
                     .premiumClickable(onClick = onClear)
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 contentAlignment = Alignment.Center
@@ -1803,7 +1803,7 @@ fun SearchEmptyState(query: String, onClear: () -> Unit) {
                     text = stringResource(R.string.stats_search_clear),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = TempoPrimary
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         }

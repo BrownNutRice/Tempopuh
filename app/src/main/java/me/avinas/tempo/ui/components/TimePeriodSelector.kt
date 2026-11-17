@@ -68,7 +68,7 @@ fun TimePeriodSelector(
             availableRanges.forEach { range ->
                 val isSelected = range == selectedRange
                 val contentColor by animateColorAsState(
-                    if (isSelected) TextOnAccent else TextSecondary,
+                    if (isSelected) MaterialTheme.colorScheme.onPrimary else TextSecondary,
                     label = "textColor"
                 )
 
@@ -91,7 +91,7 @@ fun TimePeriodSelector(
                             spotColor = Color.Black.copy(alpha = 0.35f)
                         )
                         .clip(pillShape)
-                        .background(TempoPrimary)
+                        .background(MaterialTheme.colorScheme.primary)
                         .border(0.5.dp, Color.White.copy(alpha = 0.18f), pillShape)
                 } else {
                     Modifier

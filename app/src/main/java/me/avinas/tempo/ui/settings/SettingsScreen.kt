@@ -526,7 +526,7 @@ fun SettingsScreen(
                                         .background(
                                             brush =
                                                 androidx.compose.ui.graphics.Brush.linearGradient(
-                                                    colors = listOf(TempoPrimary, TempoPrimaryDeep),
+                                                    colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primaryContainer),
                                                 ),
                                             shape = CircleShape,
                                         ),
@@ -1304,7 +1304,7 @@ fun SettingsScreen(
             TempoDialogSurface {
                 TempoDialogIcon(
                     icon = TempoIcons.Edit,
-                    tint = TempoPrimary,
+                    tint = MaterialTheme.colorScheme.primary,
                     size = 48,
                 )
                 Spacer(modifier = Modifier.height(16.dp))
@@ -1367,7 +1367,7 @@ fun SettingsScreen(
                                 },
                                 colors =
                                     RadioButtonDefaults.colors(
-                                        selectedColor = TempoPrimary,
+                                        selectedColor = MaterialTheme.colorScheme.primary,
                                     ),
                             )
                             Spacer(modifier = Modifier.width(12.dp))
@@ -1429,7 +1429,7 @@ fun SettingsScreen(
                             RadioButton(
                                 selected = source == uiState.preferredCoverSource,
                                 onClick = null,
-                                colors = RadioButtonDefaults.colors(selectedColor = TempoPrimary),
+                                colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary),
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(name, style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
@@ -1466,12 +1466,12 @@ fun SettingsScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     if (progress.isIndeterminate) {
-                        CircularProgressIndicator(color = TempoPrimary, strokeWidth = 2.dp)
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary, strokeWidth = 2.dp)
                     } else {
                         LinearProgressIndicator(
                             progress = { progress.percentage.coerceIn(0f, 1f) },
                             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)),
-                            color = TempoPrimary,
+                            color = MaterialTheme.colorScheme.primary,
                             trackColor = GlassFrostSoft,
                         )
                         Spacer(modifier = Modifier.height(8.dp))
@@ -1501,7 +1501,7 @@ fun SettingsScreen(
                 TextButton(
                     onClick = { viewModel.importData(uri, ImportConflictStrategy.REPLACE) },
                 ) {
-                    Text(stringResource(R.string.settings_replace_existing), color = TempoPrimary, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.settings_replace_existing), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {

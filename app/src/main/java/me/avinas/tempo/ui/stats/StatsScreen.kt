@@ -3,8 +3,6 @@ package me.avinas.tempo.ui.stats
 import me.avinas.tempo.ui.details.formatListeningTime
 import me.avinas.tempo.ui.theme.TempoDarkBackground
 import me.avinas.tempo.ui.theme.TempoDarkSurfaceSunken
-import me.avinas.tempo.ui.theme.TempoPrimary
-import me.avinas.tempo.ui.theme.TempoPrimaryDeep
 import me.avinas.tempo.ui.theme.TempoAccentBright
 import me.avinas.tempo.ui.theme.TextOnAccent
 import me.avinas.tempo.ui.theme.GoldDark
@@ -310,7 +308,7 @@ fun StatsScreen(
                 if (uiState.isLoadingMore) {
                     item(key = "loading_more") {
                         Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = TempoPrimary)
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 }
@@ -335,7 +333,7 @@ fun StatsScreen(
             }
 
             if (uiState.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = TempoPrimary)
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.primary)
             }
 
             // Search drawer: reveals horizontally from the search-icon side (End)
@@ -662,7 +660,7 @@ fun StatsTabSelector(selectedTab: StatsTab, onTabSelected: (StatsTab) -> Unit) {
                                     .shadow(
                                         elevation = 4.dp,
                                         shape = RoundedCornerShape(22.dp),
-                                        spotColor = TempoPrimary.copy(alpha = 0.4f),
+                                        spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
                                         ambientColor = Color.Black.copy(alpha = 0.7f)
                                     )
                                     .clip(RoundedCornerShape(22.dp))
@@ -760,7 +758,7 @@ private fun StatsSearchField(
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
-                    cursorBrush = SolidColor(TempoPrimary),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                     modifier = Modifier
                         .fillMaxWidth()
                         .then(focusRequester?.let { Modifier.focusRequester(it) } ?: Modifier)
@@ -847,7 +845,7 @@ private fun StatsErrorState(message: String, onRetry: () -> Unit, modifier: Modi
             Button(
                 onClick = onRetry,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = TempoPrimary,
+                    containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = TextOnAccent
                 )
             ) {
@@ -912,7 +910,7 @@ private fun StatsTopBar(
                         imageVector = Icons.Default.Search,
                         contentDescription = stringResource(R.string.stats_search_open),
                         // Tinted while a search filter is active so search mode is never invisible.
-                        tint = if (isSearchActive) TempoPrimary else TextPrimary
+                        tint = if (isSearchActive) MaterialTheme.colorScheme.primary else TextPrimary
                     )
                 }
                 if (hasItems) {
@@ -935,8 +933,8 @@ private val StatsAvailableRanges = listOf(TimeRange.THIS_WEEK, TimeRange.THIS_MO
 private val TabSelectedBgBrush = Brush.verticalGradient(
     listOf(
         TempoAccentBright,
-        TempoPrimary,
-        TempoPrimaryDeep
+        MaterialTheme.colorScheme.primary,
+        MaterialTheme.colorScheme.primaryContainer
     )
 )
 
@@ -976,7 +974,7 @@ fun SortBySelector(
                     },
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Medium,
-                    color = TempoPrimary
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
             TempoDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {

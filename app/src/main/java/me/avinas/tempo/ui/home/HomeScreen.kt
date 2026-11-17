@@ -223,7 +223,7 @@ fun HomeScreen(
                                             if (showExtendedInsights) R.string.home_hide_more_insights
                                             else R.string.home_show_more_insights
                                         ),
-                                        color = TempoPrimary,
+                                        color = MaterialTheme.colorScheme.primary,
                                     )
                                 }
                             }
