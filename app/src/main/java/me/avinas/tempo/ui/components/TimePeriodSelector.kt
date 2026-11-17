@@ -57,8 +57,8 @@ fun TimePeriodSelector(
             .fillMaxWidth()
             .padding(horizontal = 4.dp)
             .clip(railShape)
-            .background(TempoDarkSurfaceSunken)
-            .border(1.dp, GlassBorderSoft, railShape)
+            .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, railShape)
             .padding(3.dp)
     ) {
         Row(
@@ -68,7 +68,7 @@ fun TimePeriodSelector(
             availableRanges.forEach { range ->
                 val isSelected = range == selectedRange
                 val contentColor by animateColorAsState(
-                    if (isSelected) MaterialTheme.colorScheme.onPrimary else TextSecondary,
+                    if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                     label = "textColor"
                 )
 
@@ -92,7 +92,7 @@ fun TimePeriodSelector(
                         )
                         .clip(pillShape)
                         .background(MaterialTheme.colorScheme.primary)
-                        .border(0.5.dp, Color.White.copy(alpha = 0.18f), pillShape)
+                        .border(0.5.dp, MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.18f), pillShape)
                 } else {
                     Modifier
                         .clip(pillShape)
