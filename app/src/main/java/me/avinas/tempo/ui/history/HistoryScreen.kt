@@ -188,7 +188,7 @@ fun HistoryScreen(
                     hostState = snackbarHostState,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(bottom = 100.dp), // Above nav bar
+                        .padding(bottom = if (me.avinas.tempo.ui.theme.LocalTempoAppearance.current.nowListening == me.avinas.tempo.ui.appearance.AppearanceNowListening.COMPACT) 160.dp else 100.dp), // Above nav bar
                     snackbar = { snackbarData ->
                         TempoSnackbar(snackbarData)
                     }
@@ -819,7 +819,7 @@ fun HistoryListContent(
         LazyColumn(
             state = listState,
             // Top padding for persistent search bar (status bar + 48dp bar + paddings), bottom for bottom nav
-            contentPadding = PaddingValues(top = 96.dp, bottom = 120.dp),
+            contentPadding = PaddingValues(top = 96.dp, bottom = if (me.avinas.tempo.ui.theme.LocalTempoAppearance.current.nowListening == me.avinas.tempo.ui.appearance.AppearanceNowListening.COMPACT) 180.dp else 120.dp),
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
