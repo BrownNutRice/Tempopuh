@@ -75,9 +75,9 @@ class NowPlayingArtworkViewModel @Inject constructor(
             .distinctUntilChanged()
             .flatMapLatest { identity ->
                 if (identity == null) {
-                    flowOf(null)
+                    flowOf<NowPlayingArtworkChoice?>(null)
                 } else {
-                    flow {
+                    flow<NowPlayingArtworkChoice?> {
                         // New playback can reach the UI before getOrInsertTrack()
                         // finishes its asynchronous insert. Retry only for this
                         // identity, then switch to cheap Room flows.
