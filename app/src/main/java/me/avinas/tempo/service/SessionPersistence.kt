@@ -104,15 +104,23 @@ class SessionPersistence(private val context: Context) {
     
     /** Records the service as active so [wasUncleanShutdown] can spot a crash or kill. */
     fun markServiceActive() {
-        prefs.edit()
-            .putLong(KEY_SERVICE_LAST_ACTIVE, System.currentTimeMillis())
-            .commit().also { check(it) { "Could not commit session persistence" } }
+        try {
+            if (!prefs.edit().putLong(KEY_SERVICE_LAST_ACTIVE, System.currentTimeMillis()).commit()) {
+                Log.w(TAG, "Unable to persist active-service marker")
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Unable to persist active-service marker", e)
+        }
     }
     
     fun markServiceInactive() {
-        prefs.edit()
-            .putLong(KEY_SERVICE_LAST_ACTIVE, 0)
-            .commit().also { check(it) { "Could not commit session persistence" } }
+        try {
+            if (!prefs.edit().putLong(KEY_SERVICE_LAST_ACTIVE, 0).commit()) {
+                Log.w(TAG, "Unable to persist inactive-service marker")
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Unable to persist inactive-service marker", e)
+        }
     }
     
     fun wasUncleanShutdown(): Boolean {

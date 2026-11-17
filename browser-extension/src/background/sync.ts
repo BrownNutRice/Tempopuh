@@ -847,17 +847,16 @@ async function sendWithRetry(url: string, payload: SyncPayload, authToken: strin
       clearTimeout(timeout);
 
       if (response.ok) {
-        try {
-          const isEncrypted = response.headers.get('X-Tempo-Encrypted') === '1';
-          const responseText = await response.text();
-          const decryptedText = isEncrypted
-            ? await decryptBody(responseText, authToken)
-            : responseText;
-          const data: SyncResponse = JSON.parse(decryptedText);
-          return data;
-        } catch {
-          return { ok: true };
-        }
+        // Never treat an unreadable/encryption-failed 200 as a successful sync.
+        // Throwing here keeps the batch queued and lets the normal retry path run.
+        const isEncrypted = response.headers.get('X-Tempo-Encrypted') === '1';
+        const responseText = await response.text();
+        const decryptedText = isEncrypted
+          ? await decryptBody(responseText, authToken)
+          : responseText;
+        const data: SyncResponse = JSON.parse(decryptedText);
+        if (data.ok !== true) throw new Error('Invalid sync acknowledgement from phone');
+        return data;
       }
 
       const body = await response.text();

@@ -50,10 +50,7 @@ class DesktopPlayIngestionService @Inject constructor(
     companion object {
         private const val TAG = "DesktopIngestion"
 
-         /** Minimum sensible play duration to accept (5 seconds). */
-        private const val MIN_PLAY_DURATION_MS = 5_000L
-
-        // Without a catalog duration, completion is unknown, not 90% verified.
+          // Without a catalog duration, completion is unknown, not 90% verified.
         private const val UNKNOWN_COMPLETION_PERCENT = 0
     }
 
@@ -103,15 +100,17 @@ class DesktopPlayIngestionService @Inject constructor(
             val album = entry.optString("album").takeIf { it.isNotBlank() }
             val timestampUtc = entry.optLong("timestamp_utc", 0L).takeIf { it > 0L } ?: continue
             val durationMs = entry.optLong("duration_ms", 0L)
-            // listened_ms is sent by the browser extension and represents actual listened time.
-            // Fall back to duration_ms (full track duration) for desktop app plays that
-            // don't send this field.
-            val listenedMs = entry.optLong("listened_ms", 0L).takeIf { it > 0L } ?: durationMs
+            // Catalog duration is NOT verified listening time. Legacy clients lacking
+            // listened_ms still contribute a play, but zero invented listening minutes.
+            val observedMs = DesktopListeningEvidence.observedMs(
+                entry.has("listened_ms"), entry.optLong("listened_ms", -1L)
+            )
+            val listenedMs = observedMs ?: 0L
             val sourceApp = entry.optString("source_app", "Desktop").trim()
 
             // Use observed listened time, not the full catalog duration, for
             // short-play detection. A 2-second clip of a 3-minute song isn't a play.
-            if (listenedMs < MIN_PLAY_DURATION_MS) {
+            if (!DesktopListeningEvidence.shouldRecord(observedMs)) {
                 Log.d(TAG, "Skipping short listen ($listenedMs ms): $title")
                 continue
             }
@@ -170,7 +169,7 @@ class DesktopPlayIngestionService @Inject constructor(
                     playDuration = listenedMs.coerceAtLeast(0L),
                     completionPercentage = completionPct,
                     source = "desktop:$sourceApp",
-                    wasSkipped = durationMs > 0L && completionPct < 30,
+                    wasSkipped = DesktopListeningEvidence.wasSkipped(observedMs, durationMs),
                     isReplay = false,
                     estimatedDurationMs = durationMs.takeIf { it > 0L }
                 )

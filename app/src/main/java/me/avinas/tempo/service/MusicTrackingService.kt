@@ -29,6 +29,8 @@ import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import me.avinas.tempo.MainActivity
 import me.avinas.tempo.R
 import me.avinas.tempo.data.AppTrackingPolicy
@@ -751,6 +753,9 @@ class MusicTrackingService : NotificationListenerService() {
     @Volatile
     private var isListenerConnected = false
     private val connectionLock = Any()
+
+    // Serialize checkpoints: a late write must not overwrite a newer pause/end snapshot.
+    private val sessionSaveMutex = Mutex()
 
     // Session auto-save job
     private var autoSaveJob: Job? = null
@@ -2078,7 +2083,11 @@ class MusicTrackingService : NotificationListenerService() {
             }
 
             if (playbackStates.isEmpty()) {
-                autoSaveJob?.cancel()
+                if (autoSaveJob?.isActive == true) {
+                    autoSaveJob?.cancel()
+                    // Remove the final stale recovery snapshot when the last session ends.
+                    serviceScope.launch { saveSessionsToPersistence() }
+                }
                 autoSaveJob = null
             } else {
                 startSessionAutoSave()
@@ -2291,7 +2300,10 @@ class MusicTrackingService : NotificationListenerService() {
         }
     }
 
-    private suspend fun saveSessionsToPersistence(): Boolean {
+    private suspend fun saveSessionsToPersistence(): Boolean =
+        sessionSaveMutex.withLock { persistSessionSnapshot() }
+
+    private suspend fun persistSessionSnapshot(): Boolean {
         try {
             // Create a snapshot to avoid ConcurrentModificationException
             val statesSnapshot = playbackStates.toMap()

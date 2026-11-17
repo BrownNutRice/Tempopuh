@@ -134,5 +134,18 @@ class MusicTrackingManagerSessionDedupTest {
         assertEquals(1, insertedRows.size)
         assertEquals("sess-1", insertedRows.single().sessionId)
     }
+    @Test
+    fun `two sessions with identical track and timestamp are both queued`() = runTest {
+        val manager = MusicTrackingManager(fakeRepository(), backgroundScope)
+        val first = event(sessionId = "sess-a", timestamp = 1_700_000_000_000L)
+        val second = event(sessionId = "sess-b", timestamp = 1_700_000_000_000L)
+
+        assertTrue(manager.queueEvent(first, "sess-a"))
+        assertTrue(manager.queueEvent(second, "sess-b"))
+        manager.flushAll()
+
+        assertEquals(2, insertedRows.size)
+    }
+
 }
 
