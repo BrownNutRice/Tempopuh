@@ -1354,4 +1354,5 @@
     <string name="settings_backup_overview_failed">Последнее копирование не удалось — проверьте настройки</string>
     <string name="settings_backup_overview_running">Резервное копирование выполняется</string>
     <string name="settings_backup_overview_last_success">Последняя успешная копия: %1$s</string>
+    <string name="settings_backup_status_shared_destination">Этот статус относится к локальным копиям и копиям Google Drive.</string>
 </resources>

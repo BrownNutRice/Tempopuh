@@ -762,4 +762,5 @@
     <string name="settings_backup_overview_failed">Az utolsó mentés sikertelen – ellenőrizd a beállításokat</string>
     <string name="settings_backup_overview_running">Mentés folyamatban</string>
     <string name="settings_backup_overview_last_success">Utolsó sikeres mentés: %1$s</string>
+    <string name="settings_backup_status_shared_destination">Ez az állapot a helyi és a Google Drive-mentésekre is vonatkozik.</string>
 </resources>

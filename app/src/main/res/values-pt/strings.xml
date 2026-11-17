@@ -1237,4 +1237,5 @@
     <string name="settings_backup_overview_failed">Última cópia de segurança falhou — verificar definições</string>
     <string name="settings_backup_overview_running">Cópia de segurança em curso</string>
     <string name="settings_backup_overview_last_success">Última cópia concluída: %1$s</string>
+    <string name="settings_backup_status_shared_destination">Este estado abrange cópias locais e do Google Drive.</string>
 </resources>
