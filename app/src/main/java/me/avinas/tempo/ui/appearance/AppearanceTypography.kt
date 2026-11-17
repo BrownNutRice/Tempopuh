@@ -10,8 +10,16 @@ import me.avinas.tempo.ui.theme.AppFontFamily
  * Android system font scaling.
  */
 object AppearanceTypography {
-    fun resolve(style: AppearanceFontStyle): Typography {
-        val base = me.avinas.tempo.ui.theme.Typography
+    fun resolve(style: AppearanceFontStyle, bold: Boolean = false): Typography {
+        val original = me.avinas.tempo.ui.theme.Typography
+        val base = if (!bold) original else original.copy(
+            bodyLarge = original.bodyLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
+            bodyMedium = original.bodyMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
+            bodySmall = original.bodySmall.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
+            labelLarge = original.labelLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold),
+            labelMedium = original.labelMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold),
+            labelSmall = original.labelSmall.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold),
+        )
         val headingFont = when (style) {
             AppearanceFontStyle.TEMPO -> return base
             AppearanceFontStyle.NEO_SANS -> AppFontFamily

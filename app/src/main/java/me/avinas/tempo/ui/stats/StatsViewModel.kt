@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import me.avinas.tempo.ui.appearance.*
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -34,6 +36,7 @@ class StatsViewModel
     @Inject
     constructor(
         private val statsRepository: StatsRepository,
+        private val appearancePreferences: AppearancePreferencesRepository,
         private val refreshCoordinator: RefreshCoordinator,
         private val listeningRepository: ListeningRepository,
     ) : ViewModel() {
@@ -53,6 +56,7 @@ class StatsViewModel
         // Cancellation alone is insufficient for repositories that complete
         // work just as a cancellation is delivered.
         private var resultGeneration = 0L
+        private var userSelectedFilters = false
 
         private fun invalidateInFlightQueries() {
             resultGeneration++
@@ -64,8 +68,25 @@ class StatsViewModel
         }
 
         init {
-            loadJob = loadData()
-            observeDataChanges()
+            viewModelScope.launch {
+                val defaults = appearancePreferences.settings.first()
+                if (!userSelectedFilters) _uiState.update { state -> state.copy(
+                    selectedTab = when (defaults.statsTab) {
+                        AppearanceStatsTab.SONGS -> StatsTab.TOP_SONGS
+                        AppearanceStatsTab.ARTISTS -> StatsTab.TOP_ARTISTS
+                        AppearanceStatsTab.ALBUMS -> StatsTab.TOP_ALBUMS
+                    },
+                    selectedTimeRange = when (defaults.statsRange) {
+                        AppearanceStatsRange.WEEK -> TimeRange.THIS_WEEK
+                        AppearanceStatsRange.MONTH -> TimeRange.THIS_MONTH
+                        AppearanceStatsRange.YEAR -> TimeRange.THIS_YEAR
+                        AppearanceStatsRange.ALL_TIME -> TimeRange.ALL_TIME
+                    },
+                ) }
+                invalidateInFlightQueries()
+                loadJob = loadData()
+                observeDataChanges()
+            }
         }
 
         private fun observeDataChanges() {
@@ -112,6 +133,7 @@ class StatsViewModel
         }
 
         fun onTabSelected(tab: StatsTab) {
+            userSelectedFilters = true
             if (_uiState.value.selectedTab == tab && _uiState.value.items.isNotEmpty()) return
             searchJob?.cancel()
             invalidateInFlightQueries()
@@ -120,6 +142,7 @@ class StatsViewModel
         }
 
         fun onTimeRangeSelected(timeRange: TimeRange) {
+            userSelectedFilters = true
             if (_uiState.value.selectedTimeRange == timeRange && _uiState.value.items.isNotEmpty()) return
             searchJob?.cancel()
             invalidateInFlightQueries()
@@ -128,6 +151,7 @@ class StatsViewModel
         }
 
         fun onSortBySelected(sortBy: SortBy) {
+            userSelectedFilters = true
             if (_uiState.value.selectedSortBy == sortBy && _uiState.value.items.isNotEmpty()) return
             searchJob?.cancel()
             invalidateInFlightQueries()

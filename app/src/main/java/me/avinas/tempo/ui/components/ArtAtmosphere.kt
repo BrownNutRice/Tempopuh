@@ -63,6 +63,8 @@ fun ArtAtmosphereLayer(
     modifier: Modifier = Modifier,
 ) {
     val appearancePalette = LocalTempoPalette.current
+    val policy = me.avinas.tempo.ui.appearance.LocalAppearanceRuntimePolicy.current
+    if (!policy.allowArtworkBackdrop) return
     val context = LocalContext.current
     val reducedMotion = rememberReducedMotion()
 

@@ -1,5 +1,8 @@
 package me.avinas.tempo.ui.home
 
+import me.avinas.tempo.ui.appearance.AppearanceHomeSection
+import me.avinas.tempo.ui.appearance.AppearanceNowListening
+import me.avinas.tempo.ui.theme.LocalTempoAppearance
 import me.avinas.tempo.ui.theme.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
@@ -109,6 +112,7 @@ fun HomeScreen(
     val optionalPromptsAllowed = !analyticsDisclosure.shouldShow &&
         !showTodaysOverview && !(uiState.isGamificationEnabled && showLevelUp)
 
+    val appearance = LocalTempoAppearance.current
     DeepOceanBackground {
         Box(modifier = Modifier.fillMaxSize()) {
             PullToRefreshBox(
@@ -142,8 +146,8 @@ fun HomeScreen(
                         )
                     }
                     
-                    item(key = "now_playing") {
-                        HomeNowPlaying()
+                    if (appearance.nowListening != AppearanceNowListening.HIDDEN) {
+                        item(key = "now_playing") { HomeNowPlaying() }
                     }
 
                     item(key = "period_selector") {
@@ -159,7 +163,38 @@ fun HomeScreen(
                     }
 
                     if (uiState.hasData) {
-                        item(key = "hero") {
+                        item(key = "insights_toggle") {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.End,
+                            ) {
+                                TextButton(onClick = {
+                                    viewModel.setExtendedInsightsVisible(!showExtendedInsights)
+                                }) {
+                                    Text(
+                                        text = stringResource(
+                                            if (showExtendedInsights) R.string.home_hide_more_insights
+                                            else R.string.home_show_more_insights
+                                        ),
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
+                            }
+                        }
+                    } else if (!flags.isLoading) {
+                        item(key = "empty") {
+                            me.avinas.tempo.ui.components.EmptyState(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(me.avinas.tempo.ui.utils.rememberScreenHeightPercentage(0.7f)),
+                                timeRange = if (uiState.isNewUser) null else uiState.selectedTimeRange,
+                                onCheckSupportedApps = onNavigateToSupportedApps
+                            )
+                        }
+                    }
+                    appearance.homeOrder.filter { it !in appearance.hiddenHomeSections }.forEach { section ->
+                        when (section) {
+                            AppearanceHomeSection.SUMMARY -> if (uiState.hasData) { item(key = "hero") {
                             
                             val timeString = remember(uiState.listeningOverview?.totalListeningTimeMs) {
                                 val totalMs = uiState.listeningOverview?.totalListeningTimeMs ?: 0
@@ -208,29 +243,8 @@ fun HomeScreen(
                                     peakDayMinutes = uiState.peakDayMinutes
                                 )
                             }
-                        }
-
-                        item(key = "insights_toggle") {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                                horizontalArrangement = Arrangement.End,
-                            ) {
-                                TextButton(onClick = {
-                                    viewModel.setExtendedInsightsVisible(!showExtendedInsights)
-                                }) {
-                                    Text(
-                                        text = stringResource(
-                                            if (showExtendedInsights) R.string.home_hide_more_insights
-                                            else R.string.home_show_more_insights
-                                        ),
-                                        color = MaterialTheme.colorScheme.primary,
-                                    )
-                                }
-                            }
-                        }
-
-                        if (showExtendedInsights) {
-                        item(key = "spotlight") {
+                        } }
+                            AppearanceHomeSection.SPOTLIGHT -> if (uiState.hasData && showExtendedInsights) { item(key = "spotlight") {
                             val walkthroughController = me.avinas.tempo.ui.components.LocalWalkthroughController.current
                             LaunchedEffect(uiState.hasData) {
                                 if (uiState.hasData) {
@@ -273,9 +287,8 @@ fun HomeScreen(
                                     }
                                 )
                             }
-                        }
-
-                        item(key = "quickstats") {
+                        } }
+                            AppearanceHomeSection.QUICK_STATS -> if (uiState.hasData && showExtendedInsights) { item(key = "quickstats") {
                             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                                 QuickStatsRow(
                                     topArtistName = uiState.topArtist?.artist,
@@ -303,22 +316,8 @@ fun HomeScreen(
                                     }
                                 )
                             }
-                        }
-                        } // optional Spotlight and top-track/artist cards
-                    } else if (!flags.isLoading) {
-                        item(key = "empty") {
-                            me.avinas.tempo.ui.components.EmptyState(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(me.avinas.tempo.ui.utils.rememberScreenHeightPercentage(0.7f)),
-                                timeRange = if (uiState.isNewUser) null else uiState.selectedTimeRange,
-                                onCheckSupportedApps = onNavigateToSupportedApps
-                            )
-                        }
-                    }
-                    
-                    if (uiState.todayOverview?.totalPlayCount?.let { it > 0 } == true) {
-                        item(key = "todays_listen") {
+                        } }
+                            AppearanceHomeSection.TODAY -> if (uiState.todayOverview?.totalPlayCount?.let { it > 0 } == true) { item(key = "todays_listen") {
                             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                                 TodaysListenWidget(
                                     todayOverview = uiState.todayOverview,
@@ -346,11 +345,9 @@ fun HomeScreen(
                                     onOpenOverview = { showTodaysOverview = true }
                                 )
                             }
-                        }
-                    }
-
-                    if (showExtendedInsights && insights.isNotEmpty()) {
-                        item(key = "insights_header") {
+                        } }
+                            AppearanceHomeSection.INSIGHTS -> if (showExtendedInsights && insights.isNotEmpty()) {
+                                item(key = "insights_header") {
                             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                                 Text(
                                     text = stringResource(R.string.home_your_signal),
@@ -363,8 +360,7 @@ fun HomeScreen(
                                 )
                             }
                         }
-
-                        item(key = "insights_feed") {
+item(key = "insights_feed") {
                             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                                 InsightFeed(
                                     insights = insights,
@@ -373,7 +369,10 @@ fun HomeScreen(
                                 )
                             }
                         }
+                            }
+                        }
                     }
+
                 }
             }
 
@@ -493,7 +492,8 @@ private fun HomeNowPlaying() {
     // updates from recomposing the entire Home dashboard.
     val presence by SpotifyBroadcastPresence.presence.collectAsStateWithLifecycle()
     if (presence != null) {
-        LiveNowPlayingCard(modifier = Modifier.padding(horizontal = 16.dp))
+        LiveNowPlayingCard(modifier = Modifier.padding(horizontal = 16.dp),
+            compact = LocalTempoAppearance.current.nowListening == AppearanceNowListening.COMPACT)
     }
 }
 

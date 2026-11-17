@@ -16,7 +16,7 @@ import me.avinas.tempo.ui.appearance.AppearanceSettings
 import me.avinas.tempo.ui.appearance.AppearancePalette
 import me.avinas.tempo.ui.appearance.AppearancePaletteResolver
 import me.avinas.tempo.ui.appearance.AppearancePreset
-import me.avinas.tempo.ui.appearance.AppearanceTypography
+import me.avinas.tempo.ui.appearance.*
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -80,34 +80,43 @@ fun TempoTheme(
     // Dynamic color is available on Android 12+
     dynamicColor: Boolean = false, // Retained for binary/source compatibility
     appearance: AppearanceSettings = AppearanceSettings(),
+    preview: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    // Live theme options are dark-compatible while legacy fixed-color screens
-    // migrate to semantic tokens; the default is pixel-compatible with Tempo.
-    val palette = androidx.compose.runtime.remember(appearance.preset) {
-        AppearancePaletteResolver.forPreset(appearance.preset)
+    val effective = if (preview) appearance else appearance.forLiveApp()
+    val context = LocalContext.current
+    val basePalette = androidx.compose.runtime.remember(effective.preset, effective.tone, darkTheme) {
+        AppearancePaletteResolver.resolve(effective, darkTheme)
     }
-    val colorScheme = if (appearance.preset == AppearancePreset.ABYSS)
-        DarkColorScheme else palette.materialColorScheme()
-    
+    val palette = if (effective.accentSource == AppearanceAccentSource.WALLPAPER && Build.VERSION.SDK_INT >= 31) {
+        val wallpaper = if (basePalette.isDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        AppearancePaletteResolver.withAccent(basePalette, wallpaper.primary)
+    } else basePalette
+    val policy = rememberAppearanceRuntimePolicy(effective)
+    val colorScheme = if (effective.preset == AppearancePreset.ABYSS && effective.tone == AppearanceTone.DARK &&
+        effective.accentSource != AppearanceAccentSource.WALLPAPER) DarkColorScheme else palette.materialColorScheme()
+
     val view = LocalView.current
-    if (!view.isInEditMode) {
+    if (!view.isInEditMode && !preview) {
         SideEffect {
-            val window = (view.context as Activity).window
+            val activity = generateSequence(view.context) { (it as? android.content.ContextWrapper)?.baseContext }
+                .filterIsInstance<Activity>().firstOrNull()
+            val window = activity?.window ?: return@SideEffect
             val insetsController = WindowCompat.getInsetsController(window, view)
-            insetsController.isAppearanceLightStatusBars = false // Always light text (for dark bg)
-            insetsController.isAppearanceLightNavigationBars = false // Always light icons (for dark bg)
+            insetsController.isAppearanceLightStatusBars = !palette.isDark
+            insetsController.isAppearanceLightNavigationBars = !palette.isDark
         }
     }
 
     CompositionLocalProvider(
         LocalTempoPalette provides palette,
-        LocalTempoAppearance provides appearance,
+        LocalTempoAppearance provides effective,
+        LocalAppearanceRuntimePolicy provides policy,
     ) {
         MaterialTheme(
             colorScheme = colorScheme,
-            typography = androidx.compose.runtime.remember(appearance.fontStyle) {
-                AppearanceTypography.resolve(appearance.fontStyle)
+            typography = androidx.compose.runtime.remember(effective.fontStyle, effective.boldText) {
+                AppearanceTypography.resolve(effective.fontStyle, effective.boldText)
             },
             content = content,
         )

@@ -62,7 +62,7 @@ fun StatCard(
                 scaleY = scale
                 this.alpha = alpha
             },
-        shape = RoundedCornerShape(16.dp),
+        shape = appearanceCardShape(),
         colors = CardDefaults.cardColors(
             containerColor = if (gradientColors == null) backgroundColor else Color.Transparent
         ),

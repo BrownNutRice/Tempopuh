@@ -1,6 +1,24 @@
 # Tempo — Appearance & Personalization Design RFC
 
-**Status:** Phase A + initial Phase B in progress (2026-11-17). Palette/font/motion/default reset now share an atomic Apply/Cancel draft; schema v1 and preference recovery are implemented. Shared dialog and share-picker controls consume palette roles. Four dark-compatible palettes, a gallery, heading typography options and reduced-motion preference are now implemented in source. Compilation/device tests have not run. Full light/system modes, advanced glass, blur and arrangement remain unimplemented.
+**Status (2026-11-17):** Source implementation now covers six dark-compatible presets, OLED, isolated Light/System previews, typography/density/shape, adaptive effects, scoped artwork and wallpaper accents, Home arrangement, Stats defaults, saved looks and appearance-only import/export. This is **not a completed release or validation sign-off**. Full-app Light/System remains gated while legacy surfaces are migrated. Experimental blur/refraction and a floating strip remain deferred. Builds, automated test execution, device checks and benchmarks have not run.
+
+### Current delivery checklist
+
+| Area | Source status | Remaining gate |
+| --- | --- | --- |
+| Six curated looks, Dark/OLED | Implemented; Abyss remains default | Device screenshots and contrast across all screens |
+| Light/System | Resolver and isolated preview implemented; live app falls back to Dark | Migrate remaining fixed dark/white surfaces, then full-screen validation |
+| Typography, bold text, density, corners | Implemented in Material typography and shared cards; compact changes default card padding only | Legacy explicit font/shape overrides; 320dp, RTL and 2x font checks |
+| Preview, Apply/Cancel, reset | Whole draft, atomic persistence, schema v2 with legacy fallback | Process-death, rotation and storage failure instrumentation |
+| Wallpaper/artwork accents | API 31+ wallpaper; cache-only current-track artwork accent | Device wallpaper refresh, missing/stale artwork cases |
+| Motion/effects | User/system motion, power/thermal/background gates, optional low-RAM adaptation, Solid/Satin | Benchmarks and navigation/legacy effect audit |
+| Home and Stats arrangement | Reorder/hide optional cards; inline/compact/hidden Now Listening; initial Stats tab/range | Interactive navigation and accessibility checks |
+| Saved looks and transfer | Up to 12 named looks; bounded versioned JSON; import edits draft only | Document-provider and old backup restore checks |
+| Floating strip, progressive blur/refraction | Not implemented; optional and deliberately deferred | Freshness/overlap design and measured device performance |
+| Tests and release | Regression test sources added; static review only | User-requested build/test/device cycle; separate release approval |
+
+**Next sequence:** finish the legacy semantic-color/effect audit; run the authorized build and test matrix when requested; resolve device findings; enable live Light/System only after those checks; consider optional experimental effects after benchmarks.
+
 **Scope:** Visual design system, appearance settings, performance profiles, accessibility, rollout, testing.
 **Out of scope:** Rebranding, player controls, altering music-tracking/event persistence, changing Android app ID, generating/publishing APKs.
 **Reference:** User-supplied screenshot of an Appearance page with system/light/dark themes, font, reduced animation, reduced blur, blend effects, "Liquid Glass", glass performance, progressive blur, and a floating mini player/nav. It is a feature reference, not an interface or artwork to copy.
@@ -18,7 +36,9 @@ Give Tempo a signature, visually memorable look while letting different listener
 - Preserve the user's choice across restart and backup/restore where appropriate; allow Reset to Tempo Default and non-destructive previews.
 - No copied Apple fonts/assets/proprietary glass shaders or claims of Apple-style native glass.
 
-## Existing code and blockers
+## Original baseline and migration targets
+
+The following table records the pre-implementation baseline. Use the current checklist above for delivery status.
 
 | Existing file | Reality now | Required change |
 | --- | --- | --- |

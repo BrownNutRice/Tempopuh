@@ -90,3 +90,16 @@ The migration is still not a guarantee of whole-app light compatibility: remaini
 Transient preference I/O retries now retain the last real settings instead of emitting defaults that could reset an active draft. Initial loading provides a Back action. Save state is exposed read-only. Share-preview chrome now uses palette surfaces/text/accent pairs, and background-picker checkmarks use onAccent for contrast. Exported share designs remain unchanged.
 
 Validation: source review and `git diff --check`; no Android compile, tests, CI or release. Runtime failure recovery and visual contrast still require authorized device validation.
+
+
+## Expanded personalization checkpoint
+
+Implemented six live dark-compatible presets plus OLED; Light/System are isolated previews only. Added typography bold text, conservative compact card padding, shared corner shapes, Solid/Satin surfaces, API 31+ wallpaper accents and cache-only current-track artwork accent. Effective policy responds to system animations, power saving, thermal pressure and lifecycle; low-RAM adaptation is optional. Solid mode removes shared-card sheen/shadows and artwork backdrop work.
+
+Appearance settings use one versioned JSON draft and an atomic DataStore apply. Legacy fields remain readable. Added up to 12 local named looks, corruption recovery, bounded appearance-only document import/export, and localized controls in all six existing locales. Imports remain drafts until Apply. No tracking data, paths or account settings are exported.
+
+Home optional sections can be hidden/reordered, Now Listening can be inline/compact/hidden, and initial Stats tab/date range are configurable. Startup preference hydration does not override a user-selected Stats filter. Stale Now Playing is labeled Last detected and stops showing progress after two minutes.
+
+Added test sources for six-palette/tone contrast, runtime policy, codec round-trip, unknown fields, order normalization and rejected oversized/future documents. These tests have **not run**. Static Kotlin parsing, resource-reference/XML checks and diff whitespace checks are the available validation; they do not establish successful Android compilation or runtime behavior.
+
+Remaining: full legacy semantic-color/effect migration, live Light/System enablement, layout/RTL/accessibility and process-death testing, Android API/device matrix, performance benchmarks, optional floating strip and experimental blur/refraction. No build, CI workflow, APK, release or tag was initiated. Tracking services, persistence, permissions, reconciliation and polling are unchanged.

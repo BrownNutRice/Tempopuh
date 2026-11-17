@@ -2,11 +2,14 @@ package me.avinas.tempo.ui.appearance
 
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.Color
 
 /**
  * Shared design tokens. These intentionally keep the legacy Abyss values unchanged.
- * All four initial options run on dark compatible surfaces so older screens with
+ * All six live options run on dark compatible surfaces so older screens with
  * fixed white text remain legible. True light mode is the next migration stage.
  */
 data class AppearancePalette(
@@ -21,8 +24,9 @@ data class AppearancePalette(
     val onSurface: Color,
     val mutedText: Color,
     val border: Color,
+    val isDark: Boolean = true,
 ) {
-    fun materialColorScheme(): ColorScheme = darkColorScheme(
+    fun materialColorScheme(): ColorScheme = (if (isDark) darkColorScheme() else lightColorScheme()).copy(
         primary = accent,
         onPrimary = onAccent,
         primaryContainer = elevatedSurface,
@@ -57,6 +61,20 @@ data class AppearancePalette(
 
 object AppearancePaletteResolver {
     fun forPreset(preset: AppearancePreset): AppearancePalette = when (preset) {
+        AppearancePreset.EMBER -> AppearancePalette(
+            preset = preset, accent = Color(0xFFFF91A3), onAccent = Color(0xFF300D18),
+            background = Color(0xFF1C0D15), topBackground = Color(0xFF301822),
+            surface = Color(0xFF28151E), elevatedSurface = Color(0xFF3A202B),
+            surfaceSunken = Color(0xFF150910), onSurface = Color(0xFFFFEDF1),
+            mutedText = Color(0xFFD0AEB8), border = Color(0xFF70414D),
+        )
+        AppearancePreset.SOLSTICE -> AppearancePalette(
+            preset = preset, accent = Color(0xFFF0B47D), onAccent = Color(0xFF291508),
+            background = Color(0xFF1B1510), topBackground = Color(0xFF30251C),
+            surface = Color(0xFF2A2119), elevatedSurface = Color(0xFF3B2E22),
+            surfaceSunken = Color(0xFF14100C), onSurface = Color(0xFFFFF3E4),
+            mutedText = Color(0xFFCAB9A4), border = Color(0xFF705A42),
+        )
         AppearancePreset.ABYSS -> AppearancePalette(
             preset = preset,
             accent = Color(0xFF2FDBB8), onAccent = Color(0xFF0A0E0E),
@@ -96,4 +114,57 @@ object AppearancePaletteResolver {
             border = Color(0xFF436478),
         )
     }
+
+    fun resolve(settings: AppearanceSettings, systemDark: Boolean = true): AppearancePalette {
+        val dark = when (settings.tone) {
+            AppearanceTone.LIGHT -> false
+            AppearanceTone.SYSTEM -> systemDark
+            else -> true
+        }
+        val base = forPreset(settings.preset)
+        if (settings.tone == AppearanceTone.OLED) return base.copy(
+            background = Color.Black, topBackground = Color.Black, surfaceSunken = Color.Black,
+        )
+        if (dark) return base
+        val warm = settings.preset == AppearancePreset.SOLSTICE || settings.preset == AppearancePreset.EMBER
+        val accent = when (settings.preset) {
+            AppearancePreset.ABYSS -> Color(0xFF006B57)
+            AppearancePreset.OBSIDIAN_GOLD -> Color(0xFF73530B)
+            AppearancePreset.AURORA -> Color(0xFF6541A5)
+            AppearancePreset.GLACIER -> Color(0xFF16618C)
+            AppearancePreset.EMBER -> Color(0xFFA22B48)
+            AppearancePreset.SOLSTICE -> Color(0xFF994421)
+        }
+        return base.copy(
+            accent = accent, onAccent = Color.White,
+            background = if (warm) Color(0xFFFFF7EA) else Color(0xFFEFF6FC),
+            topBackground = if (warm) Color(0xFFFFFBF4) else Color(0xFFF8FCFF),
+            surface = if (warm) Color(0xFFFFFBF4) else Color(0xFFF8FCFF),
+            elevatedSurface = if (warm) Color(0xFFF3E7D5) else Color(0xFFE1EDF5),
+            surfaceSunken = if (warm) Color(0xFFF0E2CF) else Color(0xFFDCE8F1),
+            onSurface = if (warm) Color(0xFF2B2118) else Color(0xFF172C3C),
+            mutedText = if (warm) Color(0xFF61503F) else Color(0xFF455967),
+            border = if (warm) Color(0xFF8A745D) else Color(0xFF647E91),
+            isDark = false,
+        )
+    }
+
+    /** Adjust decorative accent until it is readable against its actual surface. */
+    fun withAccent(palette: AppearancePalette, candidate: Color): AppearancePalette {
+        val opaque = candidate.copy(alpha = 1f)
+        val target = if (palette.isDark) Color.White else Color.Black
+        var accent = opaque
+        for (step in 0..20) {
+            accent = lerp(opaque, target, step / 20f)
+            if (contrast(accent, palette.surface) >= 4.5f) break
+        }
+        val onAccent = if (contrast(Color.Black, accent) >= contrast(Color.White, accent)) Color.Black else Color.White
+        return palette.copy(accent = accent, onAccent = onAccent)
+    }
+
+    private fun contrast(a: Color, b: Color): Float {
+        val x = a.luminance(); val y = b.luminance()
+        return (maxOf(x, y) + 0.05f) / (minOf(x, y) + 0.05f)
+    }
+
 }

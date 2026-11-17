@@ -1,254 +1,310 @@
 package me.avinas.tempo.ui.appearance
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontFamily
-import me.avinas.tempo.ui.theme.AppFontFamily
-import me.avinas.tempo.ui.theme.DisplayFontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import me.avinas.tempo.R
 import me.avinas.tempo.ui.components.DeepOceanBackground
+import me.avinas.tempo.ui.components.GlassCard
+import me.avinas.tempo.ui.theme.AppFontFamily
+import me.avinas.tempo.ui.theme.DisplayFontFamily
+import me.avinas.tempo.ui.theme.TempoTheme
 
-/** Preview in place; tapping a card does not persist anything until Apply. */
+private val DraftSaver = Saver<AppearanceSettings, String>(
+    save = { AppearanceCodec.encode(it) },
+    restore = { runCatching { AppearanceCodec.decode(it) }.getOrDefault(AppearanceSettings()) },
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppearanceScreen(
-    onNavigateBack: () -> Unit,
-    viewModel: AppearanceViewModel = hiltViewModel(),
-) {
+fun AppearanceScreen(onNavigateBack: () -> Unit, viewModel: AppearanceViewModel = hiltViewModel()) {
     val loaded by viewModel.settings.collectAsState()
     val saving by viewModel.saving.collectAsState()
     val saveFailed by viewModel.saveFailed.collectAsState()
-    // Do not initialize an editable draft from placeholder preferences.
-    val saved = loaded ?: run {
-        androidx.compose.foundation.layout.Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            androidx.compose.material3.CircularProgressIndicator()
-            IconButton(onClick = onNavigateBack, modifier = Modifier.align(Alignment.TopStart)) {
+    val looks by viewModel.savedLooks.collectAsState()
+    val saved = loaded
+    if (saved == null) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+            IconButton(onClick = onNavigateBack, modifier = Modifier.align(Alignment.TopStart).statusBarsPadding()) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.settings_back))
             }
         }
         return
     }
-    var draft by rememberSaveable(saved) { mutableStateOf(saved.preset) }
-    var draftFont by rememberSaveable(saved) { mutableStateOf(saved.fontStyle) }
-    var draftMotion by rememberSaveable(saved) { mutableStateOf(saved.reduceMotion) }
-    val pending = saved.copy(preset = draft, fontStyle = draftFont, reduceMotion = draftMotion)
-    val modified = pending != saved
-    val foreground = MaterialTheme.colorScheme.onSurface
-    val muted = MaterialTheme.colorScheme.onSurfaceVariant
-
-    Scaffold(
-        containerColor = Color.Transparent,
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.appearance_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.settings_back))
+    var draft by rememberSaveable(saved, stateSaver = DraftSaver) { mutableStateOf(saved) }
+    var previewLight by rememberSaveable { mutableStateOf(false) }
+    var previewSystem by rememberSaveable { mutableStateOf(false) }
+    var lookName by rememberSaveable { mutableStateOf("") }
+    var transferFailed by rememberSaveable { mutableStateOf(false) }
+    var transferDone by rememberSaveable { mutableStateOf(false) }
+    var transferBusy by remember { mutableStateOf(false) }
+    var exportSnapshot by rememberSaveable { mutableStateOf<String?>(null) }
+    val busy = saving || transferBusy
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        val snapshot = exportSnapshot
+        exportSnapshot = null
+        if (uri != null && snapshot != null) {
+            transferBusy = true
+            scope.launch {
+                try {
+                    withContext(Dispatchers.IO) {
+                        requireNotNull(context.contentResolver.openOutputStream(uri, "wt")).use { it.write(snapshot.toByteArray(Charsets.UTF_8)) }
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
-                    titleContentColor = foreground,
-                    navigationIconContentColor = foreground,
-                ),
-            )
-        },
+                    transferDone = true
+                } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled } catch (failure: Exception) { transferFailed = true } finally { transferBusy = false }
+            }
+        }
+    }
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            transferBusy = true
+            scope.launch {
+                try {
+                    val imported = withContext(Dispatchers.IO) {
+                        requireNotNull(context.contentResolver.openInputStream(uri)).use { input ->
+                            val bytes = java.io.ByteArrayOutputStream()
+                            val buffer = ByteArray(4096)
+                            while (true) {
+                                val count = input.read(buffer)
+                                if (count < 0) break
+                                require(bytes.size() + count <= AppearanceCodec.MAX_BYTES)
+                                bytes.write(buffer, 0, count)
+                            }
+                            AppearanceCodec.decode(bytes.toString("UTF-8")).forLiveApp()
+                        }
+                    }
+                    draft = imported
+                    transferDone = true
+                } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled } catch (failure: Exception) { transferFailed = true } finally { transferBusy = false }
+            }
+        }
+    }
+    val preview = draft.copy(tone = when {
+        previewSystem -> AppearanceTone.SYSTEM
+        previewLight -> AppearanceTone.LIGHT
+        else -> draft.tone
+    })
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = { TopAppBar(
+            title = { Text(stringResource(R.string.appearance_title)) },
+            navigationIcon = { IconButton(onClick = onNavigateBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.settings_back))
+            } },
+        ) },
         bottomBar = {
-            if (modified) {
-                Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = 8.dp) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        OutlinedButton(
-                            onClick = { draft = saved.preset; draftFont = saved.fontStyle; draftMotion = saved.reduceMotion },
-                            enabled = !saving,
-                            modifier = Modifier.weight(1f),
-                        ) { Text(stringResource(R.string.appearance_cancel)) }
-                        Button(
-                            onClick = { viewModel.apply(pending) },
-                            enabled = !saving,
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = AppearancePaletteResolver.forPreset(draft).accent,
-                                contentColor = AppearancePaletteResolver.forPreset(draft).onAccent,
-                            ),
-                        ) { Text(stringResource(R.string.appearance_apply)) }
+            if (draft != saved) Surface(shadowElevation = 8.dp) {
+                Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedButton(onClick = { draft = saved }, enabled = !busy, modifier = Modifier.weight(1f)) {
+                        Text(stringResource(R.string.appearance_cancel))
+                    }
+                    Button(onClick = { viewModel.apply(draft) }, enabled = !busy, modifier = Modifier.weight(1f)) {
+                        Text(stringResource(R.string.appearance_apply))
                     }
                 }
             }
         },
     ) { padding ->
-        DeepOceanBackground {
-            Column(
-                modifier = Modifier.fillMaxSize()
-                    .padding(padding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 18.dp, vertical = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Text(
-                    stringResource(R.string.appearance_gallery_heading),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = foreground,
-                )
-                Text(
-                    stringResource(R.string.appearance_gallery_description),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = muted,
-                )
-                val presets = AppearancePreset.entries
-                presets.chunked(2).forEach { pair ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        pair.forEach { preset ->
-                            AppearancePresetCard(
-                                preset = preset,
-                                active = preset == saved.preset,
-                                selected = draft == preset,
-                                onClick = { if (!saving) draft = preset },
-                                modifier = Modifier.weight(1f),
-                            )
+        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(stringResource(R.string.appearance_gallery_heading), style = MaterialTheme.typography.headlineMedium)
+            Text(stringResource(R.string.appearance_gallery_description), style = MaterialTheme.typography.bodyMedium)
+            // Actual card/text tokens, isolated from saved app state and system bars.
+            TempoTheme(appearance = preview, preview = true) {
+                Surface(shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.background) {
+                    Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(stringResource(R.string.appearance_preview_song), style = MaterialTheme.typography.headlineSmall)
+                        GlassCard {
+                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(stringResource(R.string.appearance_preview_artist), style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface)
+                                LinearProgressIndicator(progress = { 0.64f }, modifier = Modifier.fillMaxWidth())
+                                Text(stringResource(R.string.appearance_preview_pending), style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     }
                 }
-                Text(
-                    if (modified) stringResource(R.string.appearance_preview_pending)
-                    else stringResource(R.string.appearance_preview_saved),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = muted,
-                )
-
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    stringResource(R.string.appearance_font_heading),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = foreground,
-                )
-                Text(
-                    stringResource(R.string.appearance_font_description),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = muted,
-                )
-                AppearanceFontStyle.entries.chunked(2).forEach { pair ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        pair.forEach { style ->
-                            FontStyleCard(
-                                style = style,
-                                selected = draftFont == style,
-                                onClick = { if (!saving) draftFont = style },
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                    }
-                }
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    stringResource(R.string.appearance_accessibility_heading),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = foreground,
-                )
-                Surface(
-                    color = MaterialTheme.colorScheme.surface,
-                    shape = RoundedCornerShape(20.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(stringResource(R.string.appearance_reduce_motion), color = foreground)
-                            Text(
-                                stringResource(R.string.appearance_reduce_motion_description),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = muted,
-                            )
-                        }
-                        Switch(
-                            checked = draftMotion,
-                            enabled = !saving,
-                            onCheckedChange = { draftMotion = it },
-                        )
-                    }
-                }
-                Text(
-                    stringResource(R.string.appearance_light_later),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = muted,
-                )
-                OutlinedButton(enabled = !saving, onClick = {
-                    draft = AppearancePreset.ABYSS
-                    draftFont = AppearanceFontStyle.TEMPO
-                    draftMotion = false
-                }) {
-                    Text(stringResource(R.string.appearance_restore))
-                }
-                if (saveFailed) {
-                    Text(stringResource(R.string.appearance_save_failed), color = MaterialTheme.colorScheme.error)
-                }
-                Spacer(Modifier.height(18.dp))
             }
+            AppearancePreset.entries.chunked(2).forEach { pair ->
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    pair.forEach { preset -> AppearancePresetCard(preset, saved.preset == preset, draft.preset == preset,
+                        onClick = { if (!busy) draft = draft.copy(preset = preset) }, modifier = Modifier.weight(1f), tone = preview.tone) }
+                }
+            }
+            ChoiceRow(R.string.appearance_tone_heading, listOf(AppearanceTone.DARK, AppearanceTone.OLED), draft.tone, !busy,
+                { if (it == AppearanceTone.OLED) R.string.appearance_oled else R.string.appearance_dark }) {
+                draft = draft.copy(tone = it)
+            }
+            SettingToggle(R.string.appearance_preview_light, previewLight, !busy && !previewSystem) { previewLight = it }
+            SettingToggle(R.string.appearance_preview_system, previewSystem, !busy) { previewSystem = it }
+            Text(stringResource(R.string.appearance_light_preview_notice), style = MaterialTheme.typography.bodySmall)
+            AppearanceSection(R.string.appearance_layout_heading) {
+                AppearanceFontStyle.entries.chunked(2).forEach { pair -> Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    pair.forEach { style -> FontStyleCard(style, draft.fontStyle == style,
+                        onClick = { if (!busy) draft = draft.copy(fontStyle = style) }, modifier = Modifier.weight(1f)) }
+                } }
+                ChoiceRow(R.string.appearance_density, AppearanceDensity.entries, draft.density, !busy,
+                    { if (it == AppearanceDensity.COMPACT) R.string.appearance_compact else R.string.appearance_comfortable }) { draft = draft.copy(density = it) }
+                ChoiceRow(R.string.appearance_corners, AppearanceShape.entries, draft.shape, !busy, { when (it) {
+                    AppearanceShape.SOFT -> R.string.appearance_soft
+                    AppearanceShape.MODERATE -> R.string.appearance_moderate
+                    AppearanceShape.SHARP -> R.string.appearance_sharp
+                } }) { draft = draft.copy(shape = it) }
+                SettingToggle(R.string.appearance_bold, draft.boldText, !busy) { draft = draft.copy(boldText = it) }
+            }
+            AppearanceSection(R.string.appearance_effects_heading) {
+                ChoiceRow(R.string.appearance_accent_source, AppearanceAccentSource.entries.filter {
+                    it != AppearanceAccentSource.WALLPAPER || Build.VERSION.SDK_INT >= 31
+                }, draft.accentSource, !busy, { when (it) {
+                    AppearanceAccentSource.PRESET -> R.string.appearance_preset_accent
+                    AppearanceAccentSource.WALLPAPER -> R.string.appearance_wallpaper
+                    AppearanceAccentSource.ARTWORK -> R.string.appearance_artwork
+                } }) { draft = draft.copy(accentSource = it) }
+                Text(stringResource(R.string.appearance_artwork_scope), style = MaterialTheme.typography.bodySmall)
+                ChoiceRow(R.string.appearance_finish, AppearanceSurface.entries, draft.surface, !busy,
+                    { if (it == AppearanceSurface.SOLID) R.string.appearance_solid else R.string.appearance_satin }) { draft = draft.copy(surface = it) }
+                SettingToggle(R.string.appearance_reduce_motion, draft.reduceMotion, !busy) { draft = draft.copy(reduceMotion = it) }
+                SettingToggle(R.string.appearance_adaptive, draft.adaptiveEffects, !busy) { draft = draft.copy(adaptiveEffects = it) }
+                Text(stringResource(R.string.appearance_effect_policy), style = MaterialTheme.typography.bodySmall)
+            }
+            AppearanceSection(R.string.appearance_arrangement) {
+                ChoiceRow(R.string.appearance_now_listening, AppearanceNowListening.entries, draft.nowListening, !busy, { when (it) {
+                    AppearanceNowListening.INLINE -> R.string.appearance_inline
+                    AppearanceNowListening.COMPACT -> R.string.appearance_compact
+                    AppearanceNowListening.HIDDEN -> R.string.appearance_hidden
+                } }) { draft = draft.copy(nowListening = it) }
+                Text(stringResource(R.string.appearance_home_order), style = MaterialTheme.typography.titleSmall)
+                draft.homeOrder.forEachIndexed { index, section ->
+                    val sectionName = stringResource(sectionLabel(section))
+                    val moveLabel = stringResource(R.string.appearance_move_up)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(modifier = Modifier.semantics { contentDescription = sectionName }, checked = section !in draft.hiddenHomeSections, enabled = !busy, onCheckedChange = { visible ->
+                            draft = draft.copy(hiddenHomeSections = if (visible) draft.hiddenHomeSections - section else draft.hiddenHomeSections + section)
+                        })
+                        Text(stringResource(sectionLabel(section)), modifier = Modifier.weight(1f))
+                        TextButton(modifier = Modifier.semantics { contentDescription = "$moveLabel: $sectionName" }, enabled = !busy && index > 0, onClick = {
+                            val order = draft.homeOrder.toMutableList()
+                            order[index] = order[index - 1]; order[index - 1] = section
+                            draft = draft.copy(homeOrder = order)
+                        }) { Text(stringResource(R.string.appearance_move_up)) }
+                    }
+                }
+                ChoiceRow(R.string.appearance_stats_start, AppearanceStatsTab.entries, draft.statsTab, !busy, { when (it) {
+                    AppearanceStatsTab.SONGS -> R.string.appearance_songs
+                    AppearanceStatsTab.ARTISTS -> R.string.appearance_artists
+                    AppearanceStatsTab.ALBUMS -> R.string.appearance_albums
+                } }) { draft = draft.copy(statsTab = it) }
+                ChoiceRow(R.string.appearance_stats_period, AppearanceStatsRange.entries, draft.statsRange, !busy, { when (it) {
+                    AppearanceStatsRange.WEEK -> R.string.period_this_week
+                    AppearanceStatsRange.MONTH -> R.string.period_this_month
+                    AppearanceStatsRange.YEAR -> R.string.period_this_year
+                    AppearanceStatsRange.ALL_TIME -> R.string.period_all_time
+                } }) { draft = draft.copy(statsRange = it) }
+            }
+            AppearanceSection(R.string.appearance_saved_looks) {
+                OutlinedTextField(value = lookName, onValueChange = { lookName = it.take(40) }, enabled = !busy,
+                    label = { Text(stringResource(R.string.appearance_look_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedButton(enabled = !busy && lookName.isNotBlank() && (looks.size < 12 || lookName.trim() in looks),
+                    onClick = { viewModel.saveLook(lookName, draft) }) { Text(stringResource(R.string.appearance_save_look)) }
+                looks.forEach { (name, look) -> Row(verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(enabled = !busy, onClick = { draft = look }, modifier = Modifier.weight(1f)) { Text(name) }
+                    TextButton(enabled = !busy, onClick = { viewModel.deleteLook(name) }) { Text(stringResource(R.string.appearance_delete_look)) }
+                } }
+                Text(stringResource(R.string.appearance_transfer_hint), style = MaterialTheme.typography.bodySmall)
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedButton(enabled = !busy, onClick = { transferDone = false; transferFailed = false; importLauncher.launch(arrayOf("application/json", "text/plain")) }) {
+                        Text(stringResource(R.string.appearance_import))
+                    }
+                    OutlinedButton(enabled = !busy, onClick = {
+                        transferDone = false; transferFailed = false
+                        exportSnapshot = AppearanceCodec.encode(draft)
+                        exportLauncher.launch("tempo-appearance.json")
+                    }) { Text(stringResource(R.string.appearance_export)) }
+                }
+            }
+            OutlinedButton(enabled = !busy, onClick = { draft = AppearanceSettings(); previewLight = false; previewSystem = false }) {
+                Text(stringResource(R.string.appearance_restore))
+            }
+            if (saveFailed) Text(stringResource(R.string.appearance_save_failed), color = MaterialTheme.colorScheme.error)
+            if (transferFailed) Text(stringResource(R.string.appearance_transfer_failed), color = MaterialTheme.colorScheme.error)
+            if (transferDone) Text(stringResource(R.string.appearance_transfer_done))
+            Spacer(Modifier.height(12.dp))
         }
     }
+}
+
+@Composable
+private fun AppearanceSection(title: Int, content: @Composable ColumnScope.() -> Unit) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        TextButton(onClick = { expanded = !expanded }, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(title), modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+            Text(if (expanded) "−" else "+")
+        }
+        if (expanded) content()
+    }
+}
+
+@Composable
+private fun SettingToggle(label: Int, checked: Boolean, enabled: Boolean, onChange: (Boolean) -> Unit) {
+    val labelText = stringResource(label)
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(labelText, modifier = Modifier.weight(1f))
+        Switch(modifier = Modifier.semantics { contentDescription = labelText }, checked = checked, enabled = enabled, onCheckedChange = onChange)
+    }
+}
+
+@Composable
+private fun <T> ChoiceRow(label: Int, options: List<T>, selected: T, enabled: Boolean,
+    text: (T) -> Int, onSelect: (T) -> Unit) {
+    Column {
+        Text(stringResource(label), style = MaterialTheme.typography.titleSmall)
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            options.forEach { option -> FilterChip(selected = selected == option, enabled = enabled,
+                onClick = { onSelect(option) }, label = { Text(stringResource(text(option))) }) }
+        }
+    }
+}
+
+private fun sectionLabel(section: AppearanceHomeSection): Int = when (section) {
+    AppearanceHomeSection.SUMMARY -> R.string.appearance_summary
+    AppearanceHomeSection.SPOTLIGHT -> R.string.appearance_spotlight
+    AppearanceHomeSection.QUICK_STATS -> R.string.appearance_quick_stats
+    AppearanceHomeSection.TODAY -> R.string.period_today
+    AppearanceHomeSection.INSIGHTS -> R.string.appearance_insights
 }
 
 @Composable
@@ -258,20 +314,25 @@ private fun AppearancePresetCard(
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    tone: AppearanceTone = AppearanceTone.DARK,
 ) {
-    val palette = AppearancePaletteResolver.forPreset(preset)
+    val palette = AppearancePaletteResolver.resolve(AppearanceSettings(preset = preset, tone = tone), androidx.compose.foundation.isSystemInDarkTheme())
     val shape = RoundedCornerShape(22.dp)
     val label = when (preset) {
         AppearancePreset.ABYSS -> stringResource(R.string.appearance_abyss)
         AppearancePreset.OBSIDIAN_GOLD -> stringResource(R.string.appearance_gold)
         AppearancePreset.AURORA -> stringResource(R.string.appearance_aurora)
         AppearancePreset.GLACIER -> stringResource(R.string.appearance_glacier)
+        AppearancePreset.EMBER -> stringResource(R.string.appearance_ember)
+        AppearancePreset.SOLSTICE -> stringResource(R.string.appearance_solstice)
     }
     val description = when (preset) {
         AppearancePreset.ABYSS -> stringResource(R.string.appearance_abyss_desc)
         AppearancePreset.OBSIDIAN_GOLD -> stringResource(R.string.appearance_gold_desc)
         AppearancePreset.AURORA -> stringResource(R.string.appearance_aurora_desc)
         AppearancePreset.GLACIER -> stringResource(R.string.appearance_glacier_desc)
+        AppearancePreset.EMBER -> stringResource(R.string.appearance_ember_desc)
+        AppearancePreset.SOLSTICE -> stringResource(R.string.appearance_solstice_desc)
     }
     Column(
         modifier = modifier

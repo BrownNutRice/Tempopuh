@@ -25,8 +25,8 @@ class AppearancePaletteTest {
 
     @Test fun `each initial visual style has independent foreground background and accent`() {
         val palettes = AppearancePreset.entries.map(AppearancePaletteResolver::forPreset)
-        assertEquals(4, palettes.map { it.background }.distinct().size)
-        assertEquals(4, palettes.map { it.accent }.distinct().size)
+        assertEquals(AppearancePreset.entries.size, palettes.map { it.background }.distinct().size)
+        assertEquals(AppearancePreset.entries.size, palettes.map { it.accent }.distinct().size)
         palettes.forEach {
             assertNotEquals(it.onSurface, it.background)
             assertNotEquals(it.accent, it.background)
@@ -39,13 +39,30 @@ class AppearancePaletteTest {
         assertEquals(androidx.compose.ui.graphics.Color(0xFF0A0E0E), abyss.background)
         assertEquals(androidx.compose.ui.graphics.Color(0xFF2FDBB8), abyss.accent)
     }
-    @Test fun `all four palettes use high contrast text and buttons`() {
+    @Test fun `all six palettes use high contrast text and buttons`() {
         AppearancePreset.entries.forEach { preset ->
             val palette = AppearancePaletteResolver.forPreset(preset)
             assertTrue("$preset primary text", contrast(palette.onSurface, palette.background) >= 7.0)
             assertTrue("$preset muted text", contrast(palette.mutedText, palette.surface) >= 4.5)
             assertTrue("$preset button label", contrast(palette.onAccent, palette.accent) >= 4.5)
         }
+    }
+
+    @Test fun `light previews and OLED preserve readable labels`() {
+        AppearancePreset.entries.forEach { preset ->
+            listOf(AppearanceTone.LIGHT, AppearanceTone.OLED).forEach { tone ->
+                val palette = AppearancePaletteResolver.resolve(AppearanceSettings(preset = preset, tone = tone))
+                assertTrue("$preset $tone text", contrast(palette.onSurface, palette.background) >= 7.0)
+                assertTrue("$preset $tone muted", contrast(palette.mutedText, palette.surface) >= 4.5)
+                assertTrue("$preset $tone button", contrast(palette.onAccent, palette.accent) >= 4.5)
+            }
+        }
+    }
+
+    @Test fun `unsafe live tones remain preview only`() {
+        assertEquals(AppearanceTone.DARK, AppearanceSettings(tone = AppearanceTone.LIGHT).forLiveApp().tone)
+        assertEquals(AppearanceTone.DARK, AppearanceSettings(tone = AppearanceTone.SYSTEM).forLiveApp().tone)
+        assertEquals(AppearanceTone.OLED, AppearanceSettings(tone = AppearanceTone.OLED).forLiveApp().tone)
     }
 
     private fun contrast(first: Color, second: Color): Double {

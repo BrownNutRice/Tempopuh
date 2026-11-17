@@ -46,7 +46,7 @@ fun rememberReducedMotion(): Boolean {
         owner.lifecycle.addObserver(observer)
         onDispose { owner.lifecycle.removeObserver(observer) }
     }
-    return userReduced || systemReducedMotion
+    return userReduced || systemReducedMotion || me.avinas.tempo.ui.appearance.LocalAppearanceRuntimePolicy.current.reduceMotion
 }
 
 fun Modifier.innerShadow(
@@ -114,10 +114,11 @@ fun Modifier.premiumClickable(
 fun Modifier.glassBlur(
     radius: Dp = 16.dp,
     shape: androidx.compose.ui.graphics.Shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
-): Modifier = this
-    .clip(shape)
+): Modifier = composed {
+    val policy = me.avinas.tempo.ui.appearance.LocalAppearanceRuntimePolicy.current
+    this.clip(shape)
     .then(
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+        if (!policy.solidSurfaces && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
             Modifier.graphicsLayer {
                 val blurRadius = radius.toPx()
                 if (blurRadius > 0) {
@@ -130,3 +131,5 @@ fun Modifier.glassBlur(
             Modifier
         }
     )
+
+}

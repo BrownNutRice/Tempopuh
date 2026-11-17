@@ -38,7 +38,9 @@ import me.avinas.tempo.ui.theme.GlassHighlightTop
 import me.avinas.tempo.ui.theme.GlassShadowTeal
 import me.avinas.tempo.ui.theme.GlassTintTeal
 import me.avinas.tempo.ui.theme.LocalTempoPalette
-import me.avinas.tempo.ui.appearance.AppearancePreset
+import me.avinas.tempo.ui.appearance.*
+import me.avinas.tempo.ui.theme.LocalTempoAppearance
+import androidx.compose.ui.platform.LocalLayoutDirection
 import me.avinas.tempo.ui.theme.TextPrimary
 import me.avinas.tempo.ui.theme.premiumClickable
 import me.avinas.tempo.ui.theme.TempoDarkSurface
@@ -65,7 +67,7 @@ enum class GlassCardVariant {
 @Composable
 fun GlassCard(
     modifier: Modifier = Modifier,
-    shape: RoundedCornerShape = RoundedCornerShape(20.dp),
+    shape: RoundedCornerShape = appearanceCardShape(),
     backgroundColor: Color = GlassFrostMedium,
     accentColor: Color? = null,
     accentStrength: Float = 0.07f,
@@ -80,12 +82,23 @@ fun GlassCard(
     content: @Composable () -> Unit,
 ) {
     val palette = LocalTempoPalette.current
-    val customPalette = palette.preset != AppearancePreset.ABYSS
+    val appearance = LocalTempoAppearance.current
+    val policy = LocalAppearanceRuntimePolicy.current
+    val direction = LocalLayoutDirection.current
+    val effectivePadding = if (appearance.density == AppearanceDensity.COMPACT && contentPadding == PaddingValues(16.dp)) PaddingValues(
+        start = contentPadding.calculateStartPadding(direction) * 0.75f,
+        top = contentPadding.calculateTopPadding() * 0.75f,
+        end = contentPadding.calculateEndPadding(direction) * 0.75f,
+        bottom = contentPadding.calculateBottomPadding() * 0.75f,
+    ) else contentPadding
+    val customPalette = palette != AppearancePaletteResolver.forPreset(AppearancePreset.ABYSS)
     val accent = accentColor ?: palette.accent
 
     val surface =
-        remember(backgroundColor, accentColor, accentStrength, variant, palette) {
+        remember(backgroundColor, accentColor, accentStrength, variant, palette, policy.solidSurfaces) {
             when {
+                // Solid finish removes translucent layers but preserves explicit opaque designs.
+                policy.solidSurfaces && backgroundColor.alpha < 1f -> palette.surface
                 // Explicit surface wins; accent then only tints the border.
                 backgroundColor != GlassFrostMedium -> backgroundColor
 
@@ -188,8 +201,9 @@ fun GlassCard(
         }
 
     val bgBrush =
-        remember(surface, variant, accentColor, palette) {
+        remember(surface, variant, accentColor, palette, policy.solidSurfaces) {
             val bottom = when {
+                policy.solidSurfaces -> surface
                 customPalette -> palette.surfaceSunken
                 variant == GlassCardVariant.QuietGlass -> TempoDarkSurfaceSunken.copy(alpha = 0.92f)
                 variant == GlassCardVariant.TintedSolid -> lerp(TempoDarkSurfaceSunken, accent, 0.07f)
@@ -208,12 +222,12 @@ fun GlassCard(
     Box(
         modifier =
             modifier
-                .shadow(elevation = shadowElevation, shape = shape, ambientColor = Color.Transparent, spotColor = shadowSpotColor)
+                .shadow(elevation = if (policy.solidSurfaces) 0.dp else shadowElevation, shape = shape, ambientColor = Color.Transparent, spotColor = shadowSpotColor)
                 .clip(shape)
                 .background(bgBrush, shape)
                 .drawBehind {
                     // Top sheen drawn in the same pass — no nested layout node
-                    if (showsSheen) {
+                    if (showsSheen && !policy.solidSurfaces) {
                         drawRect(
                             brush = Brush.horizontalGradient(
                                 colors = listOf(Color.Transparent, GlassHighlightTop, Color.Transparent),
@@ -230,7 +244,7 @@ fun GlassCard(
             modifier =
                 Modifier
                     .then(if (fillMaxWidth) Modifier.fillMaxWidth() else Modifier)
-                    .padding(contentPadding),
+                    .padding(effectivePadding),
         ) {
             content()
         }
@@ -248,7 +262,7 @@ fun FrostedIconButton(
     contentDescription: String?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    iconTint: Color = TextPrimary,
+    iconTint: Color = LocalTempoPalette.current.onSurface,
     containerColor: Color = GlassFrostMedium,
     borderColor: Color = GlassBorderSoft,
 ) {
@@ -317,7 +331,7 @@ fun TelemetryMiniCell(
     label: String,
     value: String,
     modifier: Modifier = Modifier,
-    valueColor: Color = TextPrimary,
+    valueColor: Color = LocalTempoPalette.current.onSurface,
 ) {
     Column(
         modifier = modifier.padding(horizontal = 8.dp),
@@ -343,3 +357,13 @@ fun TelemetryMiniCell(
         )
     }
 }
+
+/** Shared cards use user-selected corners; components with explicit silhouettes keep them. */
+@Composable
+fun appearanceCardShape(): RoundedCornerShape = RoundedCornerShape(
+    when (LocalTempoAppearance.current.shape) {
+        AppearanceShape.SOFT -> 20.dp
+        AppearanceShape.MODERATE -> 12.dp
+        AppearanceShape.SHARP -> 4.dp
+    }
+)

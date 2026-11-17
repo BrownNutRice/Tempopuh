@@ -34,7 +34,7 @@ fun DeepOceanBackground(
                     brush = Brush.verticalGradient(
                         colors = listOf(
                             colors.topBackground,
-                            if (colors.preset == me.avinas.tempo.ui.appearance.AppearancePreset.ABYSS)
+                            if (colors == me.avinas.tempo.ui.appearance.AppearancePaletteResolver.forPreset(me.avinas.tempo.ui.appearance.AppearancePreset.ABYSS))
                                 Color(0xFF0C1010) else colors.surface,
                             colors.surfaceSunken,
                         ),

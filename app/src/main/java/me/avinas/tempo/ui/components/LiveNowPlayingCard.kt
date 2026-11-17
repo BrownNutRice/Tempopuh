@@ -42,9 +42,17 @@ import me.avinas.tempo.service.SpotifyBroadcastPresence
 fun LiveNowPlayingCard(
     modifier: Modifier = Modifier,
     artworkViewModel: NowPlayingArtworkViewModel = hiltViewModel(),
+    compact: Boolean = false,
 ) {
     val current by SpotifyBroadcastPresence.presence.collectAsStateWithLifecycle()
     val artwork by artworkViewModel.artwork.collectAsStateWithLifecycle()
+    val choiceForAccent = artwork?.takeIf {
+        it.identity == current?.let { p -> NowPlayingArtworkIdentity(p.packageName, p.title, p.artist, p.album) }
+    }
+    val accent = me.avinas.tempo.ui.appearance.rememberNowPlayingAccent(
+        current?.let { "${it.packageName}|${it.title}|${it.artist}|${it.album}" },
+        current?.albumArtUri ?: choiceForAccent?.localUrl ?: choiceForAccent?.remoteUrl,
+    )
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // Slow freshness clock, distinct from the progress ticker. It also expires
@@ -67,18 +75,19 @@ fun LiveNowPlayingCard(
 
     Card(
         modifier = modifier.fillMaxWidth(),
+        shape = appearanceCardShape(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.66f)
         ),
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(if (compact) 12.dp else 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = "NOW PLAYING",
+                text = if (ageMs > 2 * 60_000L && isRecent) androidx.compose.ui.res.stringResource(me.avinas.tempo.R.string.now_playing_last_detected) else "NOW PLAYING",
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
+                color = accent,
                 fontWeight = FontWeight.Bold,
             )
             if (!isRecent || presence == null) {
@@ -109,7 +118,7 @@ fun LiveNowPlayingCard(
                         contentDescription = "Cover art for ${presence.title}",
                         placeholderEmoji = "♫",
                         targetSizePx = 256,
-                        modifier = Modifier.size(84.dp).clip(RoundedCornerShape(12.dp)),
+                        modifier = Modifier.size(if (compact) 48.dp else 84.dp).clip(RoundedCornerShape(12.dp)),
                     )
                     Column(
                         modifier = Modifier.weight(1f),
@@ -135,8 +144,8 @@ fun LiveNowPlayingCard(
 
                 Row(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = if (presence.playing) "▶ Playing" else "Ⅱ Paused",
-                        color = MaterialTheme.colorScheme.primary,
+                        text = if (ageMs > 2 * 60_000L) androidx.compose.ui.res.stringResource(me.avinas.tempo.R.string.now_playing_last_detected) else if (presence.playing) "▶ Playing" else "Ⅱ Paused",
+                        color = accent,
                         style = MaterialTheme.typography.labelMedium,
                     )
                     Spacer(modifier = Modifier.weight(1f))
@@ -151,7 +160,7 @@ fun LiveNowPlayingCard(
                     )
                 }
 
-                LivePlaybackProgress(presence)
+                if (!compact && ageMs <= 2 * 60_000L) LivePlaybackProgress(presence)
 
                 if (ageMs > 2 * 60_000L) {
                     Text(
