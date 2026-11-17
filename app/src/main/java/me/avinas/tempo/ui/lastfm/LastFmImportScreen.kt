@@ -104,7 +104,7 @@ fun LastFmImportScreen(
                         ) {
                             Text(
                                 text = stringResource(R.string.settings_import_lastfm),
-                                color = TextPrimary,
+                                color = MaterialTheme.colorScheme.onSurface,
                             )
                         }
                     },
@@ -113,7 +113,7 @@ fun LastFmImportScreen(
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = stringResource(R.string.settings_back),
-                                tint = TextPrimary,
+                                tint = MaterialTheme.colorScheme.onSurface,
                             )
                         }
                     },
@@ -226,7 +226,7 @@ private fun UsernameInputContent(
         Text(
             text = "Connect Last.fm",
             style = MaterialTheme.typography.headlineMedium,
-            color = TextPrimary,
+            color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.Bold,
         )
 
@@ -235,7 +235,7 @@ private fun UsernameInputContent(
         Text(
             text = "Import your scrobble history to unlock powerful listening insights",
             style = MaterialTheme.typography.bodyLarge,
-            color = TextSecondary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
 
@@ -270,12 +270,12 @@ private fun UsernameInputContent(
                 ),
             colors =
                 OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = TextPrimary,
-                    unfocusedTextColor = TextPrimary,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                     focusedBorderColor = LastFmRed,
                     unfocusedBorderColor = GlassBorderMedium,
                     focusedLabelColor = LastFmRed,
-                    unfocusedLabelColor = TextSecondary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     cursorColor = LastFmRed,
                 ),
             modifier = Modifier.fillMaxWidth(),
@@ -316,7 +316,7 @@ private fun UsernameInputContent(
         Text(
             text = "We'll analyze your listening history and import recent scrobbles. Your data stays on your device.",
             style = MaterialTheme.typography.bodySmall,
-            color = TextTertiary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
             textAlign = TextAlign.Center,
         )
     }
@@ -338,7 +338,7 @@ private fun LoadingContent() {
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "Discovering your Last.fm account...",
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -368,7 +368,7 @@ private fun TierSelectionContent(
                     Text(
                         text = "Welcome, ${discovery.username}!",
                         style = MaterialTheme.typography.titleLarge,
-                        color = TextPrimary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold,
                     )
 
@@ -417,7 +417,7 @@ private fun TierSelectionContent(
             Text(
                 text = "Choose Import Level",
                 style = MaterialTheme.typography.titleMedium,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(top = 8.dp),
             )
@@ -456,7 +456,7 @@ private fun TierSelectionContent(
             Text(
                 text = "💡 All your history is saved! This just affects how fast your charts load.",
                 style = MaterialTheme.typography.bodySmall,
-                color = TextTertiary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
@@ -470,7 +470,7 @@ private fun TierSelectionContent(
             ) {
                 Text(
                     text = "Use a different account",
-                    color = TextSecondary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -537,7 +537,7 @@ private fun TierCard(
                     Text(
                         text = tier.name.lowercase().replaceFirstChar { it.uppercase() },
                         style = MaterialTheme.typography.titleMedium,
-                        color = TextPrimary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
@@ -564,7 +564,7 @@ private fun TierCard(
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -628,7 +628,7 @@ private fun ImportProgressContent(
             Text(
                 text = "$progressPercent%",
                 style = MaterialTheme.typography.headlineMedium,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold,
             )
         }
@@ -638,7 +638,7 @@ private fun ImportProgressContent(
         Text(
             text = phase,
             style = MaterialTheme.typography.titleMedium,
-            color = TextPrimary,
+            color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.SemiBold,
         )
 
@@ -647,7 +647,7 @@ private fun ImportProgressContent(
         Text(
             text = message,
             style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
 
@@ -686,12 +686,12 @@ private fun ImportProgressContent(
             Icon(
                 Icons.Default.Close,
                 contentDescription = null,
-                tint = TextSecondary,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "Cancel Import",
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -734,7 +734,7 @@ private fun ImportCompletionContent(
         Text(
             text = "Import Complete!",
             style = MaterialTheme.typography.headlineMedium,
-            color = TextPrimary,
+            color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.Bold,
         )
 
@@ -748,7 +748,7 @@ private fun ImportCompletionContent(
                     "Your Last.fm history is now connected"
                 },
             style = MaterialTheme.typography.bodyLarge,
-            color = TextSecondary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -781,7 +781,7 @@ private fun ImportCompletionContent(
                             "No new scrobbles were added: every play Last.fm returned is already in " +
                                 "your library, so nothing was double-counted.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = TextSecondary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                 }
@@ -889,12 +889,12 @@ private fun ConnectedContent(
                 Text(
                     text = "Connected as",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = TextTertiary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                 )
                 Text(
                     text = username,
                     style = MaterialTheme.typography.headlineSmall,
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Bold,
                 )
             }
@@ -922,7 +922,7 @@ private fun ConnectedContent(
                             modifier = Modifier.weight(1f),
                         )
                         IconButton(onClick = onClearError, modifier = Modifier.size(24.dp)) {
-                            Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = TextTertiary)
+                            Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f))
                         }
                     }
                 }
@@ -936,14 +936,14 @@ private fun ConnectedContent(
                     Text(
                         text = "Sync History",
                         style = MaterialTheme.typography.titleMedium,
-                        color = TextPrimary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Sync pulls your latest scrobbles since the last import. It does not run in real time — use the button below to fetch recent plays immediately.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = TextTertiary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                     )
                     if (lastSyncResult != null) {
                         Spacer(modifier = Modifier.height(8.dp))
@@ -971,7 +971,7 @@ private fun ConnectedContent(
                         if (isSyncing) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
-                                color = TextPrimary,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 strokeWidth = 2.dp,
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -991,14 +991,14 @@ private fun ConnectedContent(
                     Text(
                         text = "Automatic Sync",
                         style = MaterialTheme.typography.titleMedium,
-                        color = TextPrimary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Automatically check for new scrobbles in the background.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = TextTertiary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     listOf("NONE" to "Off", "DAILY" to "Daily", "WEEKLY" to "Weekly").forEach { (value, label) ->
@@ -1021,7 +1021,7 @@ private fun ConnectedContent(
                             Text(
                                 text = label,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = TextPrimary,
+                                color = MaterialTheme.colorScheme.onSurface,
                             )
                             if (syncFrequency == value) {
                                 Icon(
@@ -1064,13 +1064,13 @@ private fun StatItem(
         Text(
             text = value,
             style = MaterialTheme.typography.titleLarge,
-            color = TextPrimary,
+            color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.Bold,
         )
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
-            color = TextTertiary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
         )
     }
 }
@@ -1090,12 +1090,12 @@ private fun ResultRow(
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodySmall,
-                color = TextTertiary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
             )
         }
         Text(
