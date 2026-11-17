@@ -1153,4 +1153,11 @@
     <string name="appearance_glacier_desc">Kühles Eisblau bei Nacht</string>
     <string name="appearance_preview_song">Aktuelle Wiedergabe</string>
     <string name="appearance_preview_artist">Deine Musik</string>
+    <string name="appearance_font_heading">Schriftbild</string>
+    <string name="appearance_font_description">Wähle eine Schrift für Überschriften. Die Änderung wird sofort übernommen.</string>
+    <string name="appearance_font_tempo">Tempo</string>
+    <string name="appearance_font_neo">Neo Sans</string>
+    <string name="appearance_font_archive">Archive Serif</string>
+    <string name="appearance_font_studio">Studio Mono</string>
+    <string name="appearance_font_selected">Ausgewählt</string>
 </resources>

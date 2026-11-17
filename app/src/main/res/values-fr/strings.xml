@@ -1151,4 +1151,11 @@
     <string name="appearance_glacier_desc">Bleu glacier nocturne</string>
     <string name="appearance_preview_song">En écoute</string>
     <string name="appearance_preview_artist">Votre musique</string>
+    <string name="appearance_font_heading">Typographie</string>
+    <string name="appearance_font_description">Choisissez un style de titres. Le choix est appliqué immédiatement.</string>
+    <string name="appearance_font_tempo">Tempo</string>
+    <string name="appearance_font_neo">Neo Sans</string>
+    <string name="appearance_font_archive">Archive Serif</string>
+    <string name="appearance_font_studio">Studio Mono</string>
+    <string name="appearance_font_selected">Sélectionné</string>
 </resources>

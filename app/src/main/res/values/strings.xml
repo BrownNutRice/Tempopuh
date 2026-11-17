@@ -1611,4 +1611,11 @@
     <string name="appearance_glacier_desc">Cool ice-blue after dark</string>
     <string name="appearance_preview_song">Now listening</string>
     <string name="appearance_preview_artist">Your music</string>
+    <string name="appearance_font_heading">Typography</string>
+    <string name="appearance_font_description">Choose a heading style. The selected font applies immediately.</string>
+    <string name="appearance_font_tempo">Tempo</string>
+    <string name="appearance_font_neo">Neo Sans</string>
+    <string name="appearance_font_archive">Archive Serif</string>
+    <string name="appearance_font_studio">Studio Mono</string>
+    <string name="appearance_font_selected">Selected</string>
 </resources>
