@@ -54,6 +54,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontFamily
 import me.avinas.tempo.ui.theme.AppFontFamily
+import me.avinas.tempo.ui.theme.DisplayFontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -355,8 +356,8 @@ private fun FontStyleCard(
         AppearanceFontStyle.STUDIO_MONO -> stringResource(R.string.appearance_font_studio)
     }
     val family = when (style) {
-        AppearanceFontStyle.TEMPO -> AppFontFamily
-        AppearanceFontStyle.NEO_SANS -> FontFamily.SansSerif
+        AppearanceFontStyle.TEMPO -> DisplayFontFamily
+        AppearanceFontStyle.NEO_SANS -> AppFontFamily
         AppearanceFontStyle.ARCHIVE_SERIF -> FontFamily.Serif
         AppearanceFontStyle.STUDIO_MONO -> FontFamily.Monospace
     }
