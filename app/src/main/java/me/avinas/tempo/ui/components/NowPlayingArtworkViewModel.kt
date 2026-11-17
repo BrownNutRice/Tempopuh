@@ -28,6 +28,7 @@ internal data class NowPlayingArtworkIdentity(
     val packageName: String,
     val title: String,
     val artist: String,
+    val album: String? = null,
 )
 
 internal data class NowPlayingArtworkChoice(
@@ -35,6 +36,14 @@ internal data class NowPlayingArtworkChoice(
     val remoteUrl: String?,
     val localUrl: String?,
 )
+
+/** A known, conflicting release must not borrow the artwork of another album. */
+internal fun isSafeNowPlayingArtworkAlbum(
+    observedAlbum: String?,
+    storedAlbum: String?,
+): Boolean = observedAlbum.isNullOrBlank() ||
+    storedAlbum.isNullOrBlank() ||
+    observedAlbum.trim().equals(storedAlbum.trim(), ignoreCase = true)
 
 /** Pure source-precedence policy; no network lookup is made by the card itself. */
 internal fun selectNowPlayingArtwork(
@@ -69,7 +78,7 @@ class NowPlayingArtworkViewModel @Inject constructor(
         SpotifyBroadcastPresence.presence
             .map { current ->
                 current?.let {
-                    NowPlayingArtworkIdentity(it.packageName, it.title, it.artist)
+                    NowPlayingArtworkIdentity(it.packageName, it.title, it.artist, it.album)
                 }
             }
             .distinctUntilChanged()
@@ -83,9 +92,16 @@ class NowPlayingArtworkViewModel @Inject constructor(
                         // identity, then switch to cheap Room flows.
                         var resolvedTrackId: Long? = null
                         for (attempt in 0 until 5) {
+                            // Fuzzy title/artist matches can point to a different
+                            // recording and show the wrong cover. Exact library
+                            // identity is safer; the MediaSession/API can supply
+                            // artwork while a track is being inserted.
                             val track = trackRepository.findByTitleAndArtist(identity.title, identity.artist)
-                                ?: trackRepository.findByTitleAndArtistFuzzy(identity.title, identity.artist)
                             if (track != null) {
+                                if (!isSafeNowPlayingArtworkAlbum(identity.album, track.album)) {
+                                    emit(null)
+                                    return@flow
+                                }
                                 resolvedTrackId = track.id
                                 break
                             }

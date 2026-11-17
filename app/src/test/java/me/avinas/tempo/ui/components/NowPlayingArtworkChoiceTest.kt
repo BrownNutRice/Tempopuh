@@ -29,4 +29,9 @@ class NowPlayingArtworkChoiceTest {
         val chosen = selectNowPlayingArtwork(id, null, "https://cdn.example/art.jpg")
         assertEquals(id, chosen.identity)
     }
+    @Test fun `different known albums never share the wrong cover`() {
+        assertEquals(false, isSafeNowPlayingArtworkAlbum("Original Album", "Live Edition"))
+        assertEquals(true, isSafeNowPlayingArtworkAlbum("Original Album", "original album"))
+        assertEquals(true, isSafeNowPlayingArtworkAlbum(null, "Live Edition"))
+    }
 }

@@ -94,7 +94,7 @@ fun LiveNowPlayingCard(
             } else {
                 val choice = artwork?.takeIf {
                     it.identity == NowPlayingArtworkIdentity(
-                        presence.packageName, presence.title, presence.artist
+                        presence.packageName, presence.title, presence.artist, presence.album
                     )
                 }
 
