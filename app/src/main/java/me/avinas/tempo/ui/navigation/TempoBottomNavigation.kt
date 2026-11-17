@@ -8,6 +8,7 @@ import me.avinas.tempo.ui.theme.TextSecondary
 import me.avinas.tempo.ui.theme.LocalTempoPalette
 import me.avinas.tempo.ui.theme.LocalTempoAppearance
 import me.avinas.tempo.ui.appearance.AppearanceNowListening
+import me.avinas.tempo.ui.appearance.shouldShowCompactStrip
 import me.avinas.tempo.service.SpotifyBroadcastPresence
 import me.avinas.tempo.ui.theme.rememberReducedMotion
 
@@ -101,7 +102,7 @@ fun TempoBottomNavigation(
                 // Top border highlight line
                 drawRect(
                     brush = Brush.horizontalGradient(
-                        colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.10f), Color.Transparent)
+                        colors = listOf(Color.Transparent, palette.onSurface.copy(alpha = 0.10f), Color.Transparent)
                     ),
                     topLeft = Offset.Zero,
                     size = Size(size.width, 1.dp.toPx())
@@ -122,7 +123,7 @@ fun TempoBottomNavigation(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.White.copy(alpha = 0.02f))
+                .background(palette.onSurface.copy(alpha = 0.02f))
         )
 
         Row(
@@ -174,10 +175,7 @@ private fun CompactNowPlayingStrip() {
     }
     // A remote or paused snapshot can outlive the playback session; never show
     // the mini-player indefinitely just because it was the last observed track.
-    if (current.title.isBlank() ||
-        checkedAtMs < current.updatedAtMs ||
-        checkedAtMs - current.updatedAtMs >= 15 * 60_000L
-    ) return
+    if (!shouldShowCompactStrip(AppearanceNowListening.COMPACT, current.title, current.updatedAtMs, checkedAtMs)) return
 
     val palette = LocalTempoPalette.current
     Row(
