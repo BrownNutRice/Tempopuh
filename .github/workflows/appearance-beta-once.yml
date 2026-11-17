@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: appearance-beta-2026-11-17
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   validate:
