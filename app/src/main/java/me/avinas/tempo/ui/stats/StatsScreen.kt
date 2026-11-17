@@ -614,13 +614,20 @@ fun EmptyStatsState() {
 
 @Composable
 fun StatsTabSelector(selectedTab: StatsTab, onTabSelected: (StatsTab) -> Unit) {
+    val palette = me.avinas.tempo.ui.theme.LocalTempoPalette.current
+    val selectedBackground = remember(palette) {
+        Brush.verticalGradient(listOf(palette.accent, palette.accent.copy(alpha = 0.87f)))
+    }
+    val selectedBorder = remember(palette) {
+        Brush.verticalGradient(listOf(palette.onAccent.copy(alpha = 0.34f), Color.Transparent))
+    }
     Box(
         modifier = Modifier
             .padding(horizontal = 16.dp)
             .fillMaxWidth()
             .height(50.dp)
             .clip(RoundedCornerShape(25.dp))
-            .background(TempoDarkSurfaceSunken)
+            .background(palette.surfaceSunken)
             .innerShadow(
                 color = Color.Black.copy(alpha = 0.55f),
                 cornersRadius = 25.dp,
@@ -646,7 +653,7 @@ fun StatsTabSelector(selectedTab: StatsTab, onTabSelected: (StatsTab) -> Unit) {
             StatsTab.entries.forEach { tab ->
                 val isSelected = tab == selectedTab
                 val contentColor by animateColorAsState(
-                    targetValue = if (isSelected) TextOnAccent else TextSecondary,
+                    targetValue = if (isSelected) palette.onAccent else palette.mutedText,
                     label = "tabContentColor"
                 )
 
@@ -664,10 +671,10 @@ fun StatsTabSelector(selectedTab: StatsTab, onTabSelected: (StatsTab) -> Unit) {
                                         ambientColor = Color.Black.copy(alpha = 0.7f)
                                     )
                                     .clip(RoundedCornerShape(22.dp))
-                                    .background(TabSelectedBgBrush)
+                                    .background(selectedBackground)
                                     .border(
                                         1.dp,
-                                        TabSelectedBorderBrush,
+                                        selectedBorder,
                                         RoundedCornerShape(22.dp)
                                     )
                             } else {
@@ -881,7 +888,7 @@ private fun StatsTopBar(
     val headerAlpha by animateFloatAsState(targetValue = if (isScrolled) 1f else 0f, label = "headerAlpha")
 
     Surface(
-        color = TempoDarkBackground.copy(alpha = headerAlpha),
+        color = me.avinas.tempo.ui.theme.LocalTempoPalette.current.background.copy(alpha = headerAlpha),
         shadowElevation = if (isScrolled) 4.dp else 0.dp,
         modifier = modifier
     ) {
@@ -900,7 +907,7 @@ private fun StatsTopBar(
                         stringResource(R.string.stats_screen_title),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             },
@@ -910,7 +917,7 @@ private fun StatsTopBar(
                         imageVector = Icons.Default.Search,
                         contentDescription = stringResource(R.string.stats_search_open),
                         // Tinted while a search filter is active so search mode is never invisible.
-                        tint = if (isSearchActive) MaterialTheme.colorScheme.primary else TextPrimary
+                        tint = if (isSearchActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                     )
                 }
                 if (hasItems) {
@@ -918,7 +925,7 @@ private fun StatsTopBar(
                         Icon(
                             imageVector = Icons.Default.Share,
                             contentDescription = stringResource(R.string.stats_share),
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -929,21 +936,6 @@ private fun StatsTopBar(
 }
 
 private val StatsAvailableRanges = listOf(TimeRange.THIS_WEEK, TimeRange.THIS_MONTH, TimeRange.THIS_YEAR, TimeRange.ALL_TIME)
-
-private val TabSelectedBgBrush = Brush.verticalGradient(
-    listOf(
-        TempoAccentBright,
-        MaterialTheme.colorScheme.primary,
-        MaterialTheme.colorScheme.primaryContainer
-    )
-)
-
-private val TabSelectedBorderBrush = Brush.verticalGradient(
-    listOf(
-        Color.White.copy(alpha = 0.45f),
-        Color.Transparent
-    )
-)
 
 @Composable
 fun SortBySelector(
