@@ -117,7 +117,7 @@ fun HistoryScreen(
         ModalBottomSheet(
             onDismissRequest = { showFilterSheet = false },
             sheetState = sheetState,
-            containerColor = TempoDarkSurfaceElevated,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
             dragHandle = {
                 Box(
@@ -224,7 +224,7 @@ fun HistoryScreen(
             )
 
             Surface(
-                color = TempoDarkBackground.copy(alpha = 0.95f * headerAlpha),
+                color = MaterialTheme.colorScheme.background.copy(alpha = 0.95f * headerAlpha),
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .fillMaxWidth()
@@ -249,7 +249,7 @@ fun HistoryScreen(
                                     .height(48.dp),
                                 shape = RoundedCornerShape(24.dp),
                                 contentPadding = PaddingValues(horizontal = 14.dp),
-                                backgroundColor = TempoDarkSurfaceSunken.copy(alpha = 0.85f),
+                                backgroundColor = MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = 0.85f),
                                 variant = GlassCardVariant.LowProminence,
                                 borderColor = GlassBorderSoft,
                                 borderWidth = 1.dp
@@ -262,7 +262,7 @@ fun HistoryScreen(
                                     Icon(
                                         imageVector = Icons.Default.Search,
                                         contentDescription = stringResource(R.string.history_search),
-                                        tint = if (uiState.searchQuery.isNotBlank()) MaterialTheme.colorScheme.primary else TextTertiary,
+                                        tint = if (uiState.searchQuery.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                                         modifier = Modifier.size(20.dp)
                                     )
                                     Spacer(modifier = Modifier.width(10.dp))
@@ -270,14 +270,14 @@ fun HistoryScreen(
                                         if (uiState.searchQuery.isEmpty()) {
                                             Text(
                                                 text = stringResource(R.string.history_search_hint),
-                                                color = TextTertiary,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                                                 style = MaterialTheme.typography.bodyMedium
                                             )
                                         }
                                         BasicTextField(
                                             value = uiState.searchQuery,
                                             onValueChange = viewModel::onSearchQueryChanged,
-                                            textStyle = MaterialTheme.typography.bodyMedium.copy(color = TextPrimary),
+                                            textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
                                             singleLine = true,
                                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                                             keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
@@ -296,7 +296,7 @@ fun HistoryScreen(
                                             Icon(
                                                 imageVector = Icons.Default.Close,
                                                 contentDescription = stringResource(R.string.stats_search_clear),
-                                                tint = TextSecondary,
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier.size(18.dp)
                                             )
                                         }
@@ -325,7 +325,7 @@ fun HistoryScreen(
                                                 .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), CircleShape)
                                         } else {
                                             Modifier
-                                                .background(TempoDarkSurfaceElevated.copy(alpha = 0.85f))
+                                                .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.85f))
                                                 .border(0.8.dp, GlassBorderSoft, CircleShape)
                                         }
                                     )
@@ -341,7 +341,7 @@ fun HistoryScreen(
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.List,
                                     contentDescription = stringResource(R.string.history_filter_title),
-                                    tint = if (isFilterActive) MaterialTheme.colorScheme.primary else TextSecondary,
+                                    tint = if (isFilterActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(20.dp)
                                 )
 
@@ -353,8 +353,8 @@ fun HistoryScreen(
                                             .padding(top = 4.dp, end = 4.dp)
                                             .size(7.dp)
                                             .clip(CircleShape)
-                                            .background(TempoAccentBright)
-                                            .border(1.dp, TempoDarkBackground, CircleShape)
+                                            .background(MaterialTheme.colorScheme.primary)
+                                            .border(1.dp, MaterialTheme.colorScheme.background, CircleShape)
                                     )
                                 }
                             }
@@ -405,13 +405,13 @@ fun HistoryFilterSheetContent(
                 text = stringResource(R.string.history_filter_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = stringResource(R.string.history_reset),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
-                color = if (selectedRange != "All Time" || !showSkips) MaterialTheme.colorScheme.primary else TextTertiary,
+                color = if (selectedRange != "All Time" || !showSkips) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
                     .clickable {
@@ -431,7 +431,7 @@ fun HistoryFilterSheetContent(
             text = stringResource(R.string.history_time_range).uppercase(Locale.getDefault()),
             style = KickerSmall,
             fontWeight = FontWeight.Bold,
-            color = TextSecondary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             letterSpacing = 1.sp
         )
         Spacer(modifier = Modifier.height(10.dp))
@@ -448,7 +448,7 @@ fun HistoryFilterSheetContent(
                 .fillMaxWidth()
                 .height(48.dp)
                 .clip(RoundedCornerShape(24.dp))
-                .background(TempoDarkSurfaceSunken)
+                .background(MaterialTheme.colorScheme.surfaceContainerLowest)
                 .innerShadow(
                     color = Color.Black.copy(alpha = 0.55f),
                     cornersRadius = 24.dp,
@@ -474,7 +474,7 @@ fun HistoryFilterSheetContent(
                 ranges.forEach { (key, label) ->
                     val isSelected = selectedRange == key
                     val contentColor by animateColorAsState(
-                        targetValue = if (isSelected) TextOnAccent else TextSecondary,
+                        targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                         label = "filterRangeContentColor"
                     )
 
@@ -495,7 +495,7 @@ fun HistoryFilterSheetContent(
                                         .background(
                                             Brush.verticalGradient(
                                                 listOf(
-                                                    TempoAccentBright,
+                                                    MaterialTheme.colorScheme.primary,
                                                     MaterialTheme.colorScheme.primary,
                                                     MaterialTheme.colorScheme.primaryContainer
                                                 )
@@ -542,7 +542,7 @@ fun HistoryFilterSheetContent(
             text = stringResource(R.string.history_playback).uppercase(Locale.getDefault()),
             style = KickerSmall,
             fontWeight = FontWeight.Bold,
-            color = TextSecondary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             letterSpacing = 1.sp
         )
         Spacer(modifier = Modifier.height(10.dp))
@@ -556,7 +556,7 @@ fun HistoryFilterSheetContent(
                     showSkips = !showSkips
                 },
             shape = RoundedCornerShape(16.dp),
-            backgroundColor = TempoDarkSurfaceSunken.copy(alpha = 0.7f),
+            backgroundColor = MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = 0.7f),
             variant = GlassCardVariant.LowProminence,
             borderColor = GlassBorderSoft,
             borderWidth = 0.8.dp,
@@ -569,14 +569,14 @@ fun HistoryFilterSheetContent(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = stringResource(R.string.history_show_skipped),
-                        color = TextPrimary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = "Include songs skipped during playback",
-                        color = TextTertiary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -587,10 +587,10 @@ fun HistoryFilterSheetContent(
                         showSkips = it
                     },
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = TextOnAccent,
+                        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
                         checkedTrackColor = MaterialTheme.colorScheme.primary,
-                        uncheckedThumbColor = TextTertiary,
-                        uncheckedTrackColor = TempoDarkSurfaceElevated
+                        uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
+                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHigh
                     )
                 )
             }
@@ -612,7 +612,7 @@ fun HistoryFilterSheetContent(
                 .background(
                     Brush.verticalGradient(
                         listOf(
-                            TempoAccentBright,
+                            MaterialTheme.colorScheme.primary,
                             MaterialTheme.colorScheme.primary,
                             MaterialTheme.colorScheme.primaryContainer
                         )
@@ -640,7 +640,7 @@ fun HistoryFilterSheetContent(
         ) {
             Text(
                 text = stringResource(R.string.history_apply_filters),
-                color = TextOnAccent,
+                color = MaterialTheme.colorScheme.onPrimary,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -1037,7 +1037,7 @@ fun SeparatedModeInfoBanner(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp),
-        backgroundColor = TempoDarkSurfaceElevated.copy(alpha = 0.75f),
+        backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.75f),
         accentColor = GoldDark,
         shape = RoundedCornerShape(16.dp),
         contentPadding = PaddingValues(14.dp),
@@ -1068,12 +1068,12 @@ fun SeparatedModeInfoBanner(
                     text = stringResource(R.string.history_lastfm_imported),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "${archiveTotalPlays.formatNumber()} plays • $archiveTrackCount tracks archived",
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -1119,12 +1119,12 @@ fun SectionDividerHeader(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -1188,7 +1188,7 @@ fun ArchiveSectionHeader(
         Text(
             text = "Showing $itemCount of $totalTracks archived tracks",
             style = MaterialTheme.typography.bodySmall,
-            color = TextTertiary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
             modifier = Modifier.padding(start = 36.dp, top = 2.dp)
         )
     }
@@ -1204,7 +1204,7 @@ fun ArchiveHistoryListItem(item: ArchiveHistoryItem) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        backgroundColor = TempoDarkSurfaceElevated.copy(alpha = 0.5f),
+        backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
         accentColor = GoldDark,
         shape = RoundedCornerShape(16.dp),
         contentPadding = PaddingValues(12.dp),
@@ -1231,13 +1231,13 @@ fun ArchiveHistoryListItem(item: ArchiveHistoryItem) {
                             modifier = Modifier
                                 .size(52.dp)
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(TempoDarkSurfaceSunken),
+                                .background(MaterialTheme.colorScheme.surfaceContainerLowest),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.Album,
                                 contentDescription = null,
-                                tint = TextTertiary,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                                 modifier = Modifier.size(22.dp)
                             )
                         }
@@ -1258,7 +1258,7 @@ fun ArchiveHistoryListItem(item: ArchiveHistoryItem) {
                         style = MaterialTheme.typography.labelSmall,
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextOnAccent
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }
@@ -1271,7 +1271,7 @@ fun ArchiveHistoryListItem(item: ArchiveHistoryItem) {
                     text = item.trackTitle,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -1279,7 +1279,7 @@ fun ArchiveHistoryListItem(item: ArchiveHistoryItem) {
                 Text(
                     text = item.artistName,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = TextSecondary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -1320,7 +1320,7 @@ fun HistorySectionHeader(title: String, isLastFmSection: Boolean = false) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(TempoDarkBackground.copy(alpha = 0.95f))
+            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.95f))
             .padding(horizontal = 16.dp, vertical = 6.dp)
     ) {
         Row(
@@ -1347,7 +1347,7 @@ fun HistorySectionHeader(title: String, isLastFmSection: Boolean = false) {
                     text = title.uppercase(Locale.getDefault()),
                     style = KickerSmall,
                     fontWeight = FontWeight.Bold,
-                    color = if (isLastFmSection) GoldLight else TempoAccentBright,
+                    color = if (isLastFmSection) GoldLight else MaterialTheme.colorScheme.primary,
                     letterSpacing = 1.2.sp
                 )
             }
@@ -1402,7 +1402,7 @@ fun HistoryListItem(
                     }
                 ),
             shape = RoundedCornerShape(16.dp),
-            backgroundColor = TempoDarkSurfaceElevated.copy(alpha = 0.6f),
+            backgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f),
             contentPadding = PaddingValues(12.dp),
             variant = GlassCardVariant.LowProminence,
             borderColor = GlassBorderSoft,
@@ -1422,13 +1422,13 @@ fun HistoryListItem(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(TempoDarkSurfaceSunken),
+                                .background(MaterialTheme.colorScheme.surfaceContainerLowest),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.MusicNote,
                                 contentDescription = null,
-                                tint = TextTertiary,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -1447,7 +1447,7 @@ fun HistoryListItem(
                         val badgeColor = when(item.content_type) {
                             "PODCAST" -> TempoCyan
                             "AUDIOBOOK" -> GoldenAmber
-                            else -> TextTertiary
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
                         }
                         
                         Box(
@@ -1465,7 +1465,7 @@ fun HistoryListItem(
                                 else 
                                     TempoIcons.Audiobook,
                                 contentDescription = item.content_type,
-                                tint = TextOnAccent,
+                                tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(10.dp)
                             )
                         }
@@ -1483,7 +1483,7 @@ fun HistoryListItem(
                             text = item.title,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color = TextPrimary,
+                            color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f, fill = false)
@@ -1494,7 +1494,7 @@ fun HistoryListItem(
                             val badgeColor = when(item.content_type) {
                                 "PODCAST" -> TempoCyan
                                 "AUDIOBOOK" -> GoldenAmber
-                                else -> TextTertiary
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
                             }
                             Box(
                                 modifier = Modifier
@@ -1536,7 +1536,7 @@ fun HistoryListItem(
                     Text(
                         text = item.artist,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -1552,7 +1552,7 @@ fun HistoryListItem(
                     Text(
                         text = formatRelativeTime(item.timestamp),
                         style = MaterialTheme.typography.labelSmall,
-                        color = TextTertiary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                         fontWeight = FontWeight.Medium
                     )
                     
@@ -1572,7 +1572,7 @@ fun HistoryListItem(
                         Icon(
                             imageVector = TempoIcons.Trash,
                             contentDescription = stringResource(R.string.history_delete_button),
-                            tint = TextTertiary,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -1735,13 +1735,13 @@ fun HistoryEmptyState() {
                 text = stringResource(R.string.history_empty_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary
+                color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = stringResource(R.string.history_empty_message),
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
         }
@@ -1772,7 +1772,7 @@ fun SearchEmptyState(query: String, onClear: () -> Unit) {
                     imageVector = Icons.Default.Search,
                     contentDescription = null,
                     modifier = Modifier.size(30.dp),
-                    tint = TextTertiary
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
@@ -1780,13 +1780,13 @@ fun SearchEmptyState(query: String, onClear: () -> Unit) {
                 text = "No scrobbles found",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = TextPrimary
+                color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = "No matches for \"$query\"",
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(16.dp))
