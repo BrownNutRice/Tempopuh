@@ -690,11 +690,27 @@ private fun GoogleDriveSection(
                         )
                         if (backupSettings.lastBackupTime != null) {
                             Text(
-                                text = "Last backup: ${formatRelativeTime(backupSettings.lastBackupTime)}",
+                                text = stringResource(
+                                    R.string.settings_backup_overview_last_success,
+                                    formatRelativeTime(backupSettings.lastBackupTime),
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = TextSecondary
+                                color = TextSecondary,
                             )
                         }
+                        Text(
+                            text = stringResource(
+                                when (backupSettings.lastBackupStatus) {
+                                    BackupStatus.NEVER -> R.string.settings_backup_overview_never
+                                    BackupStatus.SUCCESS -> R.string.settings_backup_overview_success
+                                    BackupStatus.FAILED -> R.string.settings_backup_overview_failed
+                                    BackupStatus.IN_PROGRESS -> R.string.settings_backup_overview_running
+                                }
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (backupSettings.lastBackupStatus == BackupStatus.FAILED) TempoError
+                                else TextSecondary,
+                        )
                     }
                     
                     Button(

@@ -51,6 +51,7 @@ import me.avinas.tempo.ui.components.LiveNowPlayingCard
 import me.avinas.tempo.data.importexport.ImportConflictStrategy
 import me.avinas.tempo.data.importexport.ImportExportResult
 import me.avinas.tempo.data.local.entities.AlbumArtSource
+import me.avinas.tempo.data.drive.BackupStatus
 import me.avinas.tempo.ui.components.DeepOceanBackground
 import me.avinas.tempo.ui.components.GlassCard
 import me.avinas.tempo.ui.components.SettingsOption
@@ -92,6 +93,7 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val historyQuality by viewModel.historyQuality.collectAsState()
+    val backupOverview by viewModel.backupOverview.collectAsState()
     var showHistoryAuditDialog by remember { mutableStateOf(false) }
     var historyBackupConfirmed by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -419,6 +421,33 @@ fun SettingsScreen(
                                 },
                             )
                         }
+                    }
+                    Spacer(modifier = Modifier.height(20.dp))
+                    SettingsSectionHeader(stringResource(R.string.settings_backup_overview_header))
+                    GlassCard(
+                        contentPadding = PaddingValues(0.dp),
+                        variant = me.avinas.tempo.ui.components.GlassCardVariant.LowProminence,
+                    ) {
+                        val latestStatus = when (backupOverview.lastBackupStatus) {
+                            BackupStatus.NEVER -> R.string.settings_backup_overview_never
+                            BackupStatus.SUCCESS -> R.string.settings_backup_overview_success
+                            BackupStatus.FAILED -> R.string.settings_backup_overview_failed
+                            BackupStatus.IN_PROGRESS -> R.string.settings_backup_overview_running
+                        }
+                        val latestSuccess = backupOverview.lastBackupTime
+                            ?.takeIf { it > 0L && it <= System.currentTimeMillis() }
+                            ?.let { timestamp ->
+                                val formatted = java.text.DateFormat.getDateTimeInstance(
+                                    java.text.DateFormat.SHORT, java.text.DateFormat.SHORT,
+                                ).format(java.util.Date(timestamp))
+                                stringResource(R.string.settings_backup_overview_last_success, formatted)
+                            }
+                        SettingsOption(
+                            title = stringResource(R.string.settings_backup_restore),
+                            subtitle = listOfNotNull(stringResource(latestStatus), latestSuccess)
+                                .joinToString(" · "),
+                            onClick = { onNavigateToBackup?.invoke() },
+                        )
                     }
                     Spacer(modifier = Modifier.height(20.dp))
                     SettingsSectionHeader(stringResource(R.string.settings_category_browse))

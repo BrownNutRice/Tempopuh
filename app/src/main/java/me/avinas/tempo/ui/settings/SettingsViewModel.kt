@@ -19,7 +19,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import me.avinas.tempo.data.drive.BackupSettings
+import me.avinas.tempo.data.drive.BackupSettingsManager
 import kotlinx.coroutines.launch
 import me.avinas.tempo.BuildConfig
 import me.avinas.tempo.data.analytics.AnalyticsConsent
@@ -58,11 +62,16 @@ class SettingsViewModel
         private val analyticsDailyLedger: me.avinas.tempo.data.analytics.AnalyticsDailyLedger,
         private val analyticsFeatureLedger: me.avinas.tempo.data.analytics.AnalyticsFeatureLedger,
         private val coverArtSourcePreference: CoverArtSourcePreference,
+        private val backupSettingsManager: BackupSettingsManager,
         private val spotifyAuthManager: Lazy<SpotifyAuthManager>,
         private val spotifyTokenStorage: Lazy<SpotifyTokenStorage>,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(SettingsUiState())
         val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+
+        /** Snapshot of the existing backup DataStore; does not contact Drive. */
+        val backupOverview: StateFlow<BackupSettings> = backupSettingsManager.settings
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), BackupSettings())
 
         // Import/Export states
         val importExportProgress: StateFlow<ImportExportProgress?> = importExportManager.progress
