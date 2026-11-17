@@ -111,7 +111,7 @@ fun MusicoletImportScreen(
                                 text = stringResource(R.string.settings_import_musicolet),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = TextPrimary,
+                                color = MaterialTheme.colorScheme.onSurface,
                             )
                         }
                     },
@@ -120,7 +120,7 @@ fun MusicoletImportScreen(
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = stringResource(R.string.settings_back),
-                                tint = TextPrimary,
+                                tint = MaterialTheme.colorScheme.onSurface,
                             )
                         }
                     },
@@ -198,7 +198,7 @@ private fun IdleContent(
                 text = "Import from a Musicolet backup",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
             )
 
@@ -210,7 +210,7 @@ private fun IdleContent(
                         "Musicolet writes a ZIP wherever you choose; select that ZIP here. " +
                         "You do not need to unzip it.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
 
@@ -236,7 +236,7 @@ private fun IdleContent(
                 text = "What Musicolet actually stores",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -247,7 +247,7 @@ private fun IdleContent(
                         "right while the exact day and hour are an estimate. The last-played " +
                         "time is exact and is kept exactly.",
                 style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -256,7 +256,7 @@ private fun IdleContent(
                         "overwrite or hide anything Tempo measured while you listened. " +
                         "Importing the same backup twice changes nothing.",
                 style = MaterialTheme.typography.bodySmall,
-                color = TextTertiary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
             )
         }
     }
@@ -273,7 +273,7 @@ private fun IdleContent(
                     text = "Include undated plays",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
@@ -283,7 +283,7 @@ private fun IdleContent(
                             "of each song's history so lifetime totals match Musicolet. Left " +
                             "off, they are reported and left out.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))
@@ -307,7 +307,7 @@ private fun ImportingContent(importState: MusicoletImportService.ImportState) {
                 text = "Importing...",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -329,7 +329,7 @@ private fun ImportingContent(importState: MusicoletImportService.ImportState) {
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
 
@@ -365,7 +365,7 @@ private fun CompletedContent(result: MusicoletImportService.ImportResult) {
                 text = "Import complete",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -387,7 +387,7 @@ private fun CompletedContent(result: MusicoletImportService.ImportResult) {
                 Text(
                     text = "Covers $period",
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextTertiary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                 )
             }
 
@@ -403,7 +403,7 @@ private fun CompletedContent(result: MusicoletImportService.ImportResult) {
                                 "Import again with \"Include undated plays\" to keep them."
                         },
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                 )
             }
@@ -415,7 +415,7 @@ private fun CompletedContent(result: MusicoletImportService.ImportResult) {
                         "${result.unmatchedPeriodPlays} plays belong to songs that are no longer " +
                             "in the backup's song list, so they had no title to import.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextTertiary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                     textAlign = TextAlign.Center,
                 )
             }
@@ -437,7 +437,7 @@ private fun CompletedContent(result: MusicoletImportService.ImportResult) {
                 Text(
                     text = result.warnings.joinToString("\n"),
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextTertiary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                     textAlign = TextAlign.Center,
                 )
             }
@@ -447,7 +447,7 @@ private fun CompletedContent(result: MusicoletImportService.ImportResult) {
             Text(
                 text = "Continuing automatically...",
                 style = MaterialTheme.typography.bodySmall,
-                color = TextTertiary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
             )
         }
     }
@@ -462,12 +462,12 @@ private fun StatRow(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(text = label, style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+        Text(text = label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(
             text = value.toString(),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
-            color = TextPrimary,
+            color = MaterialTheme.colorScheme.onSurface,
         )
     }
 }
@@ -496,7 +496,7 @@ private fun ErrorContent(
                 text = "Import failed",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -504,7 +504,7 @@ private fun ErrorContent(
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
 
