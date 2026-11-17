@@ -3,6 +3,7 @@ package me.avinas.tempo.data.local.dao
 import androidx.room.*
 import kotlinx.coroutines.flow.Flow
 import me.avinas.tempo.data.local.EventFingerprint
+import me.avinas.tempo.data.local.DesktopObservedReplayPolicy
 import me.avinas.tempo.data.local.SourceAuthority
 import me.avinas.tempo.data.local.entities.ListeningEvent
 

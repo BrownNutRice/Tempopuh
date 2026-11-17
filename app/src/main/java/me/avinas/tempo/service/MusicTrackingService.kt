@@ -927,6 +927,7 @@ class MusicTrackingService : NotificationListenerService() {
         @Synchronized fun updatePosition(
             newPosition: Long,
             isCurrentlyPlaying: Boolean,
+            playbackSpeed: Float = 1f,
         ) {
             val now = System.currentTimeMillis()
             positionUpdatesCount++
@@ -966,7 +967,9 @@ class MusicTrackingService : NotificationListenerService() {
 
                 // Enhanced sanity check for seek detection
                 val timeElapsed = now - lastPositionUpdateTime
-                val maxReasonableDelta = timeElapsed + 2000 // 2 second buffer
+                val maxReasonableDelta = PlaybackPositionDeltaPolicy.maximumExpectedProgressMs(
+                    timeElapsed, playbackSpeed
+                )
 
                 // Detect different types of position changes
                 if (delta <= maxReasonableDelta) {
@@ -2258,9 +2261,12 @@ class MusicTrackingService : NotificationListenerService() {
                     android.os.SystemClock.elapsedRealtime() - lastSpotifyBroadcastAtMs < 2_500L
                 ) return@forEach
 
-                session.updatePosition(currentPosition, isPlaying)
+                session.updatePosition(currentPosition, isPlaying, playbackState.playbackSpeed)
                 if (isPlaying && !session.isPlaying) session.resume()
-                else if (!isPlaying && session.isPlaying) session.pause()
+                else if (!isPlaying && session.isPlaying) {
+                    session.pause()
+                    serviceScope.launch { saveSessionsToPersistence() }
+                }
                 SpotifyBroadcastPresence.publishFromLocal(
                     packageName = packageName,
                     title = session.title,
@@ -2285,7 +2291,7 @@ class MusicTrackingService : NotificationListenerService() {
         }
     }
 
-    private suspend fun saveSessionsToPersistence() {
+    private suspend fun saveSessionsToPersistence(): Boolean {
         try {
             // Create a snapshot to avoid ConcurrentModificationException
             val statesSnapshot = playbackStates.toMap()
@@ -2318,8 +2324,12 @@ class MusicTrackingService : NotificationListenerService() {
                 // later kill cannot resurrect (and double-count) finished plays.
                 sessionPersistence.clearSessions()
             }
+            return true
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.w(TAG, "Failed to auto-save sessions", e)
+            return false
         }
     }
 
@@ -4316,7 +4326,7 @@ class MusicTrackingService : NotificationListenerService() {
 
                 // KEY: Update position tracking with actual MediaSession position
                 // This is the core of position-based tracking
-                currentSession.updatePosition(currentPosition, isPlaying)
+                currentSession.updatePosition(currentPosition, isPlaying, playbackState?.playbackSpeed ?: 1f)
 
                 if (isPlaying && !currentSession.isPlaying) {
                     currentSession.resume()
@@ -4845,7 +4855,9 @@ class MusicTrackingService : NotificationListenerService() {
                     withTimeoutOrNull(SHUTDOWN_FLUSH_TIMEOUT_MS) {
                         // Persist the freshest session state first so an interrupted
                         // flush can still be recovered on the next start.
-                        saveSessionsToPersistence()
+                        if (!saveSessionsToPersistence()) {
+                            return@withTimeoutOrNull false
+                        }
                         playbackSnapshot.forEach { session ->
                             session.pause()
                             saveListeningEventSuspend(session)

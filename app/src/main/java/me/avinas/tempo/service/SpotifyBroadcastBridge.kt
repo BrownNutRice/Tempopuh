@@ -96,6 +96,7 @@ internal class SpotifyBroadcastBridge(
                     }
                     track = candidate
                     positionMs = 0L
+                    lastSentAtByAction[action] = sentAt
                 }
                 PLAYBACK -> {
                     if (Build.VERSION.SDK_INT < 34 && !allowLegacyBroadcast(track)) return
