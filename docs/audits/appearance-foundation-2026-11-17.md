@@ -67,3 +67,9 @@ A2 is **not complete across all shared UI**: generic dialogs, other analytics vi
 - Updated font instructions and save-failure copy in all six supported locales.
 
 Validation: source review, XML parsing and `git diff --check` only. No compilation, tests, CI, build or release executed. Device behavior and storage-failure paths remain unverified. Remaining A2 audit: other chart families, reusable artwork overlays, bespoke dialogs and inline text editor controls. Next: finish these consumers before exposing true light/system modes. Whole-screen draft preview, backup/export and advanced effects remain future work.
+
+## Continuation checkpoint — bespoke editing dialogs
+
+Artist rename/split and song/album/artist merge dialogs now use selected appearance roles for neutral surfaces, text, borders, focus, selection and loading indicators. Analytics disclosure accents follow the selected palette. Error/status colors are preserved. The interactive trend line was audited and already uses Material primary for its line/fill; no change was needed.
+
+Validation: source diff review and `git diff --check` only; no builds, tests, workflows or release. Remaining audit includes reusable artwork overlays, other chart families and inline text editor controls. True light/system support remains deferred.

@@ -1,5 +1,6 @@
 package me.avinas.tempo.ui.home
 
+import me.avinas.tempo.ui.theme.LocalTempoPalette
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
@@ -58,6 +59,7 @@ import me.avinas.tempo.ui.theme.TempoPrimary
 fun AnalyticsDisclosureDialog(
     viewModel: AnalyticsDisclosureViewModel = hiltViewModel(),
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val uiState by viewModel.uiState.collectAsState()
     if (!uiState.shouldShow) return
 
@@ -108,7 +110,7 @@ fun AnalyticsDisclosureDialog(
                 TempoDialogSurface {
                     TempoDialogIcon(
                         icon = Icons.Default.Info,
-                        tint = TempoPrimary,
+                        tint = appearancePalette.accent,
                         size = 56,
                     )
                     Spacer(modifier = Modifier.height(20.dp))

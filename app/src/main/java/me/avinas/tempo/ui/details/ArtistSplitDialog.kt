@@ -41,6 +41,7 @@ fun ArtistSplitDialog(
     onSplitComplete: (sourceDeleted: Boolean) -> Unit,
     viewModel: SplitArtistViewModel = hiltViewModel()
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(sourceArtistId) {
@@ -61,8 +62,8 @@ fun ArtistSplitDialog(
                 .fillMaxWidth()
                 .heightIn(max = 640.dp)
                 .clip(TempoDialogShape.shape)
-                .background(TempoSurfaceDialog)
-                .border(1.dp, GlassBorderSoft, TempoDialogShape.shape)
+                .background(appearancePalette.elevatedSurface)
+                .border(1.dp, appearancePalette.border.copy(alpha = 0.45f), TempoDialogShape.shape)
                 .padding(20.dp)
         ) {
                 // Header
@@ -76,12 +77,12 @@ fun ArtistSplitDialog(
                             text = stringResource(R.string.details_split_artist_title),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = TextPrimary
+                            color = appearancePalette.onSurface
                         )
                         Text(
                             text = stringResource(R.string.details_split_grouped_under, sourceArtistName),
                             style = MaterialTheme.typography.bodySmall,
-                            color = TextTertiary,
+                            color = appearancePalette.mutedText,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -93,7 +94,7 @@ fun ArtistSplitDialog(
                             .clip(CircleShape)
                             .background(GlassFrostSoft)
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = TextSecondary, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = appearancePalette.mutedText, modifier = Modifier.size(18.dp))
                     }
                 }
 
@@ -107,13 +108,13 @@ fun ArtistSplitDialog(
                                 .height(200.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            CircularProgressIndicator(color = TempoPrimary)
+                            CircularProgressIndicator(color = appearancePalette.accent)
                         }
                     }
                     uiState.groups.isEmpty() -> {
                         Text(
                             text = stringResource(R.string.details_no_tracks_found_artist),
-                            color = TextTertiary,
+                            color = appearancePalette.mutedText,
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.padding(vertical = 24.dp)
                         )
@@ -122,7 +123,7 @@ fun ArtistSplitDialog(
                         Text(
                             text = stringResource(R.string.details_split_group_info),
                             style = MaterialTheme.typography.bodySmall,
-                            color = TextTertiary
+                            color = appearancePalette.mutedText
                         )
                         Spacer(modifier = Modifier.height(8.dp))
 
@@ -163,11 +164,11 @@ fun ArtistSplitDialog(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)), color = TempoPrimary, trackColor = GlassFrostSoft)
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)), color = appearancePalette.accent, trackColor = GlassFrostSoft)
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = stringResource(R.string.details_splitting_artist),
-                            color = TextTertiary,
+                            color = appearancePalette.mutedText,
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -182,16 +183,16 @@ fun ArtistSplitDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         TextButton(onClick = onDismiss) {
-                            Text(stringResource(R.string.common_cancel), color = TextTertiary)
+                            Text(stringResource(R.string.common_cancel), color = appearancePalette.mutedText)
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Button(
                             onClick = { viewModel.confirmSplit() },
                             enabled = viewModel.selectedTrackCount > 0 &&
                                 status !is ArtistSplitStatus.Processing,
-                            colors = ButtonDefaults.buttonColors(containerColor = TempoPrimary)
+                            colors = ButtonDefaults.buttonColors(containerColor = appearancePalette.accent)
                         ) {
-                            Text(stringResource(R.string.details_split_button, viewModel.selectedTrackCount), color = TextOnAccent)
+                            Text(stringResource(R.string.details_split_button, viewModel.selectedTrackCount), color = appearancePalette.onAccent)
                         }
                     }
                 }
@@ -211,10 +212,11 @@ private fun SplitGroupItem(
     onToggleTrack: (Long) -> Unit,
     onTargetNameChange: (String) -> Unit
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(TempoSurfaceCard, RoundedCornerShape(8.dp))
+            .background(appearancePalette.surface, RoundedCornerShape(8.dp))
             .padding(12.dp)
     ) {
         Row(
@@ -225,8 +227,8 @@ private fun SplitGroupItem(
                 checked = group.selectedCount > 0,
                 onCheckedChange = { onToggleAll(it) },
                 colors = CheckboxDefaults.colors(
-                    checkedColor = TempoPrimary,
-                    uncheckedColor = TextTertiary
+                    checkedColor = appearancePalette.accent,
+                    uncheckedColor = appearancePalette.mutedText
                 )
             )
             Column(
@@ -239,7 +241,7 @@ private fun SplitGroupItem(
                         text = group.rawName,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
-                        color = TextPrimary,
+                        color = appearancePalette.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false)
@@ -249,14 +251,14 @@ private fun SplitGroupItem(
                         Text(
                             text = "current",
                             style = MaterialTheme.typography.labelSmall,
-                            color = TempoPrimary
+                            color = appearancePalette.accent
                         )
                     }
                 }
                 Text(
                     text = "${group.tracks.size} tracks • ${group.selectedCount} selected",
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextTertiary
+                    color = appearancePalette.mutedText
                 )
             }
             IconButton(onClick = onToggleExpanded) {
@@ -264,7 +266,7 @@ private fun SplitGroupItem(
                     if (group.expanded) Icons.Default.KeyboardArrowUp
                     else Icons.Default.KeyboardArrowDown,
                     contentDescription = if (group.expanded) "Collapse" else "Expand",
-                    tint = TextTertiary
+                    tint = appearancePalette.mutedText
                 )
             }
         }
@@ -284,15 +286,15 @@ private fun SplitGroupItem(
                         checked = track.selected,
                         onCheckedChange = { onToggleTrack(track.id) },
                         colors = CheckboxDefaults.colors(
-                            checkedColor = TempoPrimary,
-                            uncheckedColor = TextTertiary
+                            checkedColor = appearancePalette.accent,
+                            uncheckedColor = appearancePalette.mutedText
                         )
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = track.title,
                             style = MaterialTheme.typography.bodySmall,
-                            color = TextPrimary,
+                            color = appearancePalette.onSurface,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -300,7 +302,7 @@ private fun SplitGroupItem(
                             Text(
                                 text = track.album,
                                 style = MaterialTheme.typography.labelSmall,
-                                color = TextTertiary,
+                                color = appearancePalette.mutedText,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -319,13 +321,13 @@ private fun SplitGroupItem(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = TextPrimary,
-                    unfocusedTextColor = TextPrimary,
-                    focusedBorderColor = TempoPrimary,
-                    unfocusedBorderColor = TextTertiary,
-                    focusedLabelColor = TempoPrimary,
-                    unfocusedLabelColor = TextTertiary,
-                    cursorColor = TempoPrimary
+                    focusedTextColor = appearancePalette.onSurface,
+                    unfocusedTextColor = appearancePalette.onSurface,
+                    focusedBorderColor = appearancePalette.accent,
+                    unfocusedBorderColor = appearancePalette.mutedText,
+                    focusedLabelColor = appearancePalette.accent,
+                    unfocusedLabelColor = appearancePalette.mutedText,
+                    cursorColor = appearancePalette.accent
                 )
             )
         }

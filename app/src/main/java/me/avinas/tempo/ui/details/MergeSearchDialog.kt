@@ -36,6 +36,7 @@ fun MergeSearchDialog(
     onTrackSelected: (Track) -> Unit,
     viewModel: MergeTrackViewModel = hiltViewModel()
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val uiState by viewModel.uiState.collectAsState()
 
     // Set source track ID once
@@ -56,8 +57,8 @@ fun MergeSearchDialog(
                 .fillMaxWidth()
                 .heightIn(max = 560.dp)
                 .clip(TempoDialogShape.shape)
-                .background(TempoSurfaceDialog)
-                .border(1.dp, GlassBorderSoft, TempoDialogShape.shape)
+                .background(appearancePalette.elevatedSurface)
+                .border(1.dp, appearancePalette.border.copy(alpha = 0.45f), TempoDialogShape.shape)
                 .padding(20.dp)
         ) {
             // Header
@@ -70,7 +71,7 @@ fun MergeSearchDialog(
                     text = "Merge with...",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary
+                    color = appearancePalette.onSurface
                 )
                 IconButton(
                     onClick = onDismiss,
@@ -82,7 +83,7 @@ fun MergeSearchDialog(
                     Icon(
                         Icons.Default.Close,
                         contentDescription = "Close",
-                        tint = TextSecondary,
+                        tint = appearancePalette.mutedText,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -94,7 +95,7 @@ fun MergeSearchDialog(
             Text(
                 text = "Search for the correct track to merge into. All listening history will be combined.",
                 style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary
+                color = appearancePalette.mutedText
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -104,15 +105,15 @@ fun MergeSearchDialog(
                 value = uiState.query,
                 onValueChange = viewModel::onQueryChange,
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Search for the correct version...", color = TextTertiary) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = TextTertiary) },
+                placeholder = { Text("Search for the correct version...", color = appearancePalette.mutedText) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = appearancePalette.mutedText) },
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = TextPrimary,
-                    unfocusedTextColor = TextPrimary,
-                    cursorColor = TempoPrimary,
-                    focusedBorderColor = TempoPrimary,
+                    focusedTextColor = appearancePalette.onSurface,
+                    unfocusedTextColor = appearancePalette.onSurface,
+                    cursorColor = appearancePalette.accent,
+                    focusedBorderColor = appearancePalette.accent,
                     unfocusedBorderColor = TextQuaternary
                 )
             )
@@ -122,19 +123,19 @@ fun MergeSearchDialog(
             when {
                 uiState.isSearching -> {
                     Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = TempoPrimary, trackColor = GlassFrostSoft, strokeWidth = 2.dp)
+                        CircularProgressIndicator(color = appearancePalette.accent, trackColor = GlassFrostSoft, strokeWidth = 2.dp)
                     }
                 }
                 uiState.searchResults.isEmpty() && uiState.query.length >= 2 -> {
                     Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                        Text("No tracks found", color = TextTertiary, style = MaterialTheme.typography.bodyMedium)
+                        Text("No tracks found", color = appearancePalette.mutedText, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
                 uiState.searchResults.isEmpty() -> {
                     Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                         Text(
                             text = "Type to search for tracks",
-                            color = TextTertiary,
+                            color = appearancePalette.mutedText,
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -163,20 +164,20 @@ fun MergeSearchDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(TempoDarkSurfaceSunken)
+                        .background(appearancePalette.surfaceSunken)
                         .padding(16.dp)
                 ) {
                     Text(
                         text = "Confirm Merge",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = TextPrimary
+                        color = appearancePalette.onSurface
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = "Merge into \"${uiState.pendingMergeTarget!!.title}\" by ${uiState.pendingMergeTarget!!.artist}?",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary,
+                        color = appearancePalette.mutedText,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -184,7 +185,7 @@ fun MergeSearchDialog(
                     Text(
                         text = "This action cannot be undone. All listening history will be combined.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = TextTertiary
+                        color = appearancePalette.mutedText
                     )
                     Spacer(modifier = Modifier.height(14.dp))
                     TempoDialogButtonRow(
@@ -210,7 +211,7 @@ fun MergeSearchDialog(
                 Spacer(modifier = Modifier.height(14.dp))
                 LinearProgressIndicator(
                     modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)),
-                    color = TempoPrimary,
+                    color = appearancePalette.accent,
                     trackColor = GlassFrostSoft
                 )
             }
@@ -220,6 +221,7 @@ fun MergeSearchDialog(
 
 @Composable
 fun TrackSearchItem(track: Track, onClick: () -> Unit) {
+    val appearancePalette = LocalTempoPalette.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -248,7 +250,7 @@ fun TrackSearchItem(track: Track, onClick: () -> Unit) {
                         Icon(
                             imageVector = Icons.Rounded.MusicNote,
                             contentDescription = null,
-                            tint = TextTertiary,
+                            tint = appearancePalette.mutedText,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -257,7 +259,7 @@ fun TrackSearchItem(track: Track, onClick: () -> Unit) {
                 Icon(
                     imageVector = Icons.Rounded.MusicNote,
                     contentDescription = null,
-                    tint = TextTertiary,
+                    tint = appearancePalette.mutedText,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -270,14 +272,14 @@ fun TrackSearchItem(track: Track, onClick: () -> Unit) {
                 text = track.title,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                color = TextPrimary,
+                color = appearancePalette.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = track.artist,
                 style = MaterialTheme.typography.bodySmall,
-                color = TextTertiary,
+                color = appearancePalette.mutedText,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )

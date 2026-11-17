@@ -41,6 +41,7 @@ fun ArtistMergeSearchDialog(
     onMergeComplete: () -> Unit,
     viewModel: MergeArtistViewModel = hiltViewModel()
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(sourceArtistId) {
@@ -60,8 +61,8 @@ fun ArtistMergeSearchDialog(
                 .fillMaxWidth()
                 .heightIn(max = 560.dp)
                 .clip(TempoDialogShape.shape)
-                .background(TempoSurfaceDialog)
-                .border(1.dp, GlassBorderSoft, TempoDialogShape.shape)
+                .background(appearancePalette.elevatedSurface)
+                .border(1.dp, appearancePalette.border.copy(alpha = 0.45f), TempoDialogShape.shape)
                 .padding(20.dp)
         ) {
             // Header
@@ -75,12 +76,12 @@ fun ArtistMergeSearchDialog(
                         text = "Merge Artist",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
-                        color = TextPrimary
+                        color = appearancePalette.onSurface
                     )
                     Text(
                         text = "Merging: $sourceArtistName",
                         style = MaterialTheme.typography.bodySmall,
-                        color = TextTertiary,
+                        color = appearancePalette.mutedText,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -95,7 +96,7 @@ fun ArtistMergeSearchDialog(
                     Icon(
                         Icons.Default.Close,
                         contentDescription = "Close",
-                        tint = TextSecondary,
+                        tint = appearancePalette.mutedText,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -106,7 +107,7 @@ fun ArtistMergeSearchDialog(
             Text(
                 text = "Search for the correct artist to merge into. All listening history will be combined.",
                 style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary
+                color = appearancePalette.mutedText
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -116,15 +117,15 @@ fun ArtistMergeSearchDialog(
                 value = uiState.query,
                 onValueChange = viewModel::onQueryChange,
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Search for target artist...", color = TextTertiary) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = TextTertiary) },
+                placeholder = { Text("Search for target artist...", color = appearancePalette.mutedText) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = appearancePalette.mutedText) },
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = TextPrimary,
-                    unfocusedTextColor = TextPrimary,
-                    cursorColor = TempoPrimary,
-                    focusedBorderColor = TempoPrimary,
+                    focusedTextColor = appearancePalette.onSurface,
+                    unfocusedTextColor = appearancePalette.onSurface,
+                    cursorColor = appearancePalette.accent,
+                    focusedBorderColor = appearancePalette.accent,
                     unfocusedBorderColor = TextQuaternary
                 )
             )
@@ -138,7 +139,7 @@ fun ArtistMergeSearchDialog(
                         modifier = Modifier.fillMaxWidth().weight(1f),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(color = TempoPrimary, strokeWidth = 2.dp)
+                        CircularProgressIndicator(color = appearancePalette.accent, strokeWidth = 2.dp)
                     }
                 }
                 uiState.searchResults.isEmpty() && uiState.query.length >= 2 -> {
@@ -146,7 +147,7 @@ fun ArtistMergeSearchDialog(
                         modifier = Modifier.fillMaxWidth().weight(1f),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("No artists found", color = TextTertiary, style = MaterialTheme.typography.bodyMedium)
+                        Text("No artists found", color = appearancePalette.mutedText, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
                 uiState.searchResults.isEmpty() -> {
@@ -156,7 +157,7 @@ fun ArtistMergeSearchDialog(
                     ) {
                         Text(
                             text = "Type to search for artists",
-                            color = TextTertiary,
+                            color = appearancePalette.mutedText,
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -186,26 +187,26 @@ fun ArtistMergeSearchDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(TempoDarkSurfaceSunken)
+                        .background(appearancePalette.surfaceSunken)
                         .padding(16.dp)
                 ) {
                     Text(
                         text = "Confirm Merge",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = TextPrimary
+                        color = appearancePalette.onSurface
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = "Merge \"$sourceArtistName\" into \"${uiState.pendingMergeTarget!!.name}\"?",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary
+                        color = appearancePalette.mutedText
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "This action cannot be undone. All listening history will be combined.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = TextTertiary
+                        color = appearancePalette.mutedText
                     )
                     Spacer(modifier = Modifier.height(14.dp))
                     TempoDialogButtonRow(
@@ -236,13 +237,13 @@ fun ArtistMergeSearchDialog(
                 ) {
                     LinearProgressIndicator(
                         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)),
-                        color = TempoPrimary,
+                        color = appearancePalette.accent,
                         trackColor = GlassFrostSoft
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = "Merging artists...",
-                        color = TextTertiary,
+                        color = appearancePalette.mutedText,
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -259,6 +260,7 @@ private fun ArtistSearchItem(
     artist: Artist,
     onClick: () -> Unit
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -287,7 +289,7 @@ private fun ArtistSearchItem(
                         Icon(
                             Icons.Default.Person,
                             contentDescription = null,
-                            tint = TextTertiary,
+                            tint = appearancePalette.mutedText,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -296,7 +298,7 @@ private fun ArtistSearchItem(
                 Icon(
                     Icons.Default.Person,
                     contentDescription = null,
-                    tint = TextTertiary,
+                    tint = appearancePalette.mutedText,
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -309,7 +311,7 @@ private fun ArtistSearchItem(
                 text = artist.name,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                color = TextPrimary,
+                color = appearancePalette.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -317,7 +319,7 @@ private fun ArtistSearchItem(
                 Text(
                     text = artist.genres.take(3).joinToString(", "),
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextTertiary,
+                    color = appearancePalette.mutedText,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -325,14 +327,14 @@ private fun ArtistSearchItem(
                 Text(
                     text = artist.country,
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextTertiary
+                    color = appearancePalette.mutedText
                 )
             }
         }
 
         Text(
             text = "→",
-            color = TextTertiary,
+            color = appearancePalette.mutedText,
             style = MaterialTheme.typography.titleMedium
         )
     }

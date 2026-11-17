@@ -35,6 +35,7 @@ fun ArtistRenameDialog(
     onConfirmRenameOnly: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val appearancePalette = LocalTempoPalette.current
     var newName by remember { mutableStateOf(currentName) }
     var showMergeConfirmation by remember { mutableStateOf(false) }
 
@@ -58,7 +59,7 @@ fun ArtistRenameDialog(
                 // Step 1: Name input
                 TempoDialogIcon(
                     icon = Icons.Default.Edit,
-                    tint = TempoPrimary,
+                    tint = appearancePalette.accent,
                     size = 48
                 )
 
@@ -77,16 +78,16 @@ fun ArtistRenameDialog(
                 OutlinedTextField(
                     value = newName,
                     onValueChange = { newName = it },
-                    label = { Text("Artist Name", color = TextTertiary) },
+                    label = { Text("Artist Name", color = appearancePalette.mutedText) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary,
-                        focusedBorderColor = TempoPrimary,
+                        focusedTextColor = appearancePalette.onSurface,
+                        unfocusedTextColor = appearancePalette.onSurface,
+                        focusedBorderColor = appearancePalette.accent,
                         unfocusedBorderColor = TextQuaternary,
-                        cursorColor = TempoPrimary,
-                        focusedLabelColor = TempoPrimary
+                        cursorColor = appearancePalette.accent,
+                        focusedLabelColor = appearancePalette.accent
                     ),
                     enabled = !isDetecting && !isRenaming,
                     shape = RoundedCornerShape(12.dp)
@@ -101,7 +102,7 @@ fun ArtistRenameDialog(
                     ) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(22.dp),
-                            color = TempoPrimary,
+                            color = appearancePalette.accent,
                             strokeWidth = 2.dp
                         )
                     }
@@ -146,14 +147,14 @@ fun ArtistRenameDialog(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(TempoDarkSurfaceSunken)
+                                .background(appearancePalette.surfaceSunken)
                                 .padding(horizontal = 14.dp, vertical = 10.dp)
                         ) {
                             Text(
                                 text = artist.name,
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Medium,
-                                color = TextPrimary
+                                color = appearancePalette.onSurface
                             )
                         }
                     }
@@ -174,7 +175,7 @@ fun ArtistRenameDialog(
                     ) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(22.dp),
-                            color = TempoPrimary,
+                            color = appearancePalette.accent,
                             strokeWidth = 2.dp
                         )
                     }

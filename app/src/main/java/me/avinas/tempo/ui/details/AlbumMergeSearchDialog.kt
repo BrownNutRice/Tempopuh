@@ -45,6 +45,7 @@ fun AlbumMergeSearchDialog(
     onMergeComplete: (targetAlbumId: Long) -> Unit,
     viewModel: MergeAlbumViewModel = hiltViewModel()
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(sourceAlbumId, sourceArtistId) {
@@ -65,8 +66,8 @@ fun AlbumMergeSearchDialog(
                 .fillMaxWidth()
                 .heightIn(max = 580.dp)
                 .clip(TempoDialogShape.shape)
-                .background(TempoSurfaceDialog)
-                .border(1.dp, GlassBorderSoft, TempoDialogShape.shape)
+                .background(appearancePalette.elevatedSurface)
+                .border(1.dp, appearancePalette.border.copy(alpha = 0.45f), TempoDialogShape.shape)
                 .padding(20.dp)
         ) {
             // Header
@@ -80,12 +81,12 @@ fun AlbumMergeSearchDialog(
                         text = stringResource(R.string.details_merge_album),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
-                        color = TextPrimary
+                        color = appearancePalette.onSurface
                     )
                     Text(
                         text = stringResource(R.string.merge_merging, sourceAlbumTitle),
                         style = MaterialTheme.typography.bodySmall,
-                        color = TextTertiary,
+                        color = appearancePalette.mutedText,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -100,7 +101,7 @@ fun AlbumMergeSearchDialog(
                     Icon(
                         Icons.Default.Close,
                         contentDescription = "Close",
-                        tint = TextSecondary,
+                        tint = appearancePalette.mutedText,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -111,7 +112,7 @@ fun AlbumMergeSearchDialog(
             Text(
                 text = stringResource(R.string.merge_album_search),
                 style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary
+                color = appearancePalette.mutedText
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -124,11 +125,11 @@ fun AlbumMergeSearchDialog(
                 placeholder = {
                     Text(
                         text = stringResource(R.string.merge_album_search_placeholder),
-                        color = TextTertiary
+                        color = appearancePalette.mutedText
                     )
                 },
                 leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = null, tint = TextTertiary)
+                    Icon(Icons.Default.Search, contentDescription = null, tint = appearancePalette.mutedText)
                 },
                 trailingIcon = {
                     if (uiState.query.isNotEmpty()) {
@@ -136,7 +137,7 @@ fun AlbumMergeSearchDialog(
                             Icon(
                                 Icons.Default.Close,
                                 contentDescription = null,
-                                tint = TextTertiary,
+                                tint = appearancePalette.mutedText,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -145,10 +146,10 @@ fun AlbumMergeSearchDialog(
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = TextPrimary,
-                    unfocusedTextColor = TextPrimary,
-                    cursorColor = TempoPrimary,
-                    focusedBorderColor = TempoPrimary,
+                    focusedTextColor = appearancePalette.onSurface,
+                    unfocusedTextColor = appearancePalette.onSurface,
+                    cursorColor = appearancePalette.accent,
+                    focusedBorderColor = appearancePalette.accent,
                     unfocusedBorderColor = TextQuaternary
                 )
             )
@@ -163,7 +164,7 @@ fun AlbumMergeSearchDialog(
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator(
-                            color = TempoPrimary,
+                            color = appearancePalette.accent,
                             strokeWidth = 2.dp,
                             modifier = Modifier.size(32.dp)
                         )
@@ -178,7 +179,7 @@ fun AlbumMergeSearchDialog(
                         ) {
                             Text(
                                 text = stringResource(R.string.merge_album_no_results),
-                                color = TextTertiary,
+                                color = appearancePalette.mutedText,
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
@@ -207,7 +208,7 @@ fun AlbumMergeSearchDialog(
                             text = stringResource(R.string.merge_album_other_by_artist, sourceArtistName),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color = TextTertiary,
+                            color = appearancePalette.mutedText,
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
                         LazyColumn(
@@ -235,7 +236,7 @@ fun AlbumMergeSearchDialog(
                     ) {
                         Text(
                             text = stringResource(R.string.merge_search_albums),
-                            color = TextTertiary,
+                            color = appearancePalette.mutedText,
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -250,21 +251,21 @@ fun AlbumMergeSearchDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(TempoDarkSurfaceSunken)
-                        .border(1.dp, GlassBorderSoft, RoundedCornerShape(14.dp))
+                        .background(appearancePalette.surfaceSunken)
+                        .border(1.dp, appearancePalette.border.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
                         .padding(16.dp)
                 ) {
                     Text(
                         text = stringResource(R.string.merge_confirm),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = TextPrimary
+                        color = appearancePalette.onSurface
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = stringResource(R.string.merge_album_into, sourceAlbumTitle, target.title),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary,
+                        color = appearancePalette.mutedText,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -272,7 +273,7 @@ fun AlbumMergeSearchDialog(
                     Text(
                         text = stringResource(R.string.merge_cannot_undo),
                         style = MaterialTheme.typography.bodySmall,
-                        color = TextTertiary
+                        color = appearancePalette.mutedText
                     )
                     Spacer(modifier = Modifier.height(14.dp))
                     TempoDialogButtonRow(
@@ -303,13 +304,13 @@ fun AlbumMergeSearchDialog(
                 ) {
                     LinearProgressIndicator(
                         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)),
-                        color = TempoPrimary,
+                        color = appearancePalette.accent,
                         trackColor = GlassFrostSoft
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = stringResource(R.string.merge_merging_albums),
-                        color = TextTertiary,
+                        color = appearancePalette.mutedText,
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -324,8 +325,9 @@ private fun AlbumSearchItem(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val backgroundColor = if (isSelected) TempoPrimary.copy(alpha = 0.15f) else GlassFrostSoft
-    val borderColor = if (isSelected) TempoPrimary.copy(alpha = 0.4f) else Color.Transparent
+    val appearancePalette = LocalTempoPalette.current
+    val backgroundColor = if (isSelected) appearancePalette.accent.copy(alpha = 0.15f) else GlassFrostSoft
+    val borderColor = if (isSelected) appearancePalette.accent.copy(alpha = 0.4f) else Color.Transparent
 
     Row(
         modifier = Modifier
@@ -356,7 +358,7 @@ private fun AlbumSearchItem(
                         Icon(
                             imageVector = Icons.Rounded.Album,
                             contentDescription = null,
-                            tint = TextTertiary,
+                            tint = appearancePalette.mutedText,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -365,7 +367,7 @@ private fun AlbumSearchItem(
                 Icon(
                     imageVector = Icons.Rounded.Album,
                     contentDescription = null,
-                    tint = TextTertiary,
+                    tint = appearancePalette.mutedText,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -378,7 +380,7 @@ private fun AlbumSearchItem(
                 text = album.title,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                color = TextPrimary,
+                color = appearancePalette.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -392,7 +394,7 @@ private fun AlbumSearchItem(
             Text(
                 text = subtitleParts.joinToString(" • "),
                 style = MaterialTheme.typography.bodySmall,
-                color = TextTertiary,
+                color = appearancePalette.mutedText,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
