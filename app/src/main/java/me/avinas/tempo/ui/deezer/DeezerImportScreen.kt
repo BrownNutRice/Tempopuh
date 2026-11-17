@@ -103,7 +103,7 @@ fun DeezerImportScreen(
                                 text = stringResource(R.string.settings_import_deezer),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = TextPrimary,
+                                color = MaterialTheme.colorScheme.onSurface,
                             )
                         }
                     },
@@ -122,7 +122,7 @@ fun DeezerImportScreen(
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = stringResource(R.string.settings_back),
-                                tint = TextPrimary,
+                                tint = MaterialTheme.colorScheme.onSurface,
                             )
                         }
                     },
@@ -218,14 +218,14 @@ private fun IdleContent(
                 text = stringResource(R.string.deezer_import_intro_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = stringResource(R.string.deezer_import_intro_desc),
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
             Spacer(modifier = Modifier.height(20.dp))
@@ -275,7 +275,7 @@ private fun IdleContent(
                 text = stringResource(R.string.deezer_import_how_to_title),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(modifier = Modifier.height(8.dp))
             listOf(
@@ -288,7 +288,7 @@ private fun IdleContent(
                 Text(
                     text = step,
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 2.dp),
                 )
             }
@@ -296,7 +296,7 @@ private fun IdleContent(
             Text(
                 text = stringResource(R.string.deezer_import_short_plays_note),
                 style = MaterialTheme.typography.bodySmall,
-                color = TextTertiary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
             )
         }
     }
@@ -318,7 +318,7 @@ private fun ImportingContent(
                 text = stringResource(R.string.deezer_import_importing),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -339,7 +339,7 @@ private fun ImportingContent(
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -352,7 +352,7 @@ private fun ImportingContent(
             Text(
                 text = stringResource(R.string.deezer_import_background_hint),
                 style = MaterialTheme.typography.bodySmall,
-                color = TextTertiary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                 textAlign = TextAlign.Center,
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -388,7 +388,7 @@ private fun CompletedContent(
                 text = stringResource(R.string.deezer_import_complete),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(modifier = Modifier.height(12.dp))
             val summaryLines = mutableListOf(
@@ -406,7 +406,7 @@ private fun CompletedContent(
             Text(
                 text = summaryLines.joinToString("\n"),
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
             if (result.errors.isNotEmpty()) {
@@ -414,7 +414,7 @@ private fun CompletedContent(
                 Text(
                     text = stringResource(R.string.deezer_import_warnings, result.errors.size),
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextTertiary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                     textAlign = TextAlign.Center,
                 )
 
@@ -443,7 +443,7 @@ private fun CompletedContent(
                 Text(
                     text = warningLines.joinToString("\n") { "• $it" },
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Start,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -488,7 +488,7 @@ private fun ErrorContent(
                 text = stringResource(R.string.deezer_import_failed),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(modifier = Modifier.height(8.dp))
             val localizedMessage =
@@ -517,7 +517,7 @@ private fun ErrorContent(
             Text(
                 text = localizedMessage,
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
             Spacer(modifier = Modifier.height(20.dp))
