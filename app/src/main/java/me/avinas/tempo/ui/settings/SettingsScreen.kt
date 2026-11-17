@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -259,6 +261,17 @@ fun SettingsScreen(
         }
     }
 
+    // Settings overview first; the long controls list is divided into focused
+    // destinations, without changing any underlying settings or their storage.
+    var settingsCategory by rememberSaveable { mutableStateOf("overview") }
+    val settingsScrollState = rememberScrollState()
+    BackHandler(enabled = settingsCategory != "overview") {
+        settingsCategory = "overview"
+    }
+    LaunchedEffect(settingsCategory) {
+        settingsScrollState.scrollTo(0)
+    }
+
     // Name Dialog State
     var showNameDialog by remember { mutableStateOf(false) }
     var tempName by remember { mutableStateOf("") }
@@ -267,9 +280,24 @@ fun SettingsScreen(
         containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.settings_title), color = TextPrimary) },
+                title = {
+                    Text(
+                        text = when (settingsCategory) {
+                            "general" -> stringResource(R.string.settings_category_general)
+                            "tracking" -> stringResource(R.string.settings_category_tracking)
+                            "connections" -> stringResource(R.string.settings_category_connections)
+                            "data" -> stringResource(R.string.settings_category_data)
+                            "about" -> stringResource(R.string.settings_category_about)
+                            else -> stringResource(R.string.settings_title)
+                        },
+                        color = TextPrimary,
+                    )
+                },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = {
+                        if (settingsCategory == "overview") onNavigateBack()
+                        else settingsCategory = "overview"
+                    }) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.settings_back),
@@ -293,9 +321,50 @@ fun SettingsScreen(
                     Modifier
                         .fillMaxSize()
                         .padding(padding)
-                        .verticalScroll(rememberScrollState())
+                        .verticalScroll(settingsScrollState)
                         .padding(16.dp),
             ) {
+                if (settingsCategory == "overview") {
+                    SettingsSectionHeader(stringResource(R.string.settings_category_browse))
+                    GlassCard(
+                        contentPadding = PaddingValues(0.dp),
+                        variant = me.avinas.tempo.ui.components.GlassCardVariant.LowProminence,
+                    ) {
+                        Column {
+                            SettingsOption(
+                                title = stringResource(R.string.settings_category_general),
+                                subtitle = stringResource(R.string.settings_category_general_desc),
+                                onClick = { settingsCategory = "general" },
+                            )
+                            HorizontalDivider(color = GlassBorderSoft)
+                            SettingsOption(
+                                title = stringResource(R.string.settings_category_tracking),
+                                subtitle = stringResource(R.string.settings_category_tracking_desc),
+                                onClick = { settingsCategory = "tracking" },
+                            )
+                            HorizontalDivider(color = GlassBorderSoft)
+                            SettingsOption(
+                                title = stringResource(R.string.settings_category_connections),
+                                subtitle = stringResource(R.string.settings_category_connections_desc),
+                                onClick = { settingsCategory = "connections" },
+                            )
+                            HorizontalDivider(color = GlassBorderSoft)
+                            SettingsOption(
+                                title = stringResource(R.string.settings_category_data),
+                                subtitle = stringResource(R.string.settings_category_data_desc),
+                                onClick = { settingsCategory = "data" },
+                            )
+                            HorizontalDivider(color = GlassBorderSoft)
+                            SettingsOption(
+                                title = stringResource(R.string.settings_category_about),
+                                subtitle = stringResource(R.string.settings_category_about_desc),
+                                onClick = { settingsCategory = "about" },
+                            )
+                        }
+                    }
+                }
+
+                if (settingsCategory == "general") {
                 // Profile Section
                 SettingsSectionHeader(stringResource(R.string.settings_profile))
                 GlassCard(
@@ -467,6 +536,8 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                } // General
+                if (settingsCategory == "tracking") {
                 // Tracking
                 SettingsSectionHeader(stringResource(R.string.settings_music_tracking))
                 GlassCard(
@@ -601,6 +672,8 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                } // Tracking
+                if (settingsCategory == "connections") {
                 // Last.fm Import
                 SettingsSectionHeader(stringResource(R.string.settings_import_history))
                 GlassCard(
@@ -836,6 +909,8 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                } // Connections
+                if (settingsCategory == "data") {
                 // Data Management
                 SettingsSectionHeader(stringResource(R.string.settings_your_data))
                 GlassCard(
@@ -976,6 +1051,8 @@ fun SettingsScreen(
                     )
                 }
 
+                } // Library and data
+                if (settingsCategory == "about") {
                 // Community
                 SettingsSectionHeader(stringResource(R.string.settings_community))
                 GlassCard(
@@ -1071,6 +1148,7 @@ fun SettingsScreen(
                     }
                 }
 
+                } // Community and About
                 Spacer(modifier = Modifier.height(32.dp))
             }
         }

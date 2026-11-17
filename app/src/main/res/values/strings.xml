@@ -1556,4 +1556,15 @@
     <string name="settings_cover_source_automatic">Automatic (default)</string>
     <string name="home_show_more_insights">Explore more insights</string>
     <string name="home_hide_more_insights">Show fewer insights</string>
+    <string name="settings_category_browse">Choose an area</string>
+    <string name="settings_category_general">General</string>
+    <string name="settings_category_general_desc">Profile, language and notifications</string>
+    <string name="settings_category_tracking">Music tracking</string>
+    <string name="settings_category_tracking_desc">Player access, filtering and battery protection</string>
+    <string name="settings_category_connections">Connections &amp; imports</string>
+    <string name="settings_category_connections_desc">Spotify, Last.fm, desktop and history imports</string>
+    <string name="settings_category_data">Library &amp; data</string>
+    <string name="settings_category_data_desc">Backups, history accuracy and metadata</string>
+    <string name="settings_category_about">About &amp; community</string>
+    <string name="settings_category_about_desc">Version, support and privacy</string>
 </resources>
