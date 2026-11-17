@@ -1,8 +1,10 @@
 name: Beta release (manual, main only)
 
-# Pushes and PRs never build or publish. Dispatch explicitly from main; select
-# publish_beta only when the validated artifact should become a prerelease.
+# Explicit beta release push; ordinary commits still do not build.
 on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/beta-release.yml]
   workflow_dispatch:
     inputs:
       publish_beta:
@@ -116,7 +118,7 @@ jobs:
   publish:
     name: Publish immutable GitHub prerelease
     needs: [validate, platform]
-    if: ${{ inputs.publish_beta }}
+    if: ${{ github.ref == 'refs/heads/main' && (inputs.publish_beta || (github.event_name == 'push' && contains(github.event.head_commit.message, '[release-beta]'))) }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
