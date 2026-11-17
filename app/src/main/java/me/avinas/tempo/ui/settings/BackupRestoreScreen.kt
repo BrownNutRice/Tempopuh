@@ -203,7 +203,7 @@ fun BackupRestoreScreen(
         containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.settings_backup_restore), color = TextPrimary) },
+                title = { Text(stringResource(R.string.settings_backup_restore), color = MaterialTheme.colorScheme.onSurface) },
                 navigationIcon = {
                     IconButton(
                         onClick = onNavigateBack,
@@ -212,14 +212,14 @@ fun BackupRestoreScreen(
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.settings_back),
-                            tint = TextPrimary
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
-                    titleContentColor = TextPrimary,
-                    navigationIconContentColor = TextPrimary
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
         },
@@ -303,7 +303,7 @@ fun BackupRestoreScreen(
                 Text(
                     if (progress.phase.contains("Import", ignoreCase = true)) "Importing..."
                     else "Exporting...",
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold
                 )
             },
@@ -315,24 +315,24 @@ fun BackupRestoreScreen(
                     Text(
                         text = progress.phase,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     if (progress.isIndeterminate || progress.total <= 0) {
-                        CircularProgressIndicator(color = TempoPrimary, strokeWidth = 2.dp)
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary, strokeWidth = 2.dp)
                     } else {
                         LinearProgressIndicator(
                             progress = { (progress.current.toFloat() / progress.total.toFloat()).coerceIn(0f, 1f) },
                             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)),
-                            color = TempoPrimary,
+                            color = MaterialTheme.colorScheme.primary,
                             trackColor = GlassFrostSoft
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "${progress.current}/${progress.total}",
                             style = MaterialTheme.typography.bodySmall,
-                            color = TextTertiary
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
                         )
                     }
                 }
@@ -347,26 +347,26 @@ fun BackupRestoreScreen(
             onDismissRequest = { viewModel.cancelImport() },
             containerColor = TempoSurfaceDialog,
             shape = RoundedCornerShape(24.dp),
-            title = { Text("Import Options", color = TextPrimary, fontWeight = FontWeight.SemiBold) },
+            title = { Text("Import Options", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold) },
             text = {
-                Text("What should happen when importing data that already exists in the app?", color = TextSecondary)
+                Text("What should happen when importing data that already exists in the app?", color = MaterialTheme.colorScheme.onSurfaceVariant)
             },
             confirmButton = {
                 TextButton(
                     onClick = { viewModel.importData(uri, ImportConflictStrategy.REPLACE) }
                 ) {
-                    Text("Replace Existing", color = TempoPrimary, fontWeight = FontWeight.SemiBold)
+                    Text("Replace Existing", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
                 Row {
                     TextButton(onClick = { viewModel.cancelImport() }) {
-                        Text("Cancel", color = TextTertiary)
+                        Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f))
                     }
                     TextButton(
                         onClick = { viewModel.importData(uri, ImportConflictStrategy.SKIP) }
                     ) {
-                        Text("Skip Duplicates", color = TextSecondary)
+                        Text("Skip Duplicates", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -379,29 +379,29 @@ fun BackupRestoreScreen(
             onDismissRequest = { viewModel.cancelDriveRestore() },
             containerColor = TempoSurfaceDialog,
             shape = RoundedCornerShape(24.dp),
-            icon = { Icon(Icons.Default.CloudDownload, contentDescription = null, tint = TempoPrimary) },
-            title = { Text("Restore from Cloud", color = TextPrimary, fontWeight = FontWeight.SemiBold) },
+            icon = { Icon(Icons.Default.CloudDownload, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            title = { Text("Restore from Cloud", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold) },
             text = {
                 Column {
-                    Text("Restore backup from ${formatDate(backup.createdAt)}?", color = TextSecondary)
+                    Text("Restore backup from ${formatDate(backup.createdAt)}?", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "Size: ${formatBytes(backup.sizeBytes)}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = TextTertiary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
                     )
                     if (backup.appVersion != null) {
                         Text(
                             text = "App version: ${backup.appVersion}",
                             style = MaterialTheme.typography.bodySmall,
-                            color = TextTertiary
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
                         )
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = "How should duplicates be handled?",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             },
@@ -409,18 +409,18 @@ fun BackupRestoreScreen(
                 TextButton(
                     onClick = { viewModel.restoreFromDrive(backup, ImportConflictStrategy.REPLACE) }
                 ) {
-                    Text("Replace Existing", color = TempoPrimary, fontWeight = FontWeight.SemiBold)
+                    Text("Replace Existing", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
                 Row {
                     TextButton(onClick = { viewModel.cancelDriveRestore() }) {
-                        Text("Cancel", color = TextTertiary)
+                        Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f))
                     }
                     TextButton(
                         onClick = { viewModel.restoreFromDrive(backup, ImportConflictStrategy.SKIP) }
                     ) {
-                        Text("Skip Duplicates", color = TextSecondary)
+                        Text("Skip Duplicates", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -444,7 +444,7 @@ fun BackupRestoreScreen(
                             DriveOperationState.Restoring -> "Restoring..."
                             else -> ""
                         },
-                        color = TextPrimary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold
                     )
                 },
@@ -453,7 +453,7 @@ fun BackupRestoreScreen(
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(color = TempoPrimary, strokeWidth = 2.dp)
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary, strokeWidth = 2.dp)
                     }
                 },
                 confirmButton = { }
@@ -464,7 +464,7 @@ fun BackupRestoreScreen(
                 onDismissRequest = { },
                 containerColor = TempoSurfaceDialog,
                 shape = RoundedCornerShape(24.dp),
-                title = { Text("Uploading to Google Drive...", color = TextPrimary, fontWeight = FontWeight.SemiBold) },
+                title = { Text("Uploading to Google Drive...", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold) },
                 text = {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
@@ -473,11 +473,11 @@ fun BackupRestoreScreen(
                         LinearProgressIndicator(
                             progress = { op.progress.coerceIn(0f, 1f) },
                             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)),
-                            color = TempoPrimary,
+                            color = MaterialTheme.colorScheme.primary,
                             trackColor = GlassFrostSoft
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("${(op.progress * 100).toInt()}%", color = TextTertiary)
+                        Text("${(op.progress * 100).toInt()}%", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f))
                     }
                 },
                 confirmButton = { }
@@ -488,7 +488,7 @@ fun BackupRestoreScreen(
                 onDismissRequest = { },
                 containerColor = TempoSurfaceDialog,
                 shape = RoundedCornerShape(24.dp),
-                title = { Text("Downloading from Google Drive...", color = TextPrimary, fontWeight = FontWeight.SemiBold) },
+                title = { Text("Downloading from Google Drive...", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold) },
                 text = {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
@@ -497,11 +497,11 @@ fun BackupRestoreScreen(
                         LinearProgressIndicator(
                             progress = { op.progress.coerceIn(0f, 1f) },
                             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)),
-                            color = TempoPrimary,
+                            color = MaterialTheme.colorScheme.primary,
                             trackColor = GlassFrostSoft
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("${(op.progress * 100).toInt()}%", color = TextTertiary)
+                        Text("${(op.progress * 100).toInt()}%", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f))
                     }
                 },
                 confirmButton = { }
@@ -543,7 +543,7 @@ private fun DataOverviewSection(uiState: BackupRestoreUiState) {
                     .height(80.dp),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(color = TempoPrimary, modifier = Modifier.size(32.dp))
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
             }
         }
     }
@@ -603,19 +603,19 @@ private fun GoogleDriveSection(
                         Text(
                             text = "Connect Google Account",
                             style = MaterialTheme.typography.bodyLarge,
-                            color = TextPrimary
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "Back up your data to Google Drive",
                             style = MaterialTheme.typography.bodySmall,
-                            color = TextSecondary
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     
                     Icon(
                         Icons.Default.ChevronRight,
                         contentDescription = null,
-                        tint = TextTertiary
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
                     )
                 }
             } else {
@@ -646,7 +646,7 @@ private fun GoogleDriveSection(
                             Text(
                                 text = googleAccount?.email?.first()?.uppercase() ?: "G",
                                 style = MaterialTheme.typography.titleMedium,
-                                color = TextPrimary
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -657,19 +657,19 @@ private fun GoogleDriveSection(
                         Text(
                             text = googleAccount?.displayName ?: "Google Account",
                             style = MaterialTheme.typography.bodyLarge,
-                            color = TextPrimary
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = googleAccount?.email ?: "",
                             style = MaterialTheme.typography.bodySmall,
-                            color = TextSecondary,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
                     
                     TextButton(onClick = onSignOut) {
-                        Text("Sign Out", color = TextSecondary)
+                        Text("Sign Out", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 
@@ -686,7 +686,7 @@ private fun GoogleDriveSection(
                         Text(
                             text = "Backup to Drive",
                             style = MaterialTheme.typography.bodyLarge,
-                            color = TextPrimary
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         if (backupSettings.lastBackupTime != null) {
                             Text(
@@ -695,7 +695,7 @@ private fun GoogleDriveSection(
                                     formatRelativeTime(backupSettings.lastBackupTime),
                                 ),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = TextSecondary,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         Text(
@@ -709,12 +709,12 @@ private fun GoogleDriveSection(
                             ),
                             style = MaterialTheme.typography.bodySmall,
                             color = if (backupSettings.lastBackupStatus == BackupStatus.FAILED) TempoError
-                                else TextSecondary,
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Text(
                             text = stringResource(R.string.settings_backup_status_shared_destination),
                             style = MaterialTheme.typography.labelSmall,
-                            color = TextSecondary,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     
@@ -745,14 +745,14 @@ private fun GoogleDriveSection(
                         Text(
                             text = "Backup History (${driveBackups.size})",
                             style = MaterialTheme.typography.titleSmall,
-                            color = TextSecondary
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         
                         IconButton(onClick = onRefreshBackups, modifier = Modifier.size(24.dp)) {
                             Icon(
                                 Icons.Default.Refresh,
                                 contentDescription = "Refresh",
-                                tint = TextSecondary,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -797,12 +797,12 @@ private fun AutomaticBackupSection(
                     Text(
                         text = "Auto-backup",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = TextPrimary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = backupSettings.backupInterval.displayName,
                         style = MaterialTheme.typography.bodySmall,
-                        color = TextSecondary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
@@ -810,7 +810,7 @@ private fun AutomaticBackupSection(
                     Icon(
                         Icons.Default.Schedule,
                         contentDescription = null,
-                        tint = TextSecondary
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     TempoDropdownMenu(
                         expanded = intervalExpanded,
@@ -858,19 +858,19 @@ private fun DriveBackupItem(
             Text(
                 text = formatDate(backup.createdAt),
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextPrimary
+                color = MaterialTheme.colorScheme.onSurface
             )
             Row {
                 Text(
                     text = formatBytes(backup.sizeBytes),
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextTertiary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
                 )
                 if (backup.deviceName != null) {
                     Text(
                         text = " • ${backup.deviceName}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = TextTertiary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -890,7 +890,7 @@ private fun DriveBackupItem(
                 Icon(
                     Icons.Default.Delete,
                     contentDescription = "Delete",
-                    tint = TextTertiary
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
                 )
             }
         }
@@ -924,13 +924,13 @@ private fun LocalBackupSection(
                     Text(
                         text = "Automatic backup folder",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = TextPrimary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Choose or change where scheduled device backups are saved",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 OutlinedButton(onClick = onChooseAutoBackupFolder) {
@@ -967,19 +967,19 @@ private fun LocalBackupSection(
                     Text(
                         text = stringResource(R.string.backup_restore_export_device),
                         style = MaterialTheme.typography.bodyLarge,
-                        color = TextPrimary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = stringResource(R.string.backup_restore_estimated_size, uiState.estimatedExportSizeFormatted),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 
                 Button(
                     onClick = onExport,
-                    colors = ButtonDefaults.buttonColors(containerColor = TempoPrimary),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -1001,19 +1001,19 @@ private fun LocalBackupSection(
                     Text(
                         text = stringResource(R.string.backup_restore_import_device),
                         style = MaterialTheme.typography.bodyLarge,
-                        color = TextPrimary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = stringResource(R.string.backup_restore_import_file_desc),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 
                 OutlinedButton(
                     onClick = onImport,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TextPrimary),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
                     border = BorderStroke(
                         width = 1.dp,
                         brush = Brush.horizontalGradient(
@@ -1037,13 +1037,13 @@ private fun BackupTipsCard() {
         modifier = Modifier.fillMaxWidth(),
         contentPadding = PaddingValues(16.dp),
         variant = GlassCardVariant.LowProminence,
-        backgroundColor = TempoPrimary.copy(alpha = 0.1f)
+        backgroundColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
     ) {
         Column {
             Text(
                 text = "💡 Backup Tips",
                 style = MaterialTheme.typography.titleSmall,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -1053,7 +1053,7 @@ private fun BackupTipsCard() {
                        "• Album art from streaming services will be re-downloaded\n" +
                        "• Local album art is only included if toggled on",
                 style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = MaterialTheme.typography.bodySmall.lineHeight * 1.3
             )
         }
@@ -1070,22 +1070,22 @@ private fun DataStatItem(
         Box(
             modifier = Modifier
                 .size(48.dp)
-                .background(color = TempoPrimary.copy(alpha = 0.2f), shape = RoundedCornerShape(12.dp)),
+                .background(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f), shape = RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(imageVector = icon, contentDescription = null, tint = TempoPrimary, modifier = Modifier.size(24.dp))
+            Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
         }
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = formatCount(count),
             style = MaterialTheme.typography.titleMedium,
-            color = TextPrimary,
+            color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.Bold
         )
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
-            color = TextSecondary
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
