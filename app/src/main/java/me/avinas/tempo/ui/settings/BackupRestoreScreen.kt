@@ -711,6 +711,11 @@ private fun GoogleDriveSection(
                             color = if (backupSettings.lastBackupStatus == BackupStatus.FAILED) TempoError
                                 else TextSecondary,
                         )
+                        Text(
+                            text = stringResource(R.string.settings_backup_status_shared_destination),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextSecondary,
+                        )
                     }
                     
                     Button(

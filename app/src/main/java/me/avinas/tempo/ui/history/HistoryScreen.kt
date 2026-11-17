@@ -288,7 +288,7 @@ fun HistoryScreen(
                                     if (uiState.searchQuery.isNotEmpty()) {
                                         Box(
                                             modifier = Modifier
-                                                .size(36.dp)
+                                                .size(48.dp)
                                                 .clip(CircleShape)
                                                 .premiumClickable(onClick = { viewModel.onSearchQueryChanged("") }),
                                             contentAlignment = Alignment.Center
@@ -340,7 +340,7 @@ fun HistoryScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.List,
-                                    contentDescription = stringResource(R.string.history_title),
+                                    contentDescription = stringResource(R.string.history_filter_title),
                                     tint = if (isFilterActive) TempoPrimary else TextSecondary,
                                     modifier = Modifier.size(20.dp)
                                 )
