@@ -4133,6 +4133,8 @@ class MusicTrackingService : NotificationListenerService() {
             playing = isPlaying,
             positionMs = currentPosition,
             durationMs = duration,
+            albumArtUri = metadata.getString(MediaMetadata.METADATA_KEY_ALBUM_ART_URI)
+                ?: metadata.getString(MediaMetadata.METADATA_KEY_ART_URI),
         )
 
         // CRITICAL: Use synchronized block to prevent race condition when
@@ -4478,6 +4480,8 @@ class MusicTrackingService : NotificationListenerService() {
                 positionMs = active.lastRecordedPosition,
                 durationMs = active.estimatedDurationMs ?: 0L,
                 listenedMs = active.calculateCurrentPlayDuration(),
+                albumArtUri = metadata.getString(MediaMetadata.METADATA_KEY_ALBUM_ART_URI)
+                    ?: metadata.getString(MediaMetadata.METADATA_KEY_ART_URI),
             )
         }
     }

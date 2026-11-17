@@ -28,6 +28,8 @@ object SpotifyBroadcastPresence {
         // Live, *uncommitted* listening time for this local session. Null for
         // API-only/remote playback; never mix it into historical DB totals.
         val listenedMs: Long? = null,
+        // MediaSession supplies this without a network request; URI may be transient.
+        val albumArtUri: String? = null,
     )
 
     private val mutablePresence = MutableStateFlow<Presence?>(null)
@@ -57,6 +59,7 @@ object SpotifyBroadcastPresence {
                 positionMs, track.durationMs, System.currentTimeMillis(),
                 verifiedByApiAtMs = if (match) current?.verifiedByApiAtMs else null,
                 listenedMs = if (match) current?.listenedMs else null,
+                albumArtUri = if (match) current?.albumArtUri else null,
             )
         }
     }
@@ -133,6 +136,7 @@ object SpotifyBroadcastPresence {
         positionMs: Long,
         durationMs: Long,
         listenedMs: Long? = null,
+        albumArtUri: String? = null,
     ) {
         if (title.isBlank() || artist.isBlank()) return
         val now = System.currentTimeMillis()
@@ -146,7 +150,10 @@ object SpotifyBroadcastPresence {
                 now - current.updatedAtMs < 2_500L
             ) {
                 if (sameTrack && listenedMs != null) {
-                    current.copy(listenedMs = listenedMs.coerceAtLeast(0L))
+                    current.copy(
+                        listenedMs = listenedMs.coerceAtLeast(0L),
+                        albumArtUri = albumArtUri ?: current.albumArtUri,
+                    )
                 } else current
             } else {
                 Presence(
@@ -162,6 +169,7 @@ object SpotifyBroadcastPresence {
                     verifiedByApiAtMs = if (sameTrack) current?.verifiedByApiAtMs else null,
                     listenedMs = listenedMs?.coerceAtLeast(0L)
                         ?: if (sameTrack) current?.listenedMs else null,
+                    albumArtUri = albumArtUri ?: if (sameTrack) current?.albumArtUri else null,
                 )
             }
         }
