@@ -141,7 +141,9 @@ fun TodaysListenWidget(
                     )
 
                     // Volume summary
-                    val tracksCount = todayOverview?.uniqueTracksCount ?: totalPlays
+                    // A play is an event; a track is a distinct recording. Never
+                    // substitute play count for unique-track count in the label.
+                    val tracksCount = todayOverview?.uniqueTracksCount ?: 0
                     Text(
                         text = buildString {
                             append("$totalPlays ${if (totalPlays == 1) "play" else "plays"}")

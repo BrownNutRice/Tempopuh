@@ -23,5 +23,6 @@ Validation: changed Kotlin syntax, XML and YAML parse checks; git diff --check. 
 - Backup restore now caps the decompressed `data.json` stream at 1 GiB and rejects more than 5 million listening events or 2 million archive rows.
 - Musicolet ZIP members are streamed through bounded decryption into private cache files instead of holding ciphertext and a second plaintext copy in memory; the 256 MiB per-member and total archive budgets remain enforced.
 - Removed the browser extension's `<all_urls>` required host grant; paired-device access remains controlled by the existing local-server and optional-origin permission flow.
+- The Today summary now derives “tracks” only from its distinct-track metric instead of substituting total play events if the distinct count is absent.
 
 These changes received source review and whitespace checks only. No Android build, tests, workflow, or release were run.
