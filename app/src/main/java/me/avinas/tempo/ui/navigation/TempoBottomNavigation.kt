@@ -6,6 +6,9 @@ import me.avinas.tempo.ui.theme.TempoDarkSurfaceElevated
 import me.avinas.tempo.ui.theme.TextPrimary
 import me.avinas.tempo.ui.theme.TextSecondary
 import me.avinas.tempo.ui.theme.LocalTempoPalette
+import me.avinas.tempo.ui.theme.LocalTempoAppearance
+import me.avinas.tempo.ui.appearance.AppearanceNowListening
+import me.avinas.tempo.service.SpotifyBroadcastPresence
 import me.avinas.tempo.ui.theme.rememberReducedMotion
 
 import androidx.compose.animation.animateColorAsState
@@ -29,10 +32,16 @@ import androidx.compose.material.icons.outlined.Leaderboard
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Leaderboard
+import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -67,8 +76,10 @@ fun TempoBottomNavigation(
     modifier: Modifier = Modifier
 ) {
     val palette = LocalTempoPalette.current
-    Box(
-        modifier = modifier
+    Column(modifier = modifier.fillMaxWidth()) {
+        CompactNowPlayingStrip()
+        Box(
+        modifier = Modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.navigationBars)
             .padding(horizontal = 24.dp, vertical = 24.dp)
@@ -143,6 +154,71 @@ fun TempoBottomNavigation(
                 label = stringResource(R.string.nav_history)
             )
         }
+        }
+    }
+}
+
+@Composable
+private fun CompactNowPlayingStrip() {
+    if (LocalTempoAppearance.current.nowListening != AppearanceNowListening.COMPACT) return
+    val presence by SpotifyBroadcastPresence.presence.collectAsStateWithLifecycle()
+    val current = presence ?: return
+    var checkedAtMs by remember(current.updatedAtMs) {
+        mutableLongStateOf(System.currentTimeMillis())
+    }
+    LaunchedEffect(current.updatedAtMs) {
+        while (true) {
+            delay(60_000L)
+            checkedAtMs = System.currentTimeMillis()
+        }
+    }
+    // A remote or paused snapshot can outlive the playback session; never show
+    // the mini-player indefinitely just because it was the last observed track.
+    if (current.title.isBlank() ||
+        checkedAtMs < current.updatedAtMs ||
+        checkedAtMs - current.updatedAtMs >= 15 * 60_000L
+    ) return
+
+    val palette = LocalTempoPalette.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(palette.elevatedSurface)
+            .border(1.dp, palette.border.copy(alpha = 0.6f), RoundedCornerShape(20.dp))
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.MusicNote,
+            contentDescription = null,
+            tint = if (current.playing) palette.accent else palette.mutedText,
+            modifier = Modifier.size(20.dp),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = current.title,
+                color = palette.onSurface,
+                style = MaterialTheme.typography.labelLarge,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+            Text(
+                text = current.artist,
+                color = palette.mutedText,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+        }
+        Box(
+            modifier = Modifier.size(7.dp).background(
+                if (current.playing) palette.accent else palette.mutedText,
+                CircleShape,
+            ),
+        )
     }
 }
 
