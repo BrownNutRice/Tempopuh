@@ -92,7 +92,7 @@ fun HistoryScreen(
     }
     
     // Pagination — prefetch 4 items before end to prevent scrolling stalls and avoid per-pixel offset recalculation
-    val isAtBottom by remember {
+    val isAtBottom by remember(listState) {
         derivedStateOf {
             val layoutInfo = listState.layoutInfo
             if (layoutInfo.totalItemsCount == 0) {
@@ -107,7 +107,7 @@ fun HistoryScreen(
     val sheetState = rememberModalBottomSheetState()
     var showFilterSheet by remember { mutableStateOf(false) }
 
-    LaunchedEffect(isAtBottom) {
+    LaunchedEffect(listState, isAtBottom) {
         if (isAtBottom) {
             viewModel.loadMore()
         }
@@ -213,7 +213,7 @@ fun HistoryScreen(
             } // end PullToRefreshBox
 
             // Top Bar with scroll-aware elevation and studio glass styling
-            val isScrolled by remember {
+            val isScrolled by remember(listState) {
                 derivedStateOf {
                     listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0
                 }

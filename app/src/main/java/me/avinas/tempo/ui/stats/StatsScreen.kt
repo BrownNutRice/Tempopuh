@@ -135,7 +135,7 @@ fun StatsScreen(
     val walkthroughController = me.avinas.tempo.ui.components.LocalWalkthroughController.current
 
     // Pagination Logic - simplified for better scroll performance
-    val isAtBottom by remember {
+    val isAtBottom by remember(listState) {
         derivedStateOf {
             val layoutInfo = listState.layoutInfo
             if (layoutInfo.totalItemsCount == 0) {
@@ -148,7 +148,7 @@ fun StatsScreen(
         }
     }
 
-    LaunchedEffect(isAtBottom) {
+    LaunchedEffect(listState, isAtBottom) {
         if (isAtBottom) {
             viewModel.loadMore()
         }
@@ -313,7 +313,7 @@ fun StatsScreen(
             } // end PullToRefreshBox
 
             // Top Bar
-            val isScrolled by remember {
+            val isScrolled by remember(listState) {
                 derivedStateOf {
                     listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0
                 }
