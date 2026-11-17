@@ -126,7 +126,7 @@ fun HomeScreen(
             ) {
                 LazyColumn(
                     state = lazyListState,
-                    contentPadding = PaddingValues(bottom = 116.dp),
+                    contentPadding = PaddingValues(bottom = if (appearance.nowListening == AppearanceNowListening.COMPACT) 176.dp else 116.dp),
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
