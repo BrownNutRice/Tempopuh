@@ -43,8 +43,21 @@ jobs:
             echo "::warning::No persistent signing key: beta APK may not update earlier installations."
           fi
       - run: chmod +x gradlew
-      - name: Unit tests
-        run: ./gradlew :app:testDebugUnitTest --stacktrace
+      - name: Unit tests (retry transient toolchain registry errors)
+        shell: bash
+        run: |
+          set -o pipefail
+          for attempt in 1 2 3; do
+            if ./gradlew :app:testDebugUnitTest --stacktrace 2>&1 | tee "$RUNNER_TEMP/gradle-test.log"; then
+              exit 0
+            fi
+            # Only retry Gradle plugin registry/network failures; never hide compilation/test errors.
+            if ! grep -Fq "org.gradle.toolchains.foojay-resolver-convention" "$RUNNER_TEMP/gradle-test.log"; then
+              exit 1
+            fi
+            sleep $((15 * attempt))
+          done
+          exit 1
       - name: Android lint
         run: ./gradlew :app:lintDebug --stacktrace
       - name: Assemble APK
