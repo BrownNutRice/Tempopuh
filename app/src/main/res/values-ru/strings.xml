@@ -1348,11 +1348,12 @@
     <string name="settings_health_just_now">Только что</string>
     <string name="settings_health_minutes_ago">%1$d мин назад</string>
     <string name="settings_health_no_signal">Сигналы плеера пока не зарегистрированы</string>
-    <string name="settings_backup_overview_header">Состояние резервного копирования</string>
-    <string name="settings_backup_overview_never">Попытки создания копий пока не зарегистрированы</string>
-    <string name="settings_backup_overview_success">Последнее копирование успешно</string>
-    <string name="settings_backup_overview_failed">Последнее копирование не удалось — проверьте настройки</string>
-    <string name="settings_backup_overview_running">Резервное копирование выполняется</string>
-    <string name="settings_backup_overview_last_success">Последняя успешная копия: %1$s</string>
-    <string name="settings_backup_status_shared_destination">Этот статус относится к локальным копиям и копиям Google Drive.</string>
+    <string name="settings_backup_overview_header">Состояние копий Google Drive</string>
+    <string name="settings_backup_overview_never">Попытки копирования в Drive пока не зарегистрированы</string>
+    <string name="settings_backup_overview_success">Последнее копирование в Drive успешно</string>
+    <string name="settings_backup_overview_failed">Последнее копирование в Drive не удалось — проверьте подключение</string>
+    <string name="settings_backup_overview_running">Копирование в Drive помечено как выполняющееся</string>
+    <string name="settings_backup_overview_last_success">Последняя успешная копия в Drive: %1$s</string>
+    <string name="settings_backup_status_shared_destination">Этот статус относится только к Google Drive; локальные копии создаются отдельно.</string>
+    <string name="settings_backup_overview_disabled">Копирование в Drive отключено</string>
 </resources>

@@ -1231,11 +1231,12 @@
     <string name="settings_health_just_now">Agora mesmo</string>
     <string name="settings_health_minutes_ago">Há %1$d minutos</string>
     <string name="settings_health_no_signal">Ainda não foi registado um sinal do leitor</string>
-    <string name="settings_backup_overview_header">Estado da cópia de segurança</string>
-    <string name="settings_backup_overview_never">Ainda não há tentativas de cópia de segurança</string>
-    <string name="settings_backup_overview_success">Última cópia de segurança concluída</string>
-    <string name="settings_backup_overview_failed">Última cópia de segurança falhou — verificar definições</string>
-    <string name="settings_backup_overview_running">Cópia de segurança em curso</string>
-    <string name="settings_backup_overview_last_success">Última cópia concluída: %1$s</string>
-    <string name="settings_backup_status_shared_destination">Este estado abrange cópias locais e do Google Drive.</string>
+    <string name="settings_backup_overview_header">Estado da cópia do Google Drive</string>
+    <string name="settings_backup_overview_never">Ainda não houve tentativas de cópia no Drive</string>
+    <string name="settings_backup_overview_success">Última cópia do Drive concluída</string>
+    <string name="settings_backup_overview_failed">Última cópia do Drive falhou — verificar ligação</string>
+    <string name="settings_backup_overview_running">Cópia do Drive marcada como em curso</string>
+    <string name="settings_backup_overview_last_success">Última cópia do Drive concluída: %1$s</string>
+    <string name="settings_backup_status_shared_destination">Este estado refere-se apenas ao Google Drive; as cópias locais são independentes.</string>
+    <string name="settings_backup_overview_disabled">A cópia do Drive está desativada</string>
 </resources>
