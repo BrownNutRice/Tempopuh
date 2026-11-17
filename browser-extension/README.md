@@ -1,116 +1,46 @@
-# Tempo Stats — Browser Extension
+# Tempo browser companion
 
-Advanced music tracking for your browser. Track what you listen to on YouTube Music, Spotify Web, SoundCloud, and more — then sync to your Tempo app on Android.
+Records supported web-player observations and syncs queued plays to a paired Tempo Android app. This is the browser companion for [this fork](https://github.com/matchalattewithbanana/Tempo), not a music streaming client.
 
-## Features
+## Setup
 
-- **Position-based tracking** — Accurate listen time using `<audio>`/`<video>` element position data (not wall-clock)
-- **Skip/Replay/Pause/Seek detection** — Same accuracy as the Tempo mobile app
-- **Known Artist management** — Allow tracking on ambiguous sites when the artist is trusted
-- **YouTube opt-in** — Track YouTube.com by adding specific channel names
-- **Offline mode** — Queue plays locally, sync when ready
-- **Hotspot support** — Auto-discovers your phone on WiFi, hotspot, or LAN
-- **HMAC-SHA256 security** — Same signed payloads as the desktop app
-- **Dark theme UI** — Premium popup with live now-playing, queue, stats
-
-## Supported Sites
-
-| Site | Status |
-|------|--------|
-| YouTube Music | ✅ Always tracked |
-| Spotify Web | ✅ Always tracked |
-| SoundCloud | ✅ Always tracked |
-| Apple Music Web | ✅ Always tracked |
-| Tidal Web | ✅ Always tracked |
-| Deezer | ✅ Always tracked |
-| Bandcamp | ✅ Always tracked |
-| Pandora | ✅ Always tracked |
-| JioSaavn | ✅ Always tracked |
-| Gaana | ✅ Always tracked |
-| YouTube.com | 🔶 Opt-in (add channel names) |
-
-## Installation
-
-### From source (developer mode)
-
-1. **Build the extension:**
-   ```bash
-   cd browser-extension
-   npm install
-   npm run build
-   ```
-
-2. **Load in Chrome/Brave/Edge:**
-    - Go to `chrome://extensions/`
-    - Enable "Developer mode" (top right toggle)
-    - Click "Load unpacked"
-    - Select either `browser-extension` or `browser-extension/dist`
-
-3. **Pair with Tempo Android app:**
-   - Open the Tempo Stats popup (click extension icon)
-   - Go to the Pairing tab (share icon)
-   - Enter your phone's IP address, port (`8765`), and auth token
-   - Click "Connect"
-
-### Development
+Use Node.js 20:
 
 ```bash
-npm run watch  # Auto-rebuild on changes
+npm ci
+npm run typecheck
+npm run smoke
+npm run build:all
 ```
 
-## Architecture
+Load `dist/chrome/` through the Chromium extension developer page. For Firefox, load/test the built `dist/firefox/manifest.json` using the browser's temporary-extension tooling; the generated Firefox manifest targets Firefox 140+. Build output and archives are generated artifacts, not tracked source. Individual builds use `build:chrome` and `build:firefox`.
 
-```
-Content Script (per tab)     →  Background Service Worker  →  Phone (WiFi)
-Reads MediaSession + DOM         PlaybackTracker (state         POST /api/plays
-every 2 seconds                  machine with position-         HMAC-SHA256 signed
-                                 based tracking)
-                                 ↓
-                                 IndexedDB (play queue)
-```
+## Pairing and use
 
-### Key Components
+Open the popup's Pairing section and follow its QR workflow with Tempo's **Settings → Sync with Desktop** screen. Manual recovery accepts a phone IP; port 8765 is managed by the current popup flow. Both devices should use a trusted Wi-Fi/LAN/hotspot.
 
-| File | Purpose |
-|------|---------|
-| `src/content/media-probe.ts` | Extracts media state from music tabs (MediaSession + DOM) |
-| `src/background/tracker.ts` | PlaybackTracker state machine (port from desktop Rust) |
-| `src/background/site-detect.ts` | Site classification + YouTube opt-in logic |
-| `src/background/normalize.ts` | Metadata normalization (title/artist cleanup, ad filtering) |
-| `src/background/sync.ts` | Sync engine (HMAC, retry, hotspot fallback) |
-| `src/background/storage.ts` | IndexedDB + chrome.storage wrapper |
-| `src/background/service-worker.ts` | Central orchestrator |
-| `src/popup/` | Extension popup UI (dark theme) |
+Review host-permission prompts. A grant for one endpoint may not cover an address changed by discovery. Keep pairing tokens private; remove pairing and reconnect if they may have been exposed.
 
-## Why an extension instead of the desktop app?
+Supported-site detection is defined by `manifest.json` and `src/background/site-detect.ts`, including dedicated music players and opt-in ordinary YouTube channel rules. A supported domain does not guarantee that every page/player exposes usable timing. Inspect the popup's status, queue and failed records if sync stops.
 
-| Aspect | Desktop App | Browser Extension |
-|--------|-------------|-------------------|
-| Position data | OS media session (often broken) | Direct `<audio>.currentTime` ✅ |
-| URL/site | Title heuristics | Direct `tab.url` ✅ |
-| Volume/mute | OS-level (often unavailable) | Direct `<audio>.volume` ✅ |
-| Polling overhead | 5s, spawns OS processes | 2s, zero-cost in-browser ✅ |
-| Permissions | AppleScript, GSMTC | Standard extension permissions ✅ |
-| Cross-platform | Platform-specific code per OS | Single codebase everywhere ✅ |
+## Data and protocol
 
-## Sync Protocol
+The tracker combines observed media state with bounded timing rules. It can queue offline, record pause/seek/replay evidence and retry eligible transmissions. No claim of perfect timing or zero resource cost is made.
 
-Uses the exact same protocol as the Tempo Desktop app:
-- `POST /api/plays` with JSON payload
-- `X-Tempo-Signature` header (HMAC-SHA256 of payload using auth token as key)
-- Phone's `DesktopSatelliteServer` validates and ingests plays
-- No Android app changes required
+HTTP requests use timestamp, nonce and HMAC signatures; supported payload paths also use encrypted envelopes. Real-time WebSocket controls require signed acknowledgements/messages in the extension, but phone-peer interoperability needs separate validation. These mechanisms are not a blanket TLS or local-subnet security guarantee. See [privacy](PRIVACY.md) and [security reporting](../SECURITY.md).
 
-## License
+Queued/failed records are preserved during automatic retention cleanup. Review storage growth during long offline periods and export before deleting records. Removing pairing does not erase previously synced phone history.
 
-Part of the Tempo project. See root LICENSE file.
+## Source map
 
+| Path | Responsibility |
+| --- | --- |
+| `src/content/` | Page/player probes |
+| `src/background/tracker.ts` | Per-tab playback state machine |
+| `src/background/storage.ts` | IndexedDB and browser storage |
+| `src/background/sync.ts` | Batch sync, retry and address recovery |
+| `src/background/websocket.ts` | Real-time channel state |
+| `src/shared/security.ts` | Request signing/envelopes |
+| `src/popup/` | Status, pairing, queue and settings UI |
 
-### HTTP request authenticity
-
-Current Tempo Android builds require `X-Tempo-Timestamp`, `X-Tempo-Nonce`
-and `X-Tempo-Signature` on authenticated companion HTTP requests. The
-extension's current `signRequest` implementation sends all three. Earlier
-extensions that signed only the body must be rebuilt/updated; Tempo rejects
-that replayable legacy signature format. Keep the pairing token private and
-re-pair if the token or browser profile may have been exposed.
+Existing checks cover types and smoke fixtures; they do not certify every browser/site/network or accessibility scenario. Follow the [root contributor guide](../CONTRIBUTING.md) and retained [license](../LICENSE).

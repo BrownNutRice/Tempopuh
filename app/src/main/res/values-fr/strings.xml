@@ -20,7 +20,7 @@
     <string name="permission_battery_disabled">Désactivée ✓</string>
     <string name="permission_continue">Commencer le suivi</string>
     <string name="permission_pending">Terminez la configuration ci-dessus</string>
-    <string name="permission_privacy_note">🔒 Toutes vos données restent sur votre appareil. Tempo ne télécharge jamais votre historique d\'écoute.</string>
+    <string name="permission_privacy_note">Votre bibliothèque est stockée sur cet appareil. Les recherches en ligne, la synchronisation facultative, les exports et les sauvegardes peuvent transmettre des données.</string>
     
     <!-- Home screen -->
     <string name="home_tracking_active">✅ Suivi musical actif</string>
@@ -91,15 +91,15 @@
     <string name="how_it_works_next">Suivant</string>
 
     <!-- Onboarding: Privacy -->
-    <string name="privacy_title">Vos données restent ici</string>
-    <string name="privacy_subtitle">La vie privée n\'est pas une fonctionnalité. C\'est une fondation.</string>
-    <string formatted="false" name="privacy_local_title">Stockage 100 % local</string>
-    <string name="privacy_local_desc">Toutes vos données restent sur votre téléphone. Toujours.</string>
+    <string name="privacy_title">Vos données, vos choix</string>
+    <string name="privacy_subtitle">Un stockage local avec des réglages clairs pour les fonctions en ligne.</string>
+    <string formatted="false" name="privacy_local_title">Bibliothèque locale</string>
+    <string name="privacy_local_desc">L’historique d’écoute est stocké dans l’espace privé de l’application sur votre téléphone.</string>
     <string name="privacy_notif_title">Notifications musicales uniquement</string>
-    <string name="privacy_notif_desc">Nous lisons Spotify, YouTube Music, etc. Jamais vos messages.</string>
-    <string name="privacy_open_source_title">Open Source</string>
-    <string name="privacy_open_source_desc">Consultez notre code à tout moment sur GitHub.</string>
-    <string name="privacy_quote">« Nous ne pouvons pas voir vos données. Et nous ne le souhaitons pas. »</string>
+    <string name="privacy_notif_desc">Le suivi traite les notifications multimédias. L’accès Android aux notifications est une autorisation étendue.</string>
+    <string name="privacy_open_source_title">Consulter le code</string>
+    <string name="privacy_open_source_desc">Consultez le code et les conditions de licence de ce fork sur GitHub.</string>
+    <string name="privacy_quote">Vérifiez les fichiers et les diagnostics avant de les partager.</string>
     <string name="privacy_got_it">Compris</string>
 
     <!-- Onboarding: Battery Optimization -->
@@ -378,7 +378,7 @@
     <string name="backup_export">Exporter sur l\'appareil</string>
     <string name="backup_import">Importer depuis l\'appareil</string>
     <string name="backup_tips">💡 Astuces de sauvegarde</string>
-    <string name="backup_drive_auto">• Les sauvegardes Google Drive sont automatiques et chiffrées\n</string>
+    <string name="backup_drive_auto">• Les sauvegardes Drive automatiques utilisent votre compte connecté. Les archives ne sont pas chiffrées par mot de passe.\n</string>
     <string name="backup_use_different">Utiliser un autre compte</string>
     <string name="backup_last_backup">Dernière sauvegarde : %1$s</string>
 
@@ -1220,4 +1220,5 @@
     <string name="now_playing_last_detected">Dernière détection</string>
     <string name="spotify_secure_storage_unavailable">Le stockage sécurisé Spotify est indisponible. Déverrouillez votre appareil et réessayez. Vos données chiffrées sont conservées.</string>
     <string name="home_session_start_attribution">La durée d’écoute est attribuée à la date de début de chaque session.</string>
+    <string name="settings_analytics_reset_id_desc">Change l’identifiant des futurs événements. Cela ne supprime pas les événements déjà reçus par le service.</string>
 </resources>

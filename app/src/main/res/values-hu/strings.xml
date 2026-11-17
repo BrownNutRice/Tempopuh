@@ -20,7 +20,7 @@
     <string name="permission_battery_disabled">Letiltva ✓</string>
     <string name="permission_continue">Követés Indítása</string>
     <string name="permission_pending">Fejezd be a Beállítást Fent</string>
-    <string name="permission_privacy_note">🔒 Minden adatod az eszközödön marad. A Tempo soha nem tölti fel a hallgatási előzményeidet.</string>
+    <string name="permission_privacy_note">A könyvtár ezen az eszközön tárolódik. Az online keresések, az opcionális szinkronizálás, az exportok és a mentések adatokat továbbíthatnak.</string>
     
     <!-- Home screen -->
     <string name="home_tracking_active">✅ Zenei követés aktív</string>
@@ -91,15 +91,15 @@
     <string name="how_it_works_next">Tovább</string>
 
     <!-- Onboarding: Privacy -->
-    <string name="privacy_title">Az Adatod Itt Marad</string>
-    <string name="privacy_subtitle">A magánélet nem funkció. Ez az alap.</string>
-    <string formatted="false" name="privacy_local_title">100% Helyi Tárolás</string>
-    <string name="privacy_local_desc">Minden adatod a telefonodon marad. Mindig.</string>
+    <string name="privacy_title">Adataid, döntéseid</string>
+    <string name="privacy_subtitle">Helyi tárolás, átlátható online beállításokkal.</string>
+    <string formatted="false" name="privacy_local_title">Helyi zenei előzmények</string>
+    <string name="privacy_local_desc">A hallgatási előzmények a telefon alkalmazásspecifikus tárhelyén vannak.</string>
     <string name="privacy_notif_title">Csak Zenei Értesítések</string>
-    <string name="privacy_notif_desc">A Spotify-t, YouTube Music-ot, stb. olvassuk. Soha az üzeneteket.</string>
-    <string name="privacy_open_source_title">Nyílt Forráskód</string>
-    <string name="privacy_open_source_desc">Bármikor megtekintheted a kódunkat a GitHubon.</string>
-    <string name="privacy_quote">"Nem látjuk az adataidat. Nem akarjuk."</string>
+    <string name="privacy_notif_desc">A követés médiaértesítéseket dolgoz fel. Az Android értesítés-hozzáférése széles körű engedély.</string>
+    <string name="privacy_open_source_title">Forráskód megtekintése</string>
+    <string name="privacy_open_source_desc">A fork forráskódja és licencfeltételei a GitHubon érhetők el.</string>
+    <string name="privacy_quote">Megosztás előtt ellenőrizd a fájlokat és a diagnosztikát.</string>
     <string name="privacy_got_it">Értem</string>
 
     <!-- Onboarding: Battery Optimization -->
@@ -378,7 +378,7 @@
     <string name="backup_export">Exportálás fájlba</string>
     <string name="backup_import">Importálás fájlból</string>
     <string name="backup_tips">Hasznos tippek</string>
-    <string name="backup_drive_auto">Automatikus mentés engedélyezve</string>
+    <string name="backup_drive_auto">• Az automatikus Drive-mentések a csatlakoztatott fiókot használják. Az archívumok nincsenek jelszóval titkosítva.\n</string>
     <string name="backup_use_different">Másik fiók használata</string>
     <string name="backup_last_backup">Biztonsági mentés: %1$s</string>
 
@@ -856,4 +856,5 @@
     <string name="now_playing_last_detected">Utoljára észlelve</string>
     <string name="spotify_secure_storage_unavailable">A Spotify biztonságos tárhelye nem érhető el. Oldd fel az eszközt, és próbáld újra. A titkosított adatok megmaradtak.</string>
     <string name="home_session_start_attribution">A hallgatási idő ahhoz a naphoz kerül, amikor a lejátszás elkezdődött.</string>
+    <string name="settings_analytics_reset_id_desc">Módosítja a jövőbeli események azonosítóját. A szolgáltatáshoz már beérkezett eseményeket nem törli.</string>
 </resources>

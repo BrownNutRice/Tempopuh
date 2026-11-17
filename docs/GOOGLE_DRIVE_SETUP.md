@@ -1,9 +1,6 @@
 # Google Drive backup — fork setup
 
-The fork preserves the **original Tempo** Google Sign-In, Drive authorization,
-backup/restore UI, encrypted token storage and scheduled backup code. Those
-sources are identical to `avinaxhroy/Tempo`. The difference is how this fork's
-GitHub-built APK receives the OAuth configuration.
+This fork includes Google sign-in, Drive authorization and backup workers. Its current implementation and configuration can differ from upstream. Backups are ZIP/JSON archives in the connected account's Tempo Backups folder under the drive.file authorization scope; the app does not password-encrypt those archives. Keystore-backed token storage is a separate protection.
 
 ## Why the GitHub APK says "Google Sign-In not configured"
 

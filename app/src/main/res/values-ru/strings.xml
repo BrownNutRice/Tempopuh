@@ -20,7 +20,7 @@
     <string name="permission_battery_disabled">Отключено ✓</string>
     <string name="permission_continue">Начать отслеживание</string>
     <string name="permission_pending">Завершите настройку выше</string>
-    <string name="permission_privacy_note">🔒 Все данные остаются на вашем устройстве. Tempo никогда не загружает вашу историю прослушивания.</string>
+    <string name="permission_privacy_note">Библиотека хранится на этом устройстве. Онлайн-запросы, необязательная синхронизация, экспорт и резервные копии могут передавать данные.</string>
     
     <!-- Home screen -->
     <string name="home_tracking_active">✅ Отслеживание музыки активно</string>
@@ -91,15 +91,15 @@
     <string name="how_it_works_next">Далее</string>
 
     <!-- Onboarding: Privacy -->
-    <string name="privacy_title">Ваши данные остаются здесь</string>
-    <string name="privacy_subtitle">Конфиденциальность — это не функция. Это фундамент.</string>
-    <string name="privacy_local_title">100% локальное хранение</string>
-    <string name="privacy_local_desc">Все данные остаются на вашем телефоне. Всегда.</string>
+    <string name="privacy_title">Ваши данные, ваш выбор</string>
+    <string name="privacy_subtitle">Локальное хранение с понятными настройками онлайн-функций.</string>
+    <string name="privacy_local_title">Локальная библиотека</string>
+    <string name="privacy_local_desc">История прослушиваний хранится в закрытом хранилище приложения на телефоне.</string>
     <string name="privacy_notif_title">Только музыкальные уведомления</string>
-    <string name="privacy_notif_desc">Мы читаем уведомления Spotify, YouTube Music и т. д. Личные сообщения никогда не считываются.</string>
-    <string name="privacy_open_source_title">Открытый исходный код</string>
-    <string name="privacy_open_source_desc">Проверяйте наш код в любое время на GitHub.</string>
-    <string name="privacy_quote">"Мы не можем видеть ваши данные. И не хотим."</string>
+    <string name="privacy_notif_desc">Отслеживание обрабатывает медиауведомления. Доступ Android к уведомлениям — широкое разрешение.</string>
+    <string name="privacy_open_source_title">Посмотреть исходный код</string>
+    <string name="privacy_open_source_desc">Исходный код и условия лицензии этого форка доступны на GitHub.</string>
+    <string name="privacy_quote">Проверяйте файлы и диагностику перед отправкой.</string>
     <string name="privacy_got_it">Понятно</string>
 
     <!-- Onboarding: Battery Optimization -->
@@ -410,7 +410,7 @@
     <string name="backup_export">Экспорт на устройство</string>
     <string name="backup_import">Импорт с устройства</string>
     <string name="backup_tips">💡 Советы по резервному копированию</string>
-    <string name="backup_drive_auto">• Копии на Google Диске автоматические и зашифрованные\n</string>
+    <string name="backup_drive_auto">• Автоматические копии в Drive используют подключённый аккаунт. Архивы не зашифрованы паролем.\n</string>
     <string name="backup_use_different">Использовать другой аккаунт</string>
     <string name="backup_last_backup">Последняя копия: %1$s</string>
 
@@ -1448,4 +1448,5 @@
     <string name="now_playing_last_detected">Последнее обнаружение</string>
     <string name="spotify_secure_storage_unavailable">Защищённое хранилище Spotify недоступно. Разблокируйте устройство и повторите попытку. Зашифрованные данные сохранены.</string>
     <string name="home_session_start_attribution">Время прослушивания относится к дате начала каждого сеанса.</string>
+    <string name="settings_analytics_reset_id_desc">Меняет идентификатор будущих событий. Это не удаляет события, уже полученные сервисом.</string>
 </resources>

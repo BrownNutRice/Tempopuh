@@ -1,130 +1,54 @@
 # Tempo
 
-<p align="center">
-  <img src="TempoICON.png" width="108" alt="Tempo app icon" />
-</p>
+<p align="center"><img src="TempoICON.png" width="96" alt="Tempo icon" /></p>
 
-<p align="center">
-  <strong>A local-first music journal for Android.</strong><br />
-  Track your listening, explore your habits, and keep your history under your control.
-</p>
+**A local-first listening journal for Android.** Track supported players, explore your history, import older records, and create listening summaries.
 
-<p align="center">
-  <a href="https://github.com/matchalattewithbanana/Tempo/actions/workflows/ci.yml"><img alt="Android CI" src="https://github.com/matchalattewithbanana/Tempo/actions/workflows/ci.yml/badge.svg" /></a>
-  <a href="LICENSE"><img alt="License: modified AGPL-3.0" src="https://img.shields.io/badge/license-modified_AGPL--3.0-blue" /></a>
-  <a href="https://developer.android.com"><img alt="Android 8.0+" src="https://img.shields.io/badge/Android-8.0%2B-3DDC84" /></a>
-</p>
+This repository is a maintained fork of [avinaxhroy/Tempo](https://github.com/avinaxhroy/Tempo). Its APKs are distributed through this repository, separately from the upstream Google Play app.
 
-> **About this fork:** This repository builds on [avinaxhroy/Tempo](https://github.com/avinaxhroy/Tempo). The [upstream Google Play listing](https://play.google.com/store/apps/details?id=me.avinas.tempo) is **not** a distribution channel for this fork's APKs. Fork-specific behavior may differ from the upstream release.
+## Download
 
-## Overview
+[Tempo 4.9.0 Beta 1](https://github.com/matchalattewithbanana/Tempo/releases/tag/v4.9.0-beta.1) · Android 8.0+ · prerelease debug APK
 
-Tempo records music playback observed on your Android device and organizes completed listens into a searchable history. Your primary library and listening statistics are stored locally in Room.
+Export a backup before upgrading. An in-place update requires the same signing certificate as the installed app. Light/System appearance, background tracking and device performance still have open validation work; a beta is not a stable release.
 
-### What you can do
+See the [release catalog](docs/releases/README.md) for versions, checksums and upgrade guidance. Historical tags and APKs are retained.
 
-- **Track listening:** Android notification and MediaSession tracking for supported music players; optional Spotify Device Broadcast Status for faster Spotify playback changes.
-- **Explore statistics:** listening time, play counts, charts, heatmaps, artist/album details, and optional listening challenges.
-- **Import your history:** Spotify extended streaming-history JSON, Last.fm, YouTube Music Takeout, Deezer, Musicolet, and supported backup formats. Data quality depends on each export.
-- **Create and share:** listening summaries, Spotlight stories, and themed statistics cards.
-- **Use a browser companion:** the optional Chrome/Firefox extension can record web playback and sync to the Android app over a paired local network connection.
-- **Keep control:** local export/restore, optional Google Drive backups, and data/analytics settings.
+## Features
 
-Not every player exposes reliable playback position or pause events. Imported history can also lack observed listening duration or completion; Tempo should not interpret missing values as full plays.
+- Local notification and MediaSession playback tracking, with optional Spotify device broadcasts.
+- Listening history, charts, artist/album details, challenges and badges.
+- Spotify, Last.fm, YouTube Music, Deezer, Musicolet and browser-history imports.
+- Six appearance presets, saved looks and experimental Light/Follow System support.
+- Spotlight stories and share cards.
+- Local export/restore, optional Google Drive backups and an optional browser companion.
 
-## Screenshots
+Playback accuracy depends on the player's available signals. Now Playing is provisional; finished listens and imported records can have different timing evidence. Spotify API reconciliation requests a 20-minute background cadence, which Android may defer. Read [tracking accuracy](docs/TRACKING_AND_IMPORT_ACCURACY.md) before interpreting imported durations.
 
-<p align="center">
-  <img src="Screenshots/S1.png" width="23%" alt="Home" />
-  <img src="Screenshots/S3.png" width="23%" alt="Spotlight" />
-  <img src="Screenshots/S5.png" width="23%" alt="Artist details" />
-  <img src="Screenshots/S8.png" width="23%" alt="Widgets" />
-</p>
+## Privacy
 
-## How tracking works
+The primary library is stored in app-private Room/SQLite storage. The app does not add database encryption or password encryption to backup archives. Metadata services receive search terms or music identifiers; account integrations, paired-device sync, backups and sharing have their own data flows. Health reporting is build-configurable and uses a random installation identifier when active.
 
-**Local tracking is primary.** Notification access and Android MediaSession provide playback observations. If enabled in both Spotify and Tempo, Spotify Device Broadcast Status supplies additional local metadata and play/pause events. A shared playback session reconciles those signals; completed listens are saved after meeting the configured minimum duration.
+Read the [Android privacy policy](PRIVACY.md), [browser policy](browser-extension/PRIVACY.md) and [analytics reference](docs/ANALYTICS.md) for controls and limitations.
 
-**Spotify API history sync is secondary.** For connected and authorized accounts, a WorkManager job requests recently played tracks approximately every **20 minutes**, subject to Android background scheduling, network access, and Spotify API availability. It reconciles with locally observed plays instead of replacing live tracking. The API does **not** report observed listening duration. Tempo no longer makes continuous foreground playback-state API requests.
+## Build and contribute
 
-The **Now Playing** card on Home, Profile, and Settings displays provisional playback information. A live playing timer is not a committed database statistic until the play is finalized. This is **not Discord Rich Presence**.
+Development uses JDK 21, Android SDK 36 and the checked-in Gradle wrapper. Browser development uses Node.js 20 and the npm lockfile. See [development setup](docs/DEVELOPMENT.md), [architecture](docs/ARCHITECTURE.md) and [contributing](CONTRIBUTING.md).
 
-See [Tracking and import accuracy](docs/TRACKING_AND_IMPORT_ACCURACY.md) and [Real-time tracking pipeline](docs/REALTIME_TRACKING_PIPELINE.md) for source precedence, limitations, and troubleshooting.
+Build and validation workflows are manual. Ordinary commits do not build or publish APKs. See [release policy](docs/BUILD_AND_RELEASE_POLICY.md).
 
-## Install or build
+## Documentation and support
 
-**Latest beta APK:** [Tempo 4.9.0 Beta 1](https://github.com/matchalattewithbanana/Tempo/releases/tag/v4.9.0-beta.1) is a prerelease for reliability, accessibility and import testing. Back up your listening data before installing; Android requires the APK signer to match for in-place updates. Release and versioning policy: [docs/RELEASING.md](docs/RELEASING.md).
-
-**Requirements:** Android 8.0+ (API 26) for the app; JDK 21 and Android SDK 36 for source builds. Use a recent Android Studio version with compatible Android Gradle Plugin support.
-
-1. Clone **this fork** and enter the project:
-   ```bash
-   git clone https://github.com/matchalattewithbanana/Tempo.git
-   cd Tempo
-   ```
-2. Add optional developer configuration in the project-root `local.properties`:
-   ```properties
-   SPOTIFY_CLIENT_ID=your_spotify_client_id
-   LASTFM_API_KEY=your_lastfm_api_key
-   GOOGLE_WEB_CLIENT_ID=your_google_web_oauth_client_id
-   ```
-3. Run tests and build a debug APK:
-   ```bash
-   ./gradlew :app:testDebugUnitTest
-   ./gradlew :app:assembleDebug
-   ```
-4. Find the APK at `app/build/outputs/apk/debug/app-debug.apk`.
-
-The GitHub Actions [debug APK workflow](.github/workflows/build-apk.yml) is also available for manual builds. Its signing certificate may differ from local or previously installed APKs. **Back up your data before changing signing keys or uninstalling.**
-
-### Spotify account integration
-
-Spotify OAuth uses a public client ID with PKCE. If your build does not supply one, Tempo can accept a client ID at runtime. Register the redirect URI `tempo://spotify-callback` with the matching Spotify Developer application. Access is subject to Spotify's current developer-app restrictions and permissions.
-
-Enable **Device Broadcast Status** under Spotify's playback settings *and* in Tempo for local Spotify broadcasts, if supported by your installed Spotify version. MediaSession and notification tracking remain the fallback.
-
-### Google Drive backup setup
-
-Google sign-in does not work automatically in a fork-built APK. Configure the Google Cloud OAuth consent screen, Drive API, a Web OAuth client ID, and the **Android OAuth client registered to the actual APK signing SHA-1**. For reproducible GitHub builds, use a persistent signing key.
-
-See [Google Drive setup](docs/GOOGLE_DRIVE_SETUP.md). The repository deliberately does not include upstream credentials or signing keys.
-
-### Browser extension
-
-The optional companion has a [separate README](browser-extension/README.md). To develop it:
-
-```bash
-cd browser-extension
-npm ci
-npm run build
-npm run typecheck
-npm run smoke
-```
-
-Load the generated Chrome/Firefox extension from `browser-extension/dist` following the companion guide.
-
-## Privacy and data
-
-Listening history is kept locally unless you explicitly export, back up, or pair a browser companion. Optional analytics, if configured in a distribution, are documented in [Analytics and consent](docs/ANALYTICS.md); source builds with an empty analytics endpoint do not send analytics. Review [Privacy](PRIVACY.md) for details.
-
-## Documentation
-
-| Guide | Contents |
+| Resource | Purpose |
 | --- | --- |
-| [Tracking and import accuracy](docs/TRACKING_AND_IMPORT_ACCURACY.md) | Recording sources, duplicate handling and historical data quality |
-| [History data quality](docs/HISTORY_DATA_QUALITY.md) | Preview and optionally correct unsupported legacy Spotify API estimates |
-| [Real-time tracking pipeline](docs/REALTIME_TRACKING_PIPELINE.md) | Session timing, persistence and device test checklist |
-| [Google Drive setup](docs/GOOGLE_DRIVE_SETUP.md) | OAuth, signing, backup setup |
-| [Analytics](docs/ANALYTICS.md) | App-health data and consent |
-| [Performance audit](docs/PERFORMANCE_AUDIT.md) | Earlier engineering findings and fixes |
-| [Maintenance audit](docs/MAINTENANCE_AUDIT_2026-11-16.md) | Current maintenance changes and remaining device-test risks |
-| [Browser companion](browser-extension/README.md) | Browser extension setup and pairing |
-| [Changelog](Changelog.md) | Upstream historical release notes |
+| [Documentation index](docs/README.md) | User guides, development references and historical reports |
+| [Support](SUPPORT.md) | Troubleshooting and useful bug reports |
+| [Security](SECURITY.md) | Responsible vulnerability reporting |
+| [Changelog](Changelog.md) | Fork releases and unreleased changes |
+| [Current audit backlog](https://github.com/matchalattewithbanana/Tempo/issues) | Confirmed findings and proposed work |
 
-## Contributing
+Repository screenshots are illustrative historical assets; they are not proof of the current beta's visual or device-test status.
 
-Read [CONTRIBUTION.md](CONTRIBUTION.md) before submitting changes. For playback fixes, include the player, Android version, expected versus actual session timing, and a reproduction scenario. Run unit tests and relevant instrumented tests where possible.
+## Attribution and license
 
-## License and attribution
-
-Tempo originates from [avinaxhroy/Tempo](https://github.com/avinaxhroy/Tempo). This fork retains the project's [LICENSE](LICENSE), which contains modifications and restrictions beyond standard AGPL-3.0 terms. Review that file before redistribution or commercial use. All third-party trademarks remain with their respective owners.
+Original project: [avinaxhroy/Tempo](https://github.com/avinaxhroy/Tempo). See [NOTICE.md](NOTICE.md) and the complete [LICENSE](LICENSE). The license contains additional restrictions beyond standard AGPL-3.0, including commercial-use and rebranding restrictions. The license text is retained unchanged. Third-party services and marks belong to their respective owners; this fork is not endorsed by those services.

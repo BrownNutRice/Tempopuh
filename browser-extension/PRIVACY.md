@@ -1,73 +1,34 @@
-# Privacy Policy for Tempo Stats Browser Extension
+# Tempo browser companion privacy policy
 
-**Last Updated:** May 27, 2026
+**Updated:** 18 November 2026
+**Scope:** this repository's browser extension. See the [Android privacy policy](../PRIVACY.md) for the phone app.
 
-Tempo Stats is a browser extension developed as a companion to the Tempo music journal application on Android. It is built with a **local-first** and **privacy-first** philosophy: we believe your listening habits are personal data that belongs to you.
+## Information accessed and stored
 
-This extension does **not** have a central server, does **not** use user accounts, and does **not** track your behavior for advertising or analytics.
+The extension reads playback metadata and available player state on supported pages: title, artist, album, duration/position, pause/seek/replay evidence, volume/mute state and source page/site information. Ordinary YouTube tracking uses channel/artist rules. Browser tab access is used to identify relevant pages; this does not mean every page is recorded as a play.
 
----
+IndexedDB stores play records and sync history. Browser local storage holds settings, artist/channel lists, pairing address/port and authorization token. Session storage holds transitional tracker/sync state and a token mirror. **These stores are not independently encrypted by the extension.** Protect the browser profile and exported files.
 
-> **Scope:** this policy covers the browser extension only. The Tempo **Android app** has its own policy at [../PRIVACY.md](../PRIVACY.md). The app reports anonymous app-health statistics (which it discloses in-app and you can switch off); this extension reports nothing to us at all.
+## Transmission
 
-## 1. What Data We Collect & Access
+The extension syncs records directly to the configured phone endpoint and exchanges pairing/health/control messages. The intended setup is a trusted LAN, Wi-Fi or hotspot. Discovery probes known addresses and may probe the stored private subnet. The implementation supports HTTP/WebSocket endpoints; payload signatures and supported encrypted envelopes do not amount to a guarantee that all traffic uses TLS or remains inside a particular subnet.
 
-To function as a media tracker and scrobbler, Tempo Stats accesses and collects the following data:
+Pair only with a trusted device and grant only needed host access. A manually configured address, network routing or proxy may change where traffic travels. Do not expose the phone service to the public internet or publish the pairing token.
 
-* **Media Playback Metadata:** When you listen to music on supported web media players (like Spotify Web, YouTube Music, SoundCloud, Apple Music, etc.), the extension reads the active song title, artist name, album name, total duration, current playback position, volume level, and muted state.
-* **Player URLs:** The extension inspects the tab URL to determine if it is a supported music site, enabling media tracking only on those specific domains.
-* **Device Pairing Info:** The extension stores the local IP address, port, and security authorization token of your paired Android device running the Tempo app.
+The extension does not contain a central analytics or advertising integration. The music website, browser and chosen sync endpoint have their own processing. Data sent to Android is then subject to the Android app's storage, enrichment, backup and sharing behavior.
 
----
+## Permissions
 
-## 2. How Data is Stored & Processed
+The manifest declares storage, alarms and tabs, supported-site content scripts, default HTTP host access on port 8765, and optional HTTP host access for pairing/recovery. The built Chrome/Firefox manifests may differ. See [manifest.json](manifest.json) and the build output used for your installation.
 
-* **Local Storage:** All playback logs, settings, whitelists, and pairing credentials are stored locally on your device using the browser's `chrome.storage.local` API and IndexedDB.
-* **Session Storage:** Transitional states (like current active tab playback positions) are stored in `chrome.storage.session` and are cleared when the browser session ends.
-* **No Remote Servers:** We do not host or operate any external databases. Your data never goes to a server owned by us or any third party.
+## Retention and controls
 
----
+Tracking and offline mode are controlled in the popup. You can inspect/delete queued records, retry failures, export records or remove pairing. Unpairing removes the active pairing credentials; it does not erase existing phone records or all local playback/connection-history records.
 
-## 3. How Data is Transmitted (Off-Device Sync)
+Automatic age/cap cleanup targets **synced** plays. Queued and failed records are preserved rather than silently discarded at 5,000 rows. Sync-history cleanup has its own age/count limits. This can increase local storage while the phone is unavailable; review and export records before deleting them.
 
-* **Local Network Sync:** When you pair the extension with the Tempo Android app, your queued play logs are transmitted directly to your phone's IP address over your local WiFi, LAN, or hotspot connection.
-* **Security & Verification:** Playback payloads sent to your phone are signed using HMAC-SHA256 with a unique security token generated by your phone, ensuring data integrity.
-* **No Cloud Transmission:** Your listening history is **never** sent over the internet or public cloud during sync. It is restricted entirely to your local network subnet.
+Exports contain listening information and are not password-encrypted. Removing browser extension data does not remove copies already synced or exported.
 
----
+## Reporting concerns
 
-## 4. Third-Party Services
-
-This extension does not integrate with any third-party advertising, tracking, or telemetry networks. No analytics scripts are embedded.
-
----
-
-## 5. Data Retention & User Controls
-
-You have complete control over all data handled by the extension:
-
-* **Disable Tracking:** You can toggle tracking off at any time from the extension popup.
-* **Queue Management:** You can view your pending playback queue in the popup, delete individual plays, or clear the entire queue at once.
-* **Remove Pairing:** You can clear the paired device credentials at any time, which deletes the local IP, port, and authentication token and revokes network permissions.
-* **Automatic Cleanup:** The extension automatically deletes successfully synced plays and limits local queue size to prevent resource bloat.
-
----
-
-## 6. Permissions Declared
-
-The extension declares the following permissions in `manifest.json`:
-
-* `storage`: Used to save settings, whitelisted YouTube channels, and local queues.
-* `alarms`: Used to schedule automatic syncs and retries when the paired phone is disconnected.
-* `tabs`: Used to query active tab URLs to identify when a music website is loaded.
-* Host Permission (`http://*:8765/*`) & Optional Host Permission (`http://*:*/*`): Used to connect to the paired Android device on your local network.
-
----
-
-## 7. Contact Information
-
-If you have any questions or feedback regarding the privacy practices of Tempo Stats, please contact us:
-
-* **Developer:** Avinash
-* **Email:** hi@avinash.im
-* **GitHub Repository:** [https://github.com/avinaxhroy/Tempo](https://github.com/avinaxhroy/Tempo)
+Use the [fork issue tracker](https://github.com/matchalattewithbanana/Tempo/issues) for nonsensitive discrepancies. Do not include tokens, private URLs or raw listening exports in public reports. Use [security guidance](../SECURITY.md) for sensitive findings.

@@ -28,8 +28,7 @@
     "tabs"
   ],
   "host_permissions": [
-    "http://*:8765/*",
-    "<all_urls>"
+    "http://*:8765/*"
   ],
   "content_scripts": [
     {

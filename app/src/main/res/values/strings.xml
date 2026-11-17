@@ -20,7 +20,7 @@
     <string name="permission_battery_disabled">Disabled ✓</string>
     <string name="permission_continue">Start Tracking</string>
     <string name="permission_pending">Complete Setup Above</string>
-    <string name="permission_privacy_note">🔒 All your data stays on your device. Tempo never uploads your listening history.</string>
+    <string name="permission_privacy_note">Your library is stored on this device. Online lookups, optional sync, exports and backups can send data off-device.</string>
     
     <!-- Home screen -->
     <string name="home_tracking_active">✅ Music tracking active</string>
@@ -93,17 +93,17 @@
     <string name="how_it_works_next">Next</string>
 
     <!-- Onboarding: Privacy -->
-    <string name="privacy_title">Your Data Stays Here</string>
-    <string name="privacy_subtitle">Privacy isn\'t a feature. It\'s the foundation.</string>
-    <string formatted="false" name="privacy_local_title">100% Local Storage</string>
-    <string name="privacy_local_desc">All data stays on your phone. Always.</string>
-    <string name="privacy_no_cloud_title">No Tempo Servers</string>
-    <string name="privacy_no_cloud_desc">We run no backend and have no account for you. The only thing that leaves your phone is anonymous app-health stats, which you can turn off any time in Settings.</string>
+    <string name="privacy_title">Your data, your choices</string>
+    <string name="privacy_subtitle">Local storage with clear controls for online features.</string>
+    <string formatted="false" name="privacy_local_title">Local listening library</string>
+    <string name="privacy_local_desc">Listening history is stored in app-private storage on your phone.</string>
+    <string name="privacy_no_cloud_title">Optional online features</string>
+    <string name="privacy_no_cloud_desc">Metadata lookups contact music services. Account sync, Drive backups and configured health reporting can send data.</string>
     <string name="privacy_notif_title">Music Notifications Only</string>
-    <string name="privacy_notif_desc">We read Spotify, YouTube Music, etc. Never messages.</string>
-    <string name="privacy_open_source_title">Open Source</string>
-    <string name="privacy_open_source_desc">Check our code anytime on GitHub.</string>
-    <string name="privacy_quote">"We can\'t see your data. We don\'t want to."</string>
+    <string name="privacy_notif_desc">Tracking processes media notifications. Android notification access is a broad permission.</string>
+    <string name="privacy_open_source_title">Review the source</string>
+    <string name="privacy_open_source_desc">Review this fork’s source and license terms on GitHub.</string>
+    <string name="privacy_quote">Review files and diagnostics before sharing.</string>
     <string name="privacy_got_it">Got It</string>
 
     <!-- Onboarding: Battery Optimization -->
@@ -440,7 +440,7 @@
     <string name="backup_export">Export to Device</string>
     <string name="backup_import">Import from Device</string>
     <string name="backup_tips">💡 Backup Tips</string>
-    <string name="backup_drive_auto">• Google Drive backups are automatic and encrypted\n</string>
+    <string name="backup_drive_auto">• Automatic Drive backups use your connected account. Archives are not password-encrypted.\n</string>
     <string name="backup_use_different">Use a different account</string>
     <string name="backup_last_backup">Last backup: %1$s</string>
 

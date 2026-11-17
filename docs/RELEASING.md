@@ -1,25 +1,28 @@
-# Tempo release and versioning policy
+# Release procedure
 
-## Version format
+## Version and channel
 
-Tempo uses Semantic Versioning for display names and Git tags:
+Use `MAJOR.MINOR.PATCH-beta.N` for beta display versions and `vMAJOR.MINOR.PATCH-beta.N` for tags. Stable versions omit the suffix. Titles follow `Tempo X.Y.Z Beta N — Description` or `Tempo X.Y.Z — Description`. Legacy `4.8.16-fork.*` tags retain their original identities.
 
-- Betas: `MAJOR.MINOR.PATCH-beta.N`, tagged `vMAJOR.MINOR.PATCH-beta.N`.
-- Stable releases: `MAJOR.MINOR.PATCH`, tagged `vMAJOR.MINOR.PATCH`.
-- Release titles use `Tempo MAJOR.MINOR.PATCH Beta N` for prereleases and `Tempo MAJOR.MINOR.PATCH` for stable releases.
+Android versionCode increases for each new installable build. Do not change package ID, OAuth callbacks, signing identity or stored-data formats as a release-label cleanup.
 
-The first beta on this series is `4.9.0-beta.1`. The old `4.8.16-fork.*` tags remain unchanged as historical releases.
+## Prepare
 
-Android `versionCode` is a separate monotonically increasing integer. Increase it for every installable APK, including beta iterations. It must never decrease, even when a display version is corrected.
+1. Resolve the intended scope against `main`; distinguish fixes from open proposals.
+2. Update the display version/versionCode, `Changelog.md`, the versioned note under `docs/releases/`, and workflow version/artifact expectations together.
+3. Document source commit, minimum Android version, APK type, signing continuity, upgrade steps, checks actually performed and remaining device limitations.
+4. Confirm the stable signing key is available and compare the APK certificate with the intended public fingerprint. Signature verification alone does not establish continuity; [#49](https://github.com/matchalattewithbanana/Tempo/issues/49) tracks the missing automated gate.
 
-## Beta publishing
+## Validate and publish
 
-- Build and validation workflows are manually dispatched from `main` only; commits and pushes do not build or publish.
-- A beta workflow runs unit tests, Android lint, debug APK assembly, emulator tests, extension typecheck, and extension smoke checks.
-- The release job runs only when the dispatch explicitly selects `publish_beta=true`, and only after every validation job passes.
-- Publish a new immutable tag and GitHub prerelease with the APK and SHA-256 checksum. Never replace an existing release tag or asset.
-- Keep real-device QA status in the beta notes. Automated emulator tests do not complete physical appearance, accessibility, background tracking, or battery validation.
+Build/CI and publication require the relevant explicit request. Ordinary main commits run neither. Manually dispatch validation from main, inspect unit/lint/platform/extension results and keep test artifacts. Device visual, accessibility, tracking and battery checks are separate from green automation.
 
-## Stable publishing
+Only publish after the requested checks succeed and publication is authorized. The beta workflow's `publish_beta` input controls publication; a validation-only request keeps it false. Stable/store publication is a separate decision.
 
-Stable releases require a separate explicit request after beta issues and physical QA are reviewed. Do not infer stable release approval from a successful beta workflow.
+Create a new tag/release for changed binaries. Attach the APK and SHA-256 checksum, set prerelease status correctly and identify the matching source commit. Never move historical tags or replace published APK/checksum assets during a metadata cleanup.
+
+## Catalog and corrections
+
+Maintain [the release catalog](releases/README.md). Correct misleading titles, links or notes without claiming the attached binary changed. Record the date of substantive metadata corrections. Older previews stay visible as historical prereleases, not competing current recommendations.
+
+Published artifacts reflect their tagged source. An unreleased documentation/copy fix is not part of an older APK. No store listing, Play Console declaration, provider OAuth setting or upstream website is updated by changing repository documents.

@@ -9,25 +9,25 @@
 <resources>
 
     <!-- Consent notice and Settings toggle -->
-    <string name="analytics_disclosure_title">Statistiques anonymes de santé de l\'app</string>
-    <string name="analytics_disclosure_body">Tempo envoie des statistiques anonymes de santé de l\'app — plantages, erreurs et fonctionnalités utilisées. Aucun compte, aucun identifiant, et jamais votre historique d\'écoute.</string>
+    <string name="analytics_disclosure_title">Rapports de fonctionnement</string>
+    <string name="analytics_disclosure_body">Si configuré, Tempo transmet des événements limités avec un identifiant d’installation aléatoire. Désactivez-les dans Paramètres → Vos données.</string>
     <string name="analytics_disclosure_settings_hint">Vous pouvez modifier ceci à tout moment dans Paramètres → Vos données.</string>
     <string name="analytics_disclosure_turn_off">Désactiver</string>
     <string name="analytics_disclosure_got_it">Compris</string>
 
-    <string name="settings_analytics_toggle">Statistiques anonymes de santé de l\'app</string>
-    <string name="settings_analytics_toggle_desc">Partager des données anonymes de plantage, d\'erreur et d\'utilisation. Aucun compte, aucun identifiant, jamais votre historique d\'écoute.</string>
+    <string name="settings_analytics_toggle">Rapports de fonctionnement</string>
+    <string name="settings_analytics_toggle_desc">Partager des événements limités de fonctionnement et d’utilisation avec un identifiant d’installation aléatoire.</string>
     <string name="settings_data_diagnostics">Données et diagnostics</string>
     <string name="settings_data_diagnostics_desc">Ce que Tempo envoie et comment il fonctionne sur cet appareil</string>
 
     <!-- Your data screen -->
-    <string name="your_data_intro">Tout ce que Tempo enregistre et envoie, au même endroit. Rien ne quitte votre téléphone à moins que vous choisissiez de le partager.</string>
+    <string name="your_data_intro">Consultez les réglages des rapports et les diagnostics locaux. Les fonctions en ligne activées peuvent transmettre des données.</string>
 
     <!-- What we collect screen -->
     <string name="what_we_collect_title">Ce que nous collectons</string>
-    <string name="what_we_collect_intro">Voici la liste complète de ce que Tempo envoie. Tout est anonyme : aucun compte, aucun identifiant et jamais votre historique d\'écoute.</string>
+    <string name="what_we_collect_intro">Les événements utilisent un identifiant d’installation aléatoire et incluent la date, les versions de l’application et du système et la langue. Les plantages incluent aussi le modèle. Les titres, notifications brutes et identifiants de connexion sont exclus.</string>
     <string name="what_we_collect_properties">Envoyé avec chaque événement</string>
-    <string name="what_we_collect_footer">Rien n\'est collecté avant que cet avis ne vous ait été présenté, et vous pouvez tout désactiver à tout moment dans Paramètres → Vos données. Les versions compilées depuis les sources n\'envoient rien du tout.</string>
+    <string name="what_we_collect_footer">Si activés et configurés, les rapports commencent après l’affichage de cet avis. Désactivez-les dans Paramètres → Vos données. Les versions non configurées ne transmettent aucun rapport.</string>
 
     <!-- Diagnostics report -->
     <string name="diagnostics_title">Rapport de diagnostic</string>
@@ -38,8 +38,8 @@
     <string name="diagnostics_share_subject">Rapport de diagnostic Tempo</string>
 
     <!-- Onboarding privacy strings, restored with accurate wording -->
-    <string name="privacy_no_cloud_title">Aucun serveur Tempo</string>
-    <string name="privacy_no_cloud_desc">Nous n\'exploitons aucun serveur et ne détenons aucun compte vous concernant. La seule chose qui quitte votre téléphone est constituée de statistiques anonymes, que vous pouvez désactiver à tout moment dans les paramètres.</string>
+    <string name="privacy_no_cloud_title">Fonctions en ligne facultatives</string>
+    <string name="privacy_no_cloud_desc">Les recherches de métadonnées contactent des services musicaux. La synchronisation des comptes, les sauvegardes Drive et les rapports configurés peuvent transmettre des données.</string>
     <string name="how_it_works_badge_local">Local d\'abord</string>
     <string name="how_it_works_step3_subtitle">Votre historique d\'écoute reste ici</string>
 

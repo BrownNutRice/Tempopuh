@@ -1232,7 +1232,7 @@ fun SettingsScreen(
                             subtitle = stringResource(R.string.settings_github_desc),
                             onClick = {
                                 try {
-                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/avinaxhroy/Tempo"))
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/matchalattewithbanana/Tempo"))
                                     context.startActivity(intent)
                                 } catch (_: ActivityNotFoundException) {
                                     Toast.makeText(context, resources.getString(R.string.settings_no_browser), Toast.LENGTH_SHORT).show()
@@ -1248,7 +1248,7 @@ fun SettingsScreen(
                                     val intent =
                                         Intent(
                                             Intent.ACTION_VIEW,
-                                            Uri.parse("https://github.com/avinaxhroy/Tempo/blob/main/CONTRIBUTION.md"),
+                                            Uri.parse("https://github.com/matchalattewithbanana/Tempo/blob/main/CONTRIBUTING.md"),
                                         )
                                     context.startActivity(intent)
                                 } catch (_: ActivityNotFoundException) {
@@ -1279,7 +1279,7 @@ fun SettingsScreen(
                             title = stringResource(R.string.settings_privacy_policy),
                             onClick = {
                                 try {
-                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://tempo.avinash.im/privacy/"))
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/matchalattewithbanana/Tempo/blob/main/PRIVACY.md"))
                                     context.startActivity(intent)
                                 } catch (_: ActivityNotFoundException) {
                                     Toast.makeText(context, resources.getString(R.string.settings_no_browser), Toast.LENGTH_SHORT).show()

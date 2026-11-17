@@ -1,0 +1,25 @@
+# Release catalog
+
+**Reviewed:** 18 November 2026. All listed distributions are GitHub prereleases/debug APKs; no stable release from this fork is listed.
+
+| Version | Android code | Published | Purpose | Source / notes |
+| --- | --- | --- | --- | --- |
+| [4.9.0-beta.1](https://github.com/matchalattewithbanana/Tempo/releases/tag/v4.9.0-beta.1) | 4818 | 17 Nov 2026 | Current beta: reliability and import hardening | `289fcd0` · [notes](v4.9.0-beta.1.md) |
+| [4.8.16-fork.2-beta.1](https://github.com/matchalattewithbanana/Tempo/releases/tag/v4.8.16-fork.2-beta.1) | 4817 | 17 Nov 2026 | Historical Appearance Studio beta | `f99c502` · [notes](v4.8.16-fork.2-beta.1.md) |
+| [4.8.16-fork.1](https://github.com/matchalattewithbanana/Tempo/releases/tag/v4.8.16-fork.1) | 4816 | 16 Nov 2026 | Historical first fork preview | `11000a1` · [notes](v4.8.16-fork.1.md) |
+
+## Install and verify
+
+Download the APK and `SHA256SUMS.txt` from the selected release. Compare the downloaded file's SHA-256 with its checksum. A checksum detects file mismatch; compare the signing certificate separately when assessing an in-place update. Do not assume two debug builds share a signer.
+
+Export and verify a backup before reinstalling or changing signing identity. The package is `me.avinas.tempo`; minimum Android version is 8.0/API 26. GitHub APKs are separate from upstream Google Play distribution and require their own provider configuration.
+
+## Release status
+
+Version labels/tags identify the actual binary source. Current documentation and issue fixes may be newer than any published APK. Light/System, background playback, companion interoperability and performance require physical-device validation. See the [issue indexes](../README.md#current-audit-and-proposal-indexes).
+
+Metadata corrections may improve titles/notes but do not move tags or replace APK/checksum assets. The [release procedure](../RELEASING.md) describes future versioning and publication.
+
+## Metadata synchronization
+
+The catalog and checked-in notes define the canonical titles and descriptions. Live GitHub release titles/bodies still need synchronization by a maintainer with release-edit access. The connected API exposes release reads only, and the available browser is signed out. Keep existing tags, APKs and checksums unchanged when applying those metadata edits.

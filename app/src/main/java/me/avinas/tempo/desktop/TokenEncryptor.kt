@@ -12,8 +12,8 @@ import javax.crypto.spec.GCMParameterSpec
 
 /**
  * Encrypts/decrypts the auth token using Android Keystore for storage at rest.
- * The encryption key is stored in the hardware-backed keystore and cannot be
- * extracted, even on rooted devices.
+ * The key is managed by Android Keystore. Hardware backing and resistance to
+ * device compromise depend on the platform; this is not a rooted-device guarantee.
  */
 object TokenEncryptor {
     private const val TAG = "TokenEncryptor"

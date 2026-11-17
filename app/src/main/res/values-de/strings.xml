@@ -20,7 +20,7 @@
     <string name="permission_battery_disabled">Deaktiviert ✓</string>
     <string name="permission_continue">Erfassung starten</string>
     <string name="permission_pending">Einrichtung oben abschließen</string>
-    <string name="permission_privacy_note">🔒 Alle deine Daten bleiben auf deinem Gerät. Tempo lädt deinen Hörverlauf niemals hoch.</string>
+    <string name="permission_privacy_note">Deine Bibliothek wird auf diesem Gerät gespeichert. Online-Abfragen, optionale Synchronisierung, Exporte und Backups können Daten übertragen.</string>
     
     <!-- Home screen -->
     <string name="home_tracking_active">✅ Musik-Erfassung aktiv</string>
@@ -91,15 +91,15 @@
     <string name="how_it_works_next">Weiter</string>
 
     <!-- Onboarding: Privacy -->
-    <string name="privacy_title">Deine Daten bleiben hier</string>
-    <string name="privacy_subtitle">Datenschutz ist kein Feature. Es ist die Basis.</string>
-    <string name="privacy_local_title">100% lokale Speicherung</string>
-    <string name="privacy_local_desc">Alle Daten bleiben auf deinem Handy. Immer.</string>
+    <string name="privacy_title">Deine Daten, deine Entscheidungen</string>
+    <string name="privacy_subtitle">Lokale Speicherung mit klaren Einstellungen für Online-Funktionen.</string>
+    <string name="privacy_local_title">Lokale Hörbibliothek</string>
+    <string name="privacy_local_desc">Der Hörverlauf liegt im privaten App-Speicher deines Telefons.</string>
     <string name="privacy_notif_title">Nur Musikbenachrichtigungen</string>
-    <string name="privacy_notif_desc">Wir lesen Spotify, YouTube Music, etc. Niemals Nachrichten.</string>
-    <string name="privacy_open_source_title">Open Source</string>
-    <string name="privacy_open_source_desc">Überprüfe unseren Code jederzeit auf GitHub.</string>
-    <string name="privacy_quote">„Wir können deine Daten nicht sehen. Wir wollen es nicht.“</string>
+    <string name="privacy_notif_desc">Das Tracking verarbeitet Medienbenachrichtigungen. Der Android-Benachrichtigungszugriff ist eine weitreichende Berechtigung.</string>
+    <string name="privacy_open_source_title">Quellcode prüfen</string>
+    <string name="privacy_open_source_desc">Quellcode und Lizenzbedingungen dieses Forks findest du auf GitHub.</string>
+    <string name="privacy_quote">Prüfe Dateien und Diagnosen vor dem Teilen.</string>
     <string name="privacy_got_it">Verstanden</string>
 
     <!-- Onboarding: Battery Optimization -->
@@ -378,7 +378,7 @@
     <string name="backup_export">Auf Gerät exportieren</string>
     <string name="backup_import">Vom Gerät importieren</string>
     <string name="backup_tips">💡 Backup-Tipps</string>
-    <string name="backup_drive_auto">• Google-Drive-Backups erfolgen automatisch und verschlüsselt\n</string>
+    <string name="backup_drive_auto">• Automatische Drive-Backups nutzen dein verbundenes Konto. Archive sind nicht passwortverschlüsselt.\n</string>
     <string name="backup_use_different">Ein anderes Konto verwenden</string>
     <string name="backup_last_backup">Letztes Backup: %1$s</string>
 
@@ -1222,4 +1222,5 @@
     <string name="now_playing_last_detected">Zuletzt erkannt</string>
     <string name="spotify_secure_storage_unavailable">Der sichere Spotify-Speicher ist nicht verfügbar. Entsperre dein Gerät und versuche es erneut. Deine verschlüsselten Daten bleiben erhalten.</string>
     <string name="home_session_start_attribution">Die Hörzeit wird dem Datum zugeordnet, an dem die Wiedergabe begann.</string>
+    <string name="settings_analytics_reset_id_desc">Ändert die ID für künftige Ereignisse. Bereits empfangene Ereignisse werden beim Dienst dadurch nicht gelöscht.</string>
 </resources>

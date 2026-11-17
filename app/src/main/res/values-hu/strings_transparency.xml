@@ -9,25 +9,25 @@
 <resources>
 
     <!-- Consent notice and Settings toggle -->
-    <string name="analytics_disclosure_title">Névtelen alkalmazás-állapot statisztikák</string>
-    <string name="analytics_disclosure_body">A Tempo névtelen állapotstatisztikákat küld – összeomlásokról, hibákról és arról, mely funkciókat használod. Nincs fiók, nincsenek azonosítók, és soha nem a hallgatási előzményeid.</string>
+    <string name="analytics_disclosure_title">Alkalmazás-állapotjelentések</string>
+    <string name="analytics_disclosure_body">Ha be van állítva, a Tempo korlátozott állapot- és használati eseményeket küld véletlen telepítési azonosítóval. Kikapcsolás: Beállítások → Adataid.</string>
     <string name="analytics_disclosure_settings_hint">Ezt bármikor módosíthatod a Beállítások → Adataid menüben.</string>
     <string name="analytics_disclosure_turn_off">Kikapcsolás</string>
     <string name="analytics_disclosure_got_it">Rendben</string>
 
-    <string name="settings_analytics_toggle">Névtelen alkalmazás-állapot statisztikák</string>
-    <string name="settings_analytics_toggle_desc">Névtelen összeomlási, hiba- és használati adatok megosztása. Nincs fiók, nincsenek azonosítók, soha nem a hallgatási előzményeid.</string>
+    <string name="settings_analytics_toggle">Alkalmazás-állapotjelentések</string>
+    <string name="settings_analytics_toggle_desc">Korlátozott állapot- és használati események megosztása véletlen telepítési azonosítóval.</string>
     <string name="settings_data_diagnostics">Adatok és diagnosztika</string>
     <string name="settings_data_diagnostics_desc">Mit küld a Tempo, és hogyan működik ezen az eszközön</string>
 
     <!-- Your data screen -->
-    <string name="your_data_intro">Minden, amit a Tempo rögzít és küld, egy helyen. Semmi nem hagyja el a telefonodat, hacsak nem osztod meg magad.</string>
+    <string name="your_data_intro">Tekintsd át a jelentések beállításait és a helyi diagnosztikát. Az engedélyezett online funkciók adatokat továbbíthatnak.</string>
 
     <!-- What we collect screen -->
     <string name="what_we_collect_title">Mit gyűjtünk</string>
-    <string name="what_we_collect_intro">Ez a teljes lista arról, amit a Tempo küld. Minden névtelen: nincs fiók, nincsenek azonosítók, és soha nem a hallgatási előzményeid.</string>
+    <string name="what_we_collect_intro">Az események véletlen telepítési azonosítót, időbélyeget, alkalmazás- és rendszerverziót, valamint nyelvet tartalmaznak. Az összeomlások az eszközmodellt is tartalmazzák. A zenecímek, nyers értesítések és belépési adatok nem szerepelnek bennük.</string>
     <string name="what_we_collect_properties">Minden eseménnyel elküldve</string>
-    <string name="what_we_collect_footer">Semmi nem kerül gyűjtésre, amíg ez a tájékoztató meg nem jelent, és mindent bármikor kikapcsolhatsz a Beállítások → Adataid menüben. A forrásból fordított verziók egyáltalán nem küldenek semmit.</string>
+    <string name="what_we_collect_footer">A beállított jelentésküldés az értesítés megjelenése után indul, ha engedélyezett. Kikapcsolás: Beállítások → Adataid. Beállítás nélkül nincs jelentésküldés.</string>
 
     <!-- Diagnostics report -->
     <string name="diagnostics_title">Diagnosztikai jelentés</string>
@@ -38,8 +38,8 @@
     <string name="diagnostics_share_subject">Tempo diagnosztikai jelentés</string>
 
     <!-- Onboarding privacy strings, restored with accurate wording -->
-    <string name="privacy_no_cloud_title">Nincsenek Tempo-szerverek</string>
-    <string name="privacy_no_cloud_desc">Nem üzemeltetünk backendet, és nem tartunk nyilván fiókot rólad. Az egyetlen dolog, ami elhagyja a telefonod, a névtelen állapotstatisztika, amit bármikor kikapcsolhatsz a beállításokban.</string>
+    <string name="privacy_no_cloud_title">Opcionális online funkciók</string>
+    <string name="privacy_no_cloud_desc">A metaadat-lekérdezések zenei szolgáltatásokat érnek el. A fiókszinkronizálás, a Drive-mentések és a beállított állapotjelentések adatokat továbbíthatnak.</string>
     <string name="how_it_works_badge_local">Helyi első</string>
     <string name="how_it_works_step3_subtitle">A hallgatási előzményeid itt maradnak</string>
 

@@ -1,0 +1,31 @@
+name: Bug report
+description: Report a reproducible problem in this fork.
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: "Search existing issues first. Do not attach tokens, full backups or private listening records. Use SECURITY.md for sensitive vulnerabilities."
+  - type: input
+    id: environment
+    attributes:
+      label: Version and environment
+      description: App version/code, Android/device, player/provider; browser version when relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Redacted evidence
+      description: Screenshots, timing observations or reviewed diagnostics; include tone/font scale for UI issues.

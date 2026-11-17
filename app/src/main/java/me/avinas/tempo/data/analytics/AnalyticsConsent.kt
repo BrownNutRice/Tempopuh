@@ -103,12 +103,12 @@ class AnalyticsConsent
             dataStore.data.map { it[noticeDismissedKey] ?: false }
 
         /**
-         * The single observable that actually decides whether reporting may happen: opted in AND
+         * The single observable that decides whether reporting may happen: enabled AND
          * the Home notice has been rendered. Callers that own the uploader's lifecycle should
          * collect this rather than [isEnabled], so the worker is not registered for a build that
-         * still cannot send — and so it is registered the moment the notice makes collection
-         * legal, which is what lets the first event leave the device immediately instead of
-         * waiting for the next periodic run.
+         * still cannot send. Rendering the notice opens the technical collection gate; it is
+         * not a determination of legal consent. Collection can then begin immediately
+         * instead of waiting for the next periodic run.
          *
          * **[distinctUntilChanged] is load-bearing, not an optimisation.** `dataStore.data`
          * re-emits on *every* write to the settings store, so a collector that reacts to this

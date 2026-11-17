@@ -1,13 +1,13 @@
 {
   "name": "tempo-stats-extension",
   "version": "1.0.8",
-  "description": "Tempo Stats — Advanced browser music tracking extension",
+  "description": "Tempo Stats \u2014 Advanced browser music tracking extension",
   "private": true,
   "scripts": {
     "build": "node build.mjs",
     "build:chrome": "node build.mjs --target=chrome",
     "build:firefox": "node build.mjs --target=firefox",
-    "build:all": "./build-all.sh",
+    "build:all": "npm run build:chrome && npm run build:firefox",
     "watch": "node build.mjs --watch",
     "watch:chrome": "node build.mjs --target=chrome --watch",
     "watch:firefox": "node build.mjs --target=firefox --watch",

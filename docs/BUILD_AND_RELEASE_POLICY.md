@@ -1,27 +1,21 @@
-# Manual build and release policy
+# Build and release authorization policy
 
-**Status:** Active since 2026-11-17, at user request.
+**Reviewed:** 18 November 2026. Active development uses `main`.
 
-## Default for all development commits
+## Default
 
-- Code fixes, new features, documentation changes, PRs and pushes to `main` must **not** automatically start CI jobs, unit tests, Android emulator jobs, lint or APK builds.
-- `.github/workflows/ci.yml` runs **only** through `workflow_dispatch`. It includes unit tests, APK compilation, lint and Android emulator tests when explicitly started.
-- `.github/workflows/build-apk.yml` runs **only** through `workflow_dispatch`. It runs unit tests, assembles a debug APK, and uploads a temporary artifact for testing.
-- The previous first-fork-preview publishing job was removed from `build-apk.yml`. No GitHub Action in this repository automatically creates a release or publishes an APK.
-- `.github/workflows/play-crash-rate.yml` remains scheduled: it monitors Android vitals and may open an issue. **It does not compile, package, upload or publish the app.**
+Ordinary commits and pull requests do not start CI, lint, emulator tests or APK builds. `ci.yml`, `build-apk.yml` and `beta-release.yml` use `workflow_dispatch` only. The earlier release-only push exception has been removed.
 
-## Release authorization
+The scheduled Play crash-rate monitor is separate: it may query configured Android vitals and open an issue; it does not compile or publish the app. It is inert without its required credentials.
 
-Do **not** run `workflow_dispatch` for build or CI, create releases, push tags for publishing, or upload APK/AAB packages unless the user explicitly authorizes the relevant step in the conversation.
+## Scope of authorization
 
-An authorization to commit, push, merge, resolve issues or make performance upgrades **is not** authorization to build or publish. Authorization to build is **not** authorization to publish a release.
+An instruction to audit, edit, commit, push, merge or fix issues does not authorize a build or release. A build request does not authorize publication. Do not dispatch workflows, push publishing tags or upload APK/AAB assets without the corresponding request.
 
-When the user later asks to build, dispatch the selected workflow on the requested commit/branch, review the result, and share the artifact. When the user separately asks to publish, confirm the desired version, changelog, signing, compatibility and distribution target, and perform the release as a distinct action.
+When a request already identifies the intended version/channel/action, carry it out without asking for the same decision again. Resolve routine implementation choices within the authorized scope. Verify the result and report failure honestly.
 
-## Re-enable automated CI, only by explicit request
+Release metadata and documentation can be maintained independently of a binary release. Preserve existing tags and assets. The [release procedure](RELEASING.md) defines versioning and evidence requirements.
 
-Restore `push` and/or `pull_request` workflow triggers if the user specifically asks for continuous integration again. These manual-only settings are deliberately in version control; future merges should preserve them.
+## Re-enabling automation
 
-## Notes
-
-This policy applies to workflows owned by this GitHub repository; it does not alter external hosting settings or app-store dashboards. Manual compilation on a developer's own machine is outside GitHub Actions.
+Only restore push/pull-request build triggers after an explicit request for automatic CI. Preserve this policy when merging workflow changes.

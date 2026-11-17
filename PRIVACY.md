@@ -1,79 +1,84 @@
-# Privacy policy for Tempo
+# Tempo privacy policy
 
-Last updated: October 16, 2026
+**Updated:** 18 November 2026
+**Scope:** the Android app built from this fork. Build configuration and enabled integrations affect which data flows are active. The browser companion has a [separate policy](browser-extension/PRIVACY.md).
 
-Tempo is a local-first music tracker for Android. Your listening history stays on your phone. Tempo creates no accounts, shows no ads, and sells no data. There is no advertising or attribution SDK in the app.
+## Overview
 
-Short version: two things leave your device. Search queries go to metadata services so Tempo can show album art and genres. Anonymous app-health statistics go to PostHog so crashes get fixed. Nothing you listened to goes with either one. Turn off health reporting at any time in Settings → Your Data.
+Tempo stores its primary listening library locally. It has no Tempo-hosted listening-account service in this source tree. It can contact music/metadata providers, use linked Spotify or Google accounts, receive paired-device plays, and create backups or shared files. These features mean that some data can leave the device.
 
-## What stays on your device
+The source contains no advertising or attribution SDK. Optional app-health reporting is described below. This document describes implemented behavior; it is not a claim that every device, provider or security scenario has been certified.
 
-All listening history lives in an encrypted SQLite (Room) database in internal storage.
+## Data stored on the device
 
-Lose your phone without a backup and the history is gone. Tempo cannot recover it because Tempo never had it.
+| Data | Purpose |
+| --- | --- |
+| Track, artist and album details; listening timestamps, durations and playback evidence | History and statistics |
+| Imported history, import status, aliases and content corrections | History reconciliation and user edits |
+| Preferences, profile name/photo, badges and challenges | Personalization and optional gamification |
+| Artwork and metadata caches | Faster/offline presentation |
+| Active-session recovery and pending events | Recover tracking after interruptions |
+| Linked-account credentials and pairing information | Authorized provider calls and companion sync |
 
-Backups are yours to control:
+The library uses Room/SQLite in Android app-private storage. **The app does not configure an encrypted database.** Android's device/storage protections are separate from application-level encryption. Some credentials use Android Keystore-backed storage; that does not encrypt the listening database or every preference.
 
-- Export the full database to a file.
-- Restore from a backup file.
-- Write encrypted backups to your own Google Drive by connecting a Google account. Those files go to your Drive, not to Tempo.
-- Wipe everything in app settings.
+## Data sent to other destinations
 
-## Permissions Tempo asks for
+| Feature | Destination and data |
+| --- | --- |
+| Metadata enrichment and artwork | Providers such as Spotify, MusicBrainz/Cover Art Archive, Apple/iTunes, Last.fm, Deezer and ReccoBeats receive relevant artist/title/album search terms, music identifiers, artwork requests or public preview URLs. Requests may run in background enrichment jobs. |
+| Spotify connection | Spotify receives OAuth/token requests and authorized API calls; Tempo can retrieve account-related music data and recent history. Credentials remain available locally for those calls until disconnected. |
+| Last.fm import | Last.fm receives the supplied username and API requests for its available listening history. |
+| Google Drive backup | Google handles sign-in/authorization; an archive containing library data and optionally images is uploaded to the connected account's Tempo Backups folder using the drive.file scope. |
+| Browser/desktop pairing | A configured companion and phone exchange playback records and pairing/control data. Use a trusted network. |
+| Export, diagnostics and sharing | Files leave the app when you select an external destination or share target. That recipient controls its copy. |
+| Configured health reporting | The configured analytics endpoint receives limited app-health events and a random installation identifier, as described below. |
 
-| Permission | Why Tempo needs it |
-|---|---|
-| Notification access (`BIND_NOTIFICATION_LISTENER_SERVICE`) | Detects what is playing by reading media notifications from music apps. Tempo filters for music apps and ignores other notifications such as messages or mail. |
-| Foreground service (`FOREGROUND_SERVICE`) | Keeps tracking running in the background without the system killing it. |
-| Internet (`INTERNET`) | Fetches metadata from the services below and sends the anonymous health statistics described in the next section. Listening history is never uploaded. |
-| Media control (`MEDIA_CONTENT_CONTROL`) | Reads the active media session for accurate play, pause, and position state. |
+Network recipients necessarily receive connection information, including the public IP used for internet requests. Provider processing and retention are controlled by those providers and the operator of a configured analytics deployment. This repository cannot guarantee their infrastructure location, logging or retention configuration.
 
-## Metadata lookups
+Tempo's enrichment path does not upload local music/audio files. A public preview URL may be submitted for analysis. Search terms can disclose which music is being matched, so metadata requests are not described as containing no listening information.
 
-To show art, genres, and artist details, Tempo queries third-party services directly from your device. No proxy, no Tempo server in the middle. Each request sends the minimum needed to find a match, usually artist and title.
+## Backups and exports
 
-- Spotify: album art, audio features, and artist genres. Search queries send artist name and song title. If you link a Spotify account, the token stays on your device and is used only for these calls.
-- iTunes Search API: fallback for album art and artist images. Search queries send artist and album title. Tempo may also read public Apple Music artist pages for images the API does not return.
-- MusicBrainz and Cover Art Archive: metadata and standard tags. Search queries send artist and title.
-- ReccoBeats: mood and energy analysis when Spotify data is missing. Search queries send artist and title. If a track is not in their database, Tempo may send the public 30-second preview URL supplied by Spotify for analysis. Tempo never uploads your local audio files.
-- Last.fm and Deezer: fallback for biographies, tags, and cover art. Search queries only.
+Tempo backup archives are ZIP/JSON-based files with optional images. **They are not password-encrypted by the app**, including when uploaded to Drive. Choose destinations appropriate for personal listening records and protect exported files yourself. Transport or provider-managed storage encryption does not make an archive end-to-end or password encrypted.
 
-## Anonymous app-health reporting
+A backup does not include every app-private store or credential. In particular, the current library archive does not serialize Appearance Studio's separate settings/saved-look store. Appearance has its own JSON transfer. Verify what you need before reinstalling.
 
-Tempo sends anonymous statistics about the app itself: crashes, errors, and which features are used. This is the only data about you that leaves the device besides the metadata queries above.
+Signing out or deleting local app data does not delete files already exported, shared, or retained in Google Drive. Manage those copies at their destinations.
 
-What is sent: crash signatures (obfuscated class name and line, never the message), failure counts by category, which features were used for the first time, whether onboarding finished, whether background detection is alive, how many listens were tracked that day as a range, and that Tempo was used at all that day.
+## Permissions and access
 
-What is never sent: track, artist, album, or playlist names. Search queries. Notification content. File paths. Listening timestamps. Google, Spotify, or Last.fm account details. Your advertising ID or `ANDROID_ID`. Your IP address — Tempo stores it nowhere, and it instructs the analytics service not to derive anything from it. Crash messages are left out on purpose, because a parse error can echo notification text.
+| Access | Use |
+| --- | --- |
+| Notification access | Observe media notifications for tracking. This is a broad Android access grant; the implementation filters relevant media sources rather than receiving a music-only permission. |
+| MediaSession access | Read available playback state/metadata to reconcile listens. |
+| Foreground service and notifications | Maintain visible tracking/import/backup activity when Android permits it. |
+| Internet and network/Wi-Fi state | Provider requests, optional reporting and paired-device discovery/sync. |
+| Camera | Scan a companion pairing QR code when requested. |
+| Boot and wake-lock capabilities | Support eligible background recovery/work. |
+| Battery-optimization exemption | Optional help with background reliability; Android/OEM behavior still applies. |
+| Selected document/folder/photo access | Read chosen imports/images and write chosen exports or automatic backup folders. |
 
-No location data is kept at all. Events are sent with location enrichment switched off (`$geoip_disable`), so no country, city, postcode or coordinates are derived from your connection or stored alongside an event.
+The [Android manifest](app/src/main/AndroidManifest.xml) is the authoritative permission inventory for a particular source revision. Revoking relevant permissions can stop associated features.
 
-How you stay unidentified: Tempo uses one random install id, generated on your device and used only to count how many people use Tempo and whether they come back. It is not your advertising ID, not `ANDROID_ID`, and not derived from anything about your device or you, so it cannot be matched against another app — and there is nothing to match it to, because Tempo has no accounts. You can replace it any time in Settings → Your Data → Reset analytics ID; everything recorded before then becomes unlinkable to anything after. Events are sent as anonymous, so the analytics service stores no user profile for you. No cookies.
+## App-health reporting
 
-Where it goes: PostHog, on EU infrastructure in Frankfurt. Events go straight from the app to PostHog's ingest endpoint — no intermediary service sits in between. The two properties that matter are set by the app itself on every event: the anonymous flag, so no user profile can be created, and the location-enrichment opt-out, so nothing is derived from your address. PostHog is open source and does not sell data. The PostHog project token ships inside the app, which is how PostHog client tokens are meant to work.
+Reporting is inactive when the build has no configured endpoint. Debug builds are also gated off unless a developer explicitly enables the preview override. A configured build currently defaults reporting to enabled **after the in-app notice has been rendered**; acknowledging the notice is not a separate opt-in requirement.
 
-When it is sent: over any connection, including mobile data. Each event is a few hundred bytes, about 16 KB on a busy day, so waiting for Wi-Fi would silence reporting for people on mobile data only. Nothing is collected until the in-app notice has been shown, and the notice stays up until you acknowledge it or turn reporting off.
+Events use a closed schema for startup failures, feature use, onboarding, detection health, aggregate listening-count ranges, imports, enrichment, backups, migration and crash signatures. The transport includes a random persistent installation identifier, event timestamps, app/OS version and locale; crash events additionally include device model. It excludes track/artist/album names, raw notifications, account credentials and file paths from automatic event properties.
 
-To turn it off: open Settings → Your Data → Anonymous app-health stats. Reporting stops at once, anything buffered but unsent is deleted, and your install id is replaced so nothing recorded earlier can be linked to anything later. This works from any screen.
+Because an installation identifier is retained, reporting is **pseudonymous rather than guaranteed anonymous**. Payload flags request that PostHog disable person profiles and IP-based geolocation. Those flags do not prevent an endpoint from seeing network connection metadata or prove its operational retention practices.
 
-Builds compiled from source send nothing. The analytics endpoint is not committed to the repository, so a self-built copy has reporting inert.
+Turn reporting off in **Settings → Your Data**. This stops collection under the app's gate, clears the unsent queue and resets the local installation identifier. Resetting the identifier affects future attribution; **it does not delete previously received server events**. The local queue is capped at 200 events with a 24-hour age limit. Server-side retention and deletion procedures must be supplied by the operator of a reporting-enabled distribution. See [analytics reference](docs/ANALYTICS.md).
 
-## Diagnostics report
+## Controls, retention and diagnostics
 
-Apart from automatic reporting, Tempo can build a diagnostics report when you ask for it in Settings → Your Data → Data and diagnostics. It covers build and database versions, library counts, metadata status, detection health, and background work state, and it appears on screen so you can read it first.
+Use account disconnect controls, tracking settings, permissions, queue controls, exports and the library-clear action for the corresponding data. The current beta has [known reset/recovery gaps](https://github.com/matchalattewithbanana/Tempo/issues/44); the library-clear command should not be treated as a verified erasure of every pending/private store. Android app-storage removal clears app-private storage, while external and provider copies remain separate.
 
-Nothing uploads to make it. It leaves your phone only if you share it, for example attached to a bug report. Because you start it and review it, it carries more detail than the automatic events. It still holds no track, artist, or album names, no file paths, and no account or device identifiers.
+There is no declared automatic one-year deletion policy for listening history. Metadata caches and temporary import/backup files have separate cleanup behavior. Keep a verified backup of records you want to retain.
 
-## Children
+Diagnostics are generated locally and can be reviewed before sharing. They include technical versions, aggregate library/metadata counts and tracking/work status. Do not attach raw databases, backup archives, tokens or unreviewed logs to public issues.
 
-Tempo is a general music utility, not aimed at children under 13. Tempo does not knowingly collect personal information from children.
+## Policy maintenance and contact
 
-## Changes to this policy
-
-Tempo may update this policy as features change. Tempo collects no email addresses, so there is no mailing list to notify. Check this file or the About section in the app for updates.
-
-## Contact
-
-Developer: Avinash
-Email: hi@avinash.im
-GitHub: https://github.com/avinaxhroy/Tempo
+This policy is maintained with the source. Check the policy supplied with your installed version when comparing historical builds. Report documentation or privacy-behavior discrepancies in [this fork's issue tracker](https://github.com/matchalattewithbanana/Tempo/issues), omitting personal records and credentials. For sensitive security details, follow [SECURITY.md](SECURITY.md). Upstream contact details are not presented as this fork's privacy contact.

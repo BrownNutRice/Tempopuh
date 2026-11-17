@@ -9,25 +9,25 @@
 <resources>
 
     <!-- Consent notice and Settings toggle -->
-    <string name="analytics_disclosure_title">Анонимная статистика состояния приложения</string>
-    <string name="analytics_disclosure_body">Tempo отправляет анонимную статистику состояния приложения — сбои, ошибки и то, какие функции используются. Без аккаунта, без идентификаторов и никогда — историю прослушиваний.</string>
+    <string name="analytics_disclosure_title">Отчёты о работе приложения</string>
+    <string name="analytics_disclosure_body">Если настроено, Tempo отправляет ограниченные события со случайным идентификатором установки. Отключение: Настройки → Ваши данные.</string>
     <string name="analytics_disclosure_settings_hint">Это можно изменить в любой момент в разделе «Настройки → Ваши данные».</string>
     <string name="analytics_disclosure_turn_off">Отключить</string>
     <string name="analytics_disclosure_got_it">Понятно</string>
 
-    <string name="settings_analytics_toggle">Анонимная статистика состояния приложения</string>
-    <string name="settings_analytics_toggle_desc">Передавать анонимные данные о сбоях, ошибках и использовании функций. Без аккаунта, без идентификаторов, никогда — историю прослушиваний.</string>
+    <string name="settings_analytics_toggle">Отчёты о работе приложения</string>
+    <string name="settings_analytics_toggle_desc">Передавать ограниченные события работы и использования со случайным идентификатором установки.</string>
     <string name="settings_data_diagnostics">Данные и диагностика</string>
     <string name="settings_data_diagnostics_desc">Что отправляет Tempo и как оно работает на этом устройстве</string>
 
     <!-- Your data screen -->
-    <string name="your_data_intro">Всё, что Tempo записывает и отправляет, в одном месте. Ничто отсюда не покидает ваш телефон, пока вы сами не решите поделиться.</string>
+    <string name="your_data_intro">Проверьте настройки отчётов и локальную диагностику. Включённые онлайн-функции могут передавать данные.</string>
 
     <!-- What we collect screen -->
     <string name="what_we_collect_title">Что мы собираем</string>
-    <string name="what_we_collect_intro">Это полный список того, что отправляет Tempo. Всё анонимно: без аккаунта, без идентификаторов и никогда — историю прослушиваний.</string>
+    <string name="what_we_collect_intro">События содержат случайный идентификатор установки, время, версии приложения и системы и язык. События сбоев также содержат модель устройства. Названия треков, необработанные уведомления и учётные данные исключены.</string>
     <string name="what_we_collect_properties">Отправляется с каждым событием</string>
-    <string name="what_we_collect_footer">Ничего не собирается до того, как вам показали это уведомление, и всё можно отключить в любой момент в разделе «Настройки → Ваши данные». Сборки, скомпилированные из исходного кода, не отправляют вообще ничего.</string>
+    <string name="what_we_collect_footer">Настроенные отчёты начинаются после показа уведомления, если включены. Отключение: Настройки → Ваши данные. Без настройки отчёты не отправляются.</string>
 
     <!-- Diagnostics report -->
     <string name="diagnostics_title">Отчёт о диагностике</string>
@@ -38,8 +38,8 @@
     <string name="diagnostics_share_subject">Отчёт о диагностике Tempo</string>
 
     <!-- Onboarding privacy strings, restored with accurate wording -->
-    <string name="privacy_no_cloud_title">Нет серверов Tempo</string>
-    <string name="privacy_no_cloud_desc">Мы не используем собственный сервер и не храним ваш аккаунт. Единственное, что покидает телефон, — анонимная статистика, которую можно отключить в любой момент в настройках.</string>
+    <string name="privacy_no_cloud_title">Необязательные онлайн-функции</string>
+    <string name="privacy_no_cloud_desc">Запросы метаданных обращаются к музыкальным сервисам. Синхронизация аккаунтов, копии в Drive и настроенные отчёты могут передавать данные.</string>
     <string name="how_it_works_badge_local">Сначала локально</string>
     <string name="how_it_works_step3_subtitle">История прослушиваний остаётся здесь</string>
 
