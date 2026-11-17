@@ -53,10 +53,10 @@ fun TempoDropdownMenu(
         offset = offset,
         properties = properties,
         shape = TempoMenuTokens.Shape,
-        containerColor = TempoSurfaceDialog,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         tonalElevation = 0.dp,
         shadowElevation = TempoMenuTokens.ShadowElevation,
-        border = BorderStroke(TempoMenuTokens.BorderWidth, GlassBorderSoft),
+        border = BorderStroke(TempoMenuTokens.BorderWidth, MaterialTheme.colorScheme.outlineVariant),
         modifier = modifier
             .widthIn(min = TempoMenuTokens.MinWidth)
             .padding(vertical = 4.dp),
@@ -81,24 +81,24 @@ fun TempoDropdownMenuItem(
     trailingText: String? = null
 ) {
     val primaryColor = when {
-        !enabled -> TextQuaternary
+        !enabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
         isDestructive -> TempoError
-        isSelected -> TempoPrimary
-        else -> TextPrimary
+        isSelected -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurface
     }
 
     val iconColor = when {
-        !enabled -> TextQuaternary
+        !enabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
         isDestructive -> TempoError
         leadingIconTint != null -> leadingIconTint
-        isSelected -> TempoPrimary
-        else -> TextSecondary
+        isSelected -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 
     val iconBgColor = when {
         isDestructive -> TempoError.copy(alpha = 0.08f)
-        isSelected -> TempoPrimary.copy(alpha = 0.08f)
-        else -> Color.White.copy(alpha = 0.04f)
+        isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f)
     }
 
     DropdownMenuItem(
@@ -117,7 +117,7 @@ fun TempoDropdownMenuItem(
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.bodySmall,
-                        color = TextTertiary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
                     )
                 }
             }
@@ -133,7 +133,7 @@ fun TempoDropdownMenuItem(
                         .background(iconBgColor)
                         .border(
                             0.5.dp,
-                            if (isSelected) TempoPrimary.copy(alpha = 0.18f) else GlassBorderSoft,
+                            if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f) else MaterialTheme.colorScheme.outlineVariant,
                             RoundedCornerShape(8.dp)
                         ),
                     contentAlignment = Alignment.Center
@@ -154,13 +154,13 @@ fun TempoDropdownMenuItem(
                         modifier = Modifier
                             .size(20.dp)
                             .clip(RoundedCornerShape(6.dp))
-                            .background(TempoPrimary.copy(alpha = 0.08f)),
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = TempoIcons.Check,
                             contentDescription = null,
-                            tint = TempoPrimary,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(13.dp)
                         )
                     }
@@ -169,7 +169,7 @@ fun TempoDropdownMenuItem(
                     Text(
                         text = trailingText,
                         style = MaterialTheme.typography.labelSmall,
-                        color = TextTertiary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
                     )
                 }
             }
@@ -177,10 +177,10 @@ fun TempoDropdownMenuItem(
         colors = MenuDefaults.itemColors(
             textColor = primaryColor,
             leadingIconColor = iconColor,
-            trailingIconColor = if (isSelected) TempoPrimary else TextTertiary,
-            disabledTextColor = TextQuaternary,
-            disabledLeadingIconColor = TextQuaternary,
-            disabledTrailingIconColor = TextQuaternary
+            trailingIconColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
+            disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+            disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+            disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
         ),
         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
         modifier = modifier
@@ -194,7 +194,7 @@ fun TempoDropdownMenuItem(
 fun TempoMenuKicker(
     text: String,
     modifier: Modifier = Modifier,
-    color: Color = TextTertiary
+    color: Color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
 ) {
     Text(
         text = text.uppercase(),
@@ -216,6 +216,6 @@ fun TempoMenuDivider(
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 4.dp)
             .height(1.dp)
-            .background(GlassBorderSoft)
+            .background(MaterialTheme.colorScheme.outlineVariant)
     )
 }
