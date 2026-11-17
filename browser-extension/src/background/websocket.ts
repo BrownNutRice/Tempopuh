@@ -45,6 +45,7 @@ const SOCKET_IDLE_SUSPEND_MS = 300_000;
 const RECONNECT_ALARM_NAME = 'tempo-ws-reconnect';
 const KEEPALIVE_ALARM_NAME = 'tempo-ws-keepalive';
 const SEND_QUEUE_MAX = 10;
+const AUTH_TIMEOUT_MS = 5_000;
 const IS_FIREFOX = typeof navigator !== 'undefined' && navigator.userAgent.includes('Firefox');
 
 let _staleKeepaliveCleared = false;
@@ -72,6 +73,8 @@ export class PhoneSocket {
   private _state: SocketState = SocketState.Disconnected;
   private intentionalClose = false;
   private authenticated = false;
+  private authTimeout: ReturnType<typeof setTimeout> | null = null;
+  private readonly seenIncomingSignatures = new Set<string>();
   private sendQueue: string[] = [];
   /** Last time REAL traffic (non-ping send, non-pong receive) flowed. */
   private _lastRealTrafficAt = Date.now();
@@ -149,6 +152,8 @@ export class PhoneSocket {
 
     this.intentionalClose = false;
     this.authenticated = false;
+    if (this.authTimeout) clearTimeout(this.authTimeout);
+    this.authTimeout = null;
     this.setState(SocketState.Connecting);
 
     try {
@@ -159,15 +164,10 @@ export class PhoneSocket {
         console.log('[Tempo WS] Connected, sending auth');
         try {
           await this.sendAuth(pairing);
-          this.reconnectAttempts = 0;
-          this._lastRealTrafficAt = Date.now();
-          this._idleSuspended = false;
-          this.authenticated = true;
-          this.setState(SocketState.Connected);
-          this.startHeartbeat();
-          this.flushSendQueue();
-          storage.recordHealthPing(true).catch(() => {});
-          chrome.alarms.clear(RECONNECT_ALARM_NAME);
+          this.authTimeout = setTimeout(() => {
+            console.warn('[Tempo WS] Phone did not confirm the authenticated handshake');
+            try { this.ws?.close(4001, 'Auth timeout'); } catch {}
+          }, AUTH_TIMEOUT_MS);
         } catch (err) {
           console.warn('[Tempo WS] Auth send failed:', err);
           try { this.ws?.close(4001, 'Auth failed'); } catch {}
@@ -184,27 +184,42 @@ export class PhoneSocket {
             return;
           }
 
-          if (!this.authenticated) {
-            if (parsed.type === 'auth_ok') {
-              console.log('[Tempo WS] Auth confirmed by phone');
-              return;
-            }
-            console.warn('[Tempo WS] Received message before auth, ignoring');
+          // Every state-changing frame, including the auth acknowledgement, must
+          // be signed by the paired phone. Never trust an unsigned legacy frame.
+          if (!isSignedWsMessage(parsed)) {
+            console.warn('[Tempo WS] Unsigned or malformed phone frame, dropping');
             return;
           }
-
-          let msg: PhoneSocketMessage;
-          if (parsed.sig && parsed.ts && parsed.payload) {
-            const signed = parsed as SignedWsMessage;
-            const valid = await verifyWsMessage(pairing.authToken, signed.payload, signed.sig, signed.ts);
-            if (!valid) {
-              console.warn('[Tempo WS] Invalid signature on incoming message, dropping');
-              return;
-            }
-            msg = signed.payload;
-          } else {
-            msg = parsed as PhoneSocketMessage;
+          const signed = parsed;
+          if (this.seenIncomingSignatures.has(signed.sig)) return;
+          const valid = await verifyWsMessage(pairing.authToken, signed.payload, signed.sig, signed.ts);
+          if (!valid || !isAuthenticatedPayload(signed.payload)) {
+            console.warn('[Tempo WS] Invalid signature or payload, dropping');
+            return;
           }
+          this.seenIncomingSignatures.add(signed.sig);
+          if (this.seenIncomingSignatures.size > 256) {
+            this.seenIncomingSignatures.delete(this.seenIncomingSignatures.values().next().value!);
+          }
+
+          if (!this.authenticated) {
+            if (signed.payload.type !== 'auth_ok') return;
+            if (this.authTimeout) clearTimeout(this.authTimeout);
+            this.authTimeout = null;
+            this.authenticated = true;
+            this.reconnectAttempts = 0;
+            this._lastRealTrafficAt = Date.now();
+            this._idleSuspended = false;
+            this.setState(SocketState.Connected);
+            this.startHeartbeat();
+            this.flushSendQueue();
+            storage.recordHealthPing(true).catch(() => {});
+            chrome.alarms.clear(RECONNECT_ALARM_NAME);
+            console.log('[Tempo WS] Signed phone handshake confirmed');
+            return;
+          }
+          if (signed.payload.type === 'auth_ok') return;
+          const msg = signed.payload;
 
           if (msg.type === 'pong') return;
           this._lastRealTrafficAt = Date.now();
@@ -217,6 +232,8 @@ export class PhoneSocket {
       this.ws.onclose = (event) => {
         console.log(`[Tempo WS] Disconnected: code=${event.code}, reason=${event.reason}`);
         this.stopHeartbeat();
+        if (this.authTimeout) clearTimeout(this.authTimeout);
+        this.authTimeout = null;
         this.ws = null;
         this.authenticated = false;
 
@@ -243,7 +260,6 @@ export class PhoneSocket {
     const { sig, ts } = await signWsMessage(pairing.authToken, authPayload);
     const authMsg: WsAuthMessage = {
       type: 'auth',
-      token: pairing.authToken,
       device_id: pairing.deviceName,
       sig,
       ts,
@@ -415,6 +431,8 @@ export class PhoneSocket {
   disconnect(): void {
     this.intentionalClose = true;
     this.authenticated = false;
+    if (this.authTimeout) clearTimeout(this.authTimeout);
+    this.authTimeout = null;
     this.sendQueue = [];
     this.stopHeartbeat();
     chrome.alarms.clear(RECONNECT_ALARM_NAME);
@@ -429,6 +447,35 @@ export class PhoneSocket {
     this.intentionalClose = false;
     this.reconnectAttempts = 0;
     await this.connect();
+  }
+}
+
+function isSignedWsMessage(value: unknown): value is SignedWsMessage {
+  if (!value || typeof value !== 'object') return false;
+  const message = value as Record<string, unknown>;
+  return typeof message.sig === 'string' && typeof message.ts === 'number' &&
+    !!message.payload && typeof message.payload === 'object';
+}
+
+function isAuthenticatedPayload(value: unknown): value is SignedWsMessage['payload'] {
+  if (!value || typeof value !== 'object') return false;
+  const payload = value as Record<string, unknown>;
+  switch (payload.type) {
+    case 'auth_ok':
+    case 'sync_now':
+    case 'pairing_invalidated':
+      return true;
+    case 'ping':
+    case 'pong':
+      return typeof payload.ts === 'number' && Number.isFinite(payload.ts);
+    case 'ip_changed':
+      return typeof payload.newIp === 'string' && payload.newIp.length > 0 && payload.newIp.length <= 253 && !/[\s\u0000-\u001f]/.test(payload.newIp);
+    case 'token_refresh':
+      return typeof payload.next_token === 'string' && payload.next_token.length >= 16 && payload.next_token.length <= 512;
+    case 'now_playing':
+      return !!payload.data && typeof payload.data === 'object';
+    default:
+      return false;
   }
 }
 

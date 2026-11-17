@@ -338,15 +338,14 @@ export type PhoneSocketMessage =
 
 /** Signed WebSocket message envelope — wraps any message with HMAC + timestamp. */
 export interface SignedWsMessage {
-  payload: PhoneSocketMessage;
+  payload: PhoneSocketMessage | { type: 'auth_ok' };
   sig: string;
   ts: number;
 }
 
-/** WebSocket auth message sent immediately after connection (token not in URL). */
+/** HMAC-authenticated WebSocket handshake; the shared pairing token is never sent. */
 export interface WsAuthMessage {
   type: 'auth';
-  token: string;
   device_id: string;
   sig: string;
   ts: number;

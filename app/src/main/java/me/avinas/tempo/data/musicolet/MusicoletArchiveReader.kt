@@ -112,7 +112,12 @@ internal object MusicoletArchiveReader {
         workDir: File,
     ): MusicoletArchive {
         val target = File(workDir, SONG_DB_NAME)
-        if (!decryptToFile(stream, target, MAX_MEMBER_BYTES)) {
+        val imported = try {
+            decryptToFile(stream, target, MAX_MEMBER_BYTES)
+        } catch (_: MemberLimitExceeded) {
+            null
+        }
+        if (imported == null) {
             return MusicoletArchive(null, emptyList(), 1, 0)
         }
         return MusicoletArchive(
@@ -157,7 +162,14 @@ internal object MusicoletArchiveReader {
                 val memberBudget = minOf(MAX_MEMBER_BYTES, remaining)
                 val safeName = if (isSongLog) SONG_DB_NAME else periodFileName(requireNotNull(period))
                 val target = File(workDir, safeName)
-                val bytesRead = decryptToFile(zip, target, memberBudget)
+                val bytesRead = try {
+                    decryptToFile(zip, target, memberBudget)
+                } catch (_: MemberLimitExceeded) {
+                    // Do not ask ZipInputStream to drain the rest of an oversized
+                    // entry merely to reach later members. Stop this archive safely.
+                    skipped++
+                    break
+                }
                 if (bytesRead == null) {
                     skipped++
                     continue
@@ -208,7 +220,7 @@ internal object MusicoletArchiveReader {
                     val count = input.read(buffer)
                     if (count < 0) break
                     total += count
-                    if (total > limit) throw IllegalArgumentException("Member exceeds size limit")
+                    if (total > limit) throw MemberLimitExceeded()
                     if (cipher == null) {
                         out.write(buffer, 0, count)
                     } else {
@@ -244,9 +256,14 @@ internal object MusicoletArchiveReader {
             val header = ByteArray(16)
             target.inputStream().use { if (it.read(header) != header.size || !MusicoletCrypto.looksLikeSqlite(header)) return null.also { target.delete() } }
             total
+        } catch (limitExceeded: MemberLimitExceeded) {
+            target.delete()
+            throw limitExceeded
         } catch (_: Exception) {
             target.delete()
             null
         }
     }
+
+    private class MemberLimitExceeded : Exception()
 }
