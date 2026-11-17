@@ -6,7 +6,7 @@ Target branch: `fix/background-tracking-reliability-2026-11-16`. This work delib
 
 - Complete plays are staged to a durable event queue before the 750 ms Room batch window; successful writes remove their staged copies, while unexpected batch exceptions retain them for offline retry.
 - Offline events no longer expire after five failed attempts or evict oldest plays at 1,000 entries. Backoff stays capped at 60 seconds. Offline staging and session checkpoint SharedPreferences writes use synchronous commits; write failures are visible.
-- Offline queue identity includes session ID; the immediate in-memory dedup filter no longer collapses distinct observed sessions in the same second.
+- Offline queue identity and content fingerprints include observed session ID; the in-memory filter and first database-dedup layer no longer collapse distinct sessions with equal timestamps. Import fingerprints remain backward compatible.
 - Session persistence begins immediately and continues through pauses. Ended sessions clear old recovery state, checkpoint writes are serialized, and failed shutdown snapshots block the recovery-record cleanup.
 - Failed MediaSession initialization is released and retried; the active playing controller is preferred where an app exposes multiple sessions. Listener reconnection avoids the redundant immediate scan.
 - Unknown position coverage no longer automatically marks a play skipped. Playback position tracking accepts advancement at the reported playback speed while actual listening minutes remain wall-clock time.

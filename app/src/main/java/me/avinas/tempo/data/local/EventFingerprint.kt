@@ -62,7 +62,15 @@ object EventFingerprint {
         return sb.toString()
     }
 
-    /** Compute the fingerprint for an already-built [ListeningEvent]. */
-    fun compute(event: ListeningEvent): String =
-        compute(event.source, event.track_id, event.timestamp, event.playDuration, event.endTimestamp)
+    /**
+     * Observed Android sessions have a stable session ID. Include it in the
+     * fingerprint so distinct replays with equal track/timestamp/duration do
+     * not collapse in layer 1 before session-aware layer 2 runs.
+     * Imported records (sessionId=null) retain their historical fingerprint.
+     */
+    fun compute(event: ListeningEvent): String {
+        val source = event.sessionId?.takeIf { it.isNotBlank() }
+            ?.let { "${event.source}|observed-session:$it" } ?: event.source
+        return compute(source, event.track_id, event.timestamp, event.playDuration, event.endTimestamp)
+    }
 }
