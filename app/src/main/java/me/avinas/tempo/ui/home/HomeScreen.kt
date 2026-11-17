@@ -122,7 +122,7 @@ fun HomeScreen(
             ) {
                 LazyColumn(
                     state = lazyListState,
-                    contentPadding = PaddingValues(bottom = 200.dp),
+                    contentPadding = PaddingValues(bottom = 116.dp),
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
@@ -144,6 +144,18 @@ fun HomeScreen(
                     
                     item(key = "now_playing") {
                         HomeNowPlaying()
+                    }
+
+                    item(key = "period_selector") {
+                        TimePeriodSelector(
+                            selectedRange = uiState.selectedTimeRange,
+                            onRangeSelected = viewModel::onTimeRangeSelected,
+                            availableRanges = listOf(
+                                TimeRange.THIS_WEEK, TimeRange.THIS_MONTH,
+                                TimeRange.THIS_YEAR, TimeRange.ALL_TIME,
+                            ),
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                        )
                     }
 
                     if (uiState.hasData) {
@@ -363,18 +375,7 @@ fun HomeScreen(
                 }
             }
 
-            
-            // Time Period Filter (Floating)
-            TimePeriodSelector(
-                selectedRange = uiState.selectedTimeRange,
-                onRangeSelected = viewModel::onTimeRangeSelected,
-                availableRanges = listOf(TimeRange.THIS_WEEK, TimeRange.THIS_MONTH, TimeRange.THIS_YEAR, TimeRange.ALL_TIME),
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .windowInsetsPadding(WindowInsets.navigationBars)
-                    .padding(bottom = 100.dp)
-                    .padding(horizontal = 32.dp)
-            )
+
         }
         
         // Rate App Bottom Sheet

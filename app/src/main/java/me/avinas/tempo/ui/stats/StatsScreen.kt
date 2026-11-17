@@ -174,7 +174,7 @@ fun StatsScreen(
             ) {
             LazyColumn(
                 state = listState,
-                contentPadding = PaddingValues(top = 100.dp, bottom = 200.dp),
+                contentPadding = PaddingValues(top = 100.dp, bottom = 116.dp),
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(8.dp) // Increased spacing for vertical rhythm
             ) {
@@ -188,6 +188,12 @@ fun StatsScreen(
                          StatsTabSelector(
                              selectedTab = uiState.selectedTab,
                              onTabSelected = viewModel::onTabSelected
+                         )
+                         TimePeriodSelector(
+                             selectedRange = uiState.selectedTimeRange,
+                             onRangeSelected = viewModel::onTimeRangeSelected,
+                             availableRanges = StatsAvailableRanges,
+                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                          )
                      }
                 }
@@ -320,21 +326,6 @@ fun StatsScreen(
                     onOpenSearch = { searchOpen = true },
                     onOpenShare = { showShareDialog = true },
                     modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth()
-                )
-            }
-
-            // Time Period Filter
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .windowInsetsPadding(WindowInsets.navigationBars)
-                    .padding(bottom = 100.dp) // Reduced static padding, relying on insets + 100dp for lift
-                    .padding(horizontal = 32.dp)
-            ) {
-                TimePeriodSelector(
-                    selectedRange = uiState.selectedTimeRange,
-                    onRangeSelected = viewModel::onTimeRangeSelected,
-                    availableRanges = StatsAvailableRanges
                 )
             }
 
