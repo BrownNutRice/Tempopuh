@@ -20,6 +20,10 @@ class AppearanceViewModel @Inject constructor(
         viewModelScope.launch { preferences.setPreset(preset) }
     }
 
+    fun setFontStyle(style: AppearanceFontStyle) {
+        viewModelScope.launch { preferences.setFontStyle(style) }
+    }
+
     fun setReduceMotion(reduced: Boolean) {
         viewModelScope.launch { preferences.setReducedMotion(reduced) }
     }

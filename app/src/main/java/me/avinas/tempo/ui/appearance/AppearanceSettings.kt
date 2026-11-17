@@ -17,9 +17,20 @@ enum class AppearancePreset {
  */
 enum class AppearanceTone { DARK, LIGHT, SYSTEM }
 
+/** Uses only bundled and Android system fonts; no third-party font downloads. */
+enum class AppearanceFontStyle {
+    TEMPO, NEO_SANS, ARCHIVE_SERIF, STUDIO_MONO;
+
+    companion object {
+        fun decode(raw: String?): AppearanceFontStyle =
+            entries.firstOrNull { it.name == raw } ?: TEMPO
+    }
+}
+
 data class AppearanceSettings(
     val preset: AppearancePreset = AppearancePreset.ABYSS,
     val tone: AppearanceTone = AppearanceTone.DARK,
+    val fontStyle: AppearanceFontStyle = AppearanceFontStyle.TEMPO,
     val reduceMotion: Boolean = false,
 )
 

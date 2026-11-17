@@ -10,6 +10,11 @@ class AppearancePaletteTest {
         assertEquals(AppearancePreset.ABYSS, AppearancePreset.decode(null))
     }
 
+    @Test fun `unknown saved font falls back to bundled Tempo typography`() {
+        assertEquals(AppearanceFontStyle.TEMPO, AppearanceFontStyle.decode(null))
+        assertEquals(AppearanceFontStyle.TEMPO, AppearanceFontStyle.decode("missing_style"))
+    }
+
     @Test fun `unrecognized tone retains dark backward compatibility`() {
         assertEquals(AppearanceTone.DARK, decodeAppearanceTone(null))
         assertEquals(AppearanceTone.DARK, decodeAppearanceTone("future_mode"))

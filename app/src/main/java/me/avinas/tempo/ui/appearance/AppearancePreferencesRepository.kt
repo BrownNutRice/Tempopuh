@@ -24,6 +24,7 @@ class AppearancePreferencesRepository @Inject constructor(
     private companion object {
         val PRESET = stringPreferencesKey("appearance_preset_id")
         val TONE = stringPreferencesKey("appearance_tone")
+        val FONT = stringPreferencesKey("appearance_font_style")
         val REDUCED_MOTION = booleanPreferencesKey("appearance_reduce_motion")
     }
 
@@ -31,12 +32,17 @@ class AppearancePreferencesRepository @Inject constructor(
         AppearanceSettings(
             preset = AppearancePreset.decode(prefs[PRESET]),
             tone = decodeAppearanceTone(prefs[TONE]),
+            fontStyle = AppearanceFontStyle.decode(prefs[FONT]),
             reduceMotion = prefs[REDUCED_MOTION] ?: false,
         )
     }
 
     suspend fun setPreset(preset: AppearancePreset) {
         context.appearanceDataStore.edit { it[PRESET] = preset.name }
+    }
+
+    suspend fun setFontStyle(style: AppearanceFontStyle) {
+        context.appearanceDataStore.edit { it[FONT] = style.name }
     }
 
     suspend fun setReducedMotion(reduced: Boolean) {
@@ -48,6 +54,7 @@ class AppearancePreferencesRepository @Inject constructor(
         context.appearanceDataStore.edit { prefs ->
             prefs[PRESET] = AppearancePreset.ABYSS.name
             prefs[TONE] = AppearanceTone.DARK.name
+            prefs[FONT] = AppearanceFontStyle.TEMPO.name
             prefs[REDUCED_MOTION] = false
         }
     }

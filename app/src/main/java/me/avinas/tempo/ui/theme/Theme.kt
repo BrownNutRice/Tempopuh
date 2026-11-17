@@ -16,6 +16,7 @@ import me.avinas.tempo.ui.appearance.AppearanceSettings
 import me.avinas.tempo.ui.appearance.AppearancePalette
 import me.avinas.tempo.ui.appearance.AppearancePaletteResolver
 import me.avinas.tempo.ui.appearance.AppearancePreset
+import me.avinas.tempo.ui.appearance.AppearanceTypography
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -105,7 +106,9 @@ fun TempoTheme(
     ) {
         MaterialTheme(
             colorScheme = colorScheme,
-            typography = Typography,
+            typography = androidx.compose.runtime.remember(appearance.fontStyle) {
+                AppearanceTypography.resolve(appearance.fontStyle)
+            },
             content = content,
         )
     }
