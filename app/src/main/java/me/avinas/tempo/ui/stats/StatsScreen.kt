@@ -172,7 +172,7 @@ fun StatsScreen(
             ) {
             LazyColumn(
                 state = listState,
-                contentPadding = PaddingValues(top = 100.dp, bottom = 116.dp),
+                contentPadding = PaddingValues(top = 100.dp, bottom = if (me.avinas.tempo.ui.theme.LocalTempoAppearance.current.nowListening == me.avinas.tempo.ui.appearance.AppearanceNowListening.COMPACT) 176.dp else 116.dp),
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(8.dp) // Increased spacing for vertical rhythm
             ) {
