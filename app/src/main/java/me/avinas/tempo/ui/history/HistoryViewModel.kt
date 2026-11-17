@@ -90,7 +90,16 @@ class HistoryViewModel @Inject constructor(
     val uiState: StateFlow<HistoryUiState> = _uiState.asStateFlow()
 
     private var searchJob: kotlinx.coroutines.Job? = null
-    
+    private var historyLoadJob: kotlinx.coroutines.Job? = null
+    private var archiveLoadJob: kotlinx.coroutines.Job? = null
+    private var loadGeneration = 0L
+
+    private fun invalidateHistoryLoads() {
+        loadGeneration++
+        historyLoadJob?.cancel()
+        archiveLoadJob?.cancel()
+    }
+
     // Cached import boundary (calculated once on init)
     private var importBoundaryTimestamp: Long? = null
     private var hasLastFmImport: Boolean = false
@@ -169,6 +178,9 @@ class HistoryViewModel @Inject constructor(
 
     /** Pull-to-refresh handler. */
     suspend fun refresh() {
+        searchJob?.cancel()
+        invalidateHistoryLoads()
+        val generation = loadGeneration
         _uiState.update { it.copy(isRefreshing = true) }
         val startTime = System.currentTimeMillis()
         try {
@@ -184,12 +196,14 @@ class HistoryViewModel @Inject constructor(
                 isLoading = true
             ) }
             // Fetch data inline so we actually wait for it before clearing isRefreshing
-            fetchHistoryForRefresh()
+            fetchHistoryForRefresh(generation)
         } finally {
             // Keep spinner visible for at least 600ms to prevent flicker
             val elapsed = System.currentTimeMillis() - startTime
             if (elapsed < 600) delay(600 - elapsed)
-            _uiState.update { it.copy(isRefreshing = false) }
+            if (generation == loadGeneration) {
+                _uiState.update { it.copy(isRefreshing = false) }
+            }
         }
     }
 
@@ -197,7 +211,7 @@ class HistoryViewModel @Inject constructor(
      * Awaitable version of history loading used by pull-to-refresh.
      * Mirrors the logic in loadHistory() / loadLastFmHistory() but runs sequentially.
      */
-    private suspend fun fetchHistoryForRefresh() {
+    private suspend fun fetchHistoryForRefresh(generation: Long) {
         try {
             val currentState = _uiState.value
             val prefs = userPreferencesDao.getSync() ?: me.avinas.tempo.data.local.entities.UserPreferences()
@@ -216,7 +230,9 @@ class HistoryViewModel @Inject constructor(
                     page = 0
                 )
                 val shouldShowCoachMark = checkShouldShowCoachMark(result.items)
+                if (generation != loadGeneration) return
                 _uiState.update { state ->
+                    if (generation != loadGeneration) return@update state
                     state.copy(
                         rawItems = result.items,
                         groupedItems = groupHistoryItems(result.items),
@@ -244,7 +260,9 @@ class HistoryViewModel @Inject constructor(
                     endTime = currentState.endDate,
                     page = 0
                 )
+                if (generation != loadGeneration) return
                 _uiState.update { state ->
+                    if (generation != loadGeneration) return@update state
                     state.copy(
                         lastFmItems = lastFmResult.items,
                         lastFmGroupedItems = groupHistoryItems(lastFmResult.items),
@@ -266,7 +284,9 @@ class HistoryViewModel @Inject constructor(
                     page = 0
                 )
                 val shouldShowCoachMark = checkShouldShowCoachMark(result.items)
+                if (generation != loadGeneration) return
                 _uiState.update { state ->
+                    if (generation != loadGeneration) return@update state
                     state.copy(
                         rawItems = result.items,
                         groupedItems = groupHistoryItems(result.items),
@@ -279,14 +299,19 @@ class HistoryViewModel @Inject constructor(
                 }
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e(TAG, "Error during pull-to-refresh", e)
-            _uiState.update { it.copy(isLoading = false, isLoadingMore = false, error = e.message) }
+            if (generation == loadGeneration) {
+                _uiState.update { it.copy(isLoading = false, isLoadingMore = false, error = e.message) }
+            }
         }
     }
 
     fun onSearchQueryChanged(query: String) {
-        _uiState.update { it.copy(searchQuery = query) }
+        if (_uiState.value.searchQuery == query) return
         searchJob?.cancel()
+        invalidateHistoryLoads()
+        _uiState.update { it.copy(searchQuery = query) }
         searchJob = viewModelScope.launch {
             kotlinx.coroutines.delay(500) // Debounce
             _uiState.update { it.copy(
@@ -306,6 +331,7 @@ class HistoryViewModel @Inject constructor(
     }
 
     fun onFilterChanged(startTime: Long?, endTime: Long?, showSkips: Boolean) {
+        searchJob?.cancel()
         // Deliberate (the filter sheet was applied), unlike the per-keystroke search callback.
         tracker.track(FeatureFirstUsed(TempoFeature.HISTORY_FILTER))
         _uiState.update { it.copy(
@@ -332,6 +358,7 @@ class HistoryViewModel @Inject constructor(
     fun setViewMode(mode: HistoryViewMode) {
         tracker.track(FeatureFirstUsed(TempoFeature.HISTORY_VIEW_MODE))
         if (_uiState.value.viewMode == mode) return
+        searchJob?.cancel()
         
         _uiState.update { it.copy(
             viewMode = mode,
@@ -350,7 +377,7 @@ class HistoryViewModel @Inject constructor(
     }
 
     fun loadMore() {
-        if (_uiState.value.isLoadingMore || !_uiState.value.hasMore) return
+        if (_uiState.value.isLoading || _uiState.value.isLoadingMore || !_uiState.value.hasMore) return
         _uiState.update { it.copy(isLoadingMore = true) }
         loadHistory(isLoadMore = true)
     }
@@ -359,7 +386,7 @@ class HistoryViewModel @Inject constructor(
      * Load more items for the Last.fm history section (separate pagination).
      */
     fun loadMoreLastFmHistory() {
-        if (_uiState.value.isLoadingMoreLastFm || !_uiState.value.hasMoreLastFm) return
+        if (_uiState.value.isLoading || _uiState.value.isLoadingMoreLastFm || !_uiState.value.hasMoreLastFm) return
         _uiState.update { it.copy(isLoadingMoreLastFm = true) }
         loadLastFmHistory(isLoadMore = true)
     }
@@ -370,7 +397,9 @@ class HistoryViewModel @Inject constructor(
      * In UNIFIED mode: Loads all events combined
      */
     private fun loadHistory(isLoadMore: Boolean = false) {
-        viewModelScope.launch {
+        if (!isLoadMore) invalidateHistoryLoads()
+        val generation = loadGeneration
+        historyLoadJob = viewModelScope.launch {
             try {
                 val currentState = _uiState.value
                 val page = if (isLoadMore) currentState.page + 1 else 0
@@ -401,8 +430,10 @@ class HistoryViewModel @Inject constructor(
                         result.items else (currentState.rawItems + result.items).distinctBy { it.id }
 
                     val shouldShowCoachMark = checkShouldShowCoachMark(newItems)
+                    if (generation != loadGeneration) return@launch
 
                     _uiState.update { state ->
+                        if (generation != loadGeneration) return@update state
                         val grouped = groupHistoryItems(newItems)
                         state.copy(
                             rawItems = newItems,
@@ -416,7 +447,7 @@ class HistoryViewModel @Inject constructor(
                     }
 
                     // Also load Last.fm history section if first load
-                    if (!isLoadMore) {
+                    if (!isLoadMore && generation == loadGeneration) {
                         loadLastFmHistory(isLoadMore = false)
                     }
 
@@ -437,8 +468,10 @@ class HistoryViewModel @Inject constructor(
                         result.items else (currentState.rawItems + result.items).distinctBy { it.id }
 
                     val shouldShowCoachMark = checkShouldShowCoachMark(newItemsUnified)
+                    if (generation != loadGeneration) return@launch
 
                     _uiState.update { state ->
+                        if (generation != loadGeneration) return@update state
                         val grouped = groupHistoryItems(newItemsUnified)
                         state.copy(
                             rawItems = newItemsUnified,
@@ -454,7 +487,9 @@ class HistoryViewModel @Inject constructor(
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.e(TAG, "Error loading history", e)
-                _uiState.update { 
+                if (generation != loadGeneration) return@launch
+                _uiState.update {
+                    if (generation != loadGeneration) return@update it 
                     it.copy(
                         isLoading = false,
                         isLoadingMore = false,
@@ -470,7 +505,9 @@ class HistoryViewModel @Inject constructor(
      * Only used in SEPARATED mode.
      */
     private fun loadLastFmHistory(isLoadMore: Boolean = false) {
-        viewModelScope.launch {
+        archiveLoadJob?.cancel()
+        val generation = loadGeneration
+        archiveLoadJob = viewModelScope.launch {
             try {
                 val currentState = _uiState.value
                 val page = if (isLoadMore) currentState.lastFmPage + 1 else 0
@@ -505,7 +542,9 @@ class HistoryViewModel @Inject constructor(
                     )
                 }
                 
+                if (generation != loadGeneration) return@launch
                 _uiState.update { state ->
+                    if (generation != loadGeneration) return@update state
                     val groupedLastFm = groupHistoryItems(newLastFmItems)
                     state.copy(
                         lastFmItems = newLastFmItems,
@@ -517,9 +556,10 @@ class HistoryViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.e(TAG, "Error loading Last.fm history", e)
-                _uiState.update { 
-                    it.copy(isLoadingMoreLastFm = false, error = e.message) 
+                if (generation == loadGeneration) {
+                    _uiState.update { it.copy(isLoadingMoreLastFm = false, error = e.message) }
                 }
             }
         }
