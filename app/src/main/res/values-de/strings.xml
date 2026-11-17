@@ -1122,4 +1122,10 @@
     <string name="settings_health_just_now">Gerade eben</string>
     <string name="settings_health_minutes_ago">Vor %1$d Minuten</string>
     <string name="settings_health_no_signal">Noch kein Player-Rückruf erfasst</string>
+    <string name="settings_backup_overview_header">Backupstatus</string>
+    <string name="settings_backup_overview_never">Noch kein Backup-Versuch erfasst</string>
+    <string name="settings_backup_overview_success">Letztes Backup erfolgreich</string>
+    <string name="settings_backup_overview_failed">Letztes Backup fehlgeschlagen – Einstellungen prüfen</string>
+    <string name="settings_backup_overview_running">Backup läuft</string>
+    <string name="settings_backup_overview_last_success">Letztes erfolgreiches Backup: %1$s</string>
 </resources>
