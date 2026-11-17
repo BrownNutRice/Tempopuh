@@ -102,7 +102,7 @@ fun ExtensionImportScreen(
                             Icon(
                                 imageVector = Icons.Default.Extension,
                                 contentDescription = null,
-                                tint = TempoPrimary,
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(22.dp),
                             )
                             Spacer(modifier = Modifier.size(8.dp))
@@ -110,7 +110,7 @@ fun ExtensionImportScreen(
                                 text = stringResource(R.string.extension_import_title),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = TextPrimary,
+                                color = MaterialTheme.colorScheme.onSurface,
                             )
                         }
                     },
@@ -119,15 +119,15 @@ fun ExtensionImportScreen(
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = stringResource(R.string.settings_back),
-                                tint = TextPrimary,
+                                tint = MaterialTheme.colorScheme.onSurface,
                             )
                         }
                     },
                     colors =
                         TopAppBarDefaults.topAppBarColors(
                             containerColor = Color.Transparent,
-                            titleContentColor = TextPrimary,
-                            navigationIconContentColor = TextPrimary,
+                            titleContentColor = MaterialTheme.colorScheme.onSurface,
+                            navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
                         ),
                 )
             },
@@ -203,7 +203,7 @@ private fun IdleContent(
             Icon(
                 imageVector = Icons.Default.Extension,
                 contentDescription = null,
-                tint = TempoPrimary,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(44.dp),
             )
 
@@ -213,7 +213,7 @@ private fun IdleContent(
                 text = stringResource(R.string.extension_import_headline),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
             )
 
@@ -222,7 +222,7 @@ private fun IdleContent(
             Text(
                 text = stringResource(R.string.extension_import_how_to),
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -255,7 +255,7 @@ private fun IdleContent(
                     onClick = onImport,
                     colors =
                         ButtonDefaults.buttonColors(
-                            containerColor = TempoPrimary,
+                            containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = Color.White,
                         ),
                     modifier = Modifier.fillMaxWidth(),
@@ -275,7 +275,7 @@ private fun ImportingContent(importState: ExtensionPlaysImportService.ImportStat
             modifier = Modifier.fillMaxWidth(),
         ) {
             CircularProgressIndicator(
-                color = TempoPrimary,
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(44.dp),
             )
 
@@ -285,7 +285,7 @@ private fun ImportingContent(importState: ExtensionPlaysImportService.ImportStat
                 text = stringResource(R.string.extension_import_running),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -295,7 +295,7 @@ private fun ImportingContent(importState: ExtensionPlaysImportService.ImportStat
                     Text(
                         text = stringResource(R.string.extension_import_parsing, importState.fileName),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
                     )
                     if (importState.fileCount > 1) {
@@ -308,7 +308,7 @@ private fun ImportingContent(importState: ExtensionPlaysImportService.ImportStat
                                     importState.fileCount,
                                 ),
                             style = MaterialTheme.typography.bodySmall,
-                            color = TextSecondary,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -317,7 +317,7 @@ private fun ImportingContent(importState: ExtensionPlaysImportService.ImportStat
                     Text(
                         text = stringResource(R.string.extension_import_progress, importState.processed),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
                     )
                     Spacer(modifier = Modifier.height(4.dp))
@@ -335,7 +335,7 @@ private fun ImportingContent(importState: ExtensionPlaysImportService.ImportStat
 
             LinearProgressIndicator(
                 modifier = Modifier.fillMaxWidth(),
-                color = TempoPrimary,
+                color = MaterialTheme.colorScheme.primary,
                 trackColor = GlassFrostSoft,
             )
         }
@@ -365,7 +365,7 @@ private fun CompletedContent(
                 text = stringResource(R.string.extension_import_result_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -410,7 +410,7 @@ private fun CompletedContent(
                 onClick = onDone,
                 colors =
                     ButtonDefaults.buttonColors(
-                        containerColor = TempoPrimary,
+                        containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = Color.White,
                     ),
                 modifier = Modifier.fillMaxWidth(),
@@ -445,7 +445,7 @@ private fun ErrorContent(
                 text = stringResource(R.string.extension_import_failed_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -453,7 +453,7 @@ private fun ErrorContent(
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
 
@@ -474,7 +474,7 @@ private fun ErrorContent(
                     onClick = onRetry,
                     colors =
                         ButtonDefaults.buttonColors(
-                            containerColor = TempoPrimary,
+                            containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = Color.White,
                         ),
                     modifier = Modifier.weight(1f),
@@ -498,13 +498,13 @@ private fun StatRow(label: String, value: Int) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
             text = value.toString(),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
-            color = TextPrimary,
+            color = MaterialTheme.colorScheme.onSurface,
         )
     }
 }
