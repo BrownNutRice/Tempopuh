@@ -101,7 +101,7 @@ fun SpotifyJsonImportScreen(
                                 text = stringResource(R.string.settings_import_spotify_json),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = TextPrimary
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     },
@@ -110,7 +110,7 @@ fun SpotifyJsonImportScreen(
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = stringResource(R.string.settings_back),
-                                tint = TextPrimary
+                                tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     },
@@ -206,7 +206,7 @@ private fun IdleContent(
                 text = "Import from Spotify Data Export",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
             )
 
@@ -226,7 +226,7 @@ private fun IdleContent(
                     append(", then select the StreamingHistory or endsong JSON files here.")
                 },
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
 
@@ -255,7 +255,7 @@ private fun IdleContent(
                             text = "${selectedUris.size} file(s) selected",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium,
-                            color = TextPrimary
+                            color = MaterialTheme.colorScheme.onSurface
                         )
 
                         Spacer(modifier = Modifier.height(4.dp))
@@ -305,7 +305,7 @@ private fun IdleContent(
                 text = "How to get your Spotify data",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -332,7 +332,7 @@ private fun IdleContent(
                 Text(
                     text = step,
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 2.dp)
                 )
             }
@@ -360,7 +360,7 @@ private fun ImportingContent(importState: SpotifyJsonImportService.ImportState) 
                 text = "Importing...",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -381,7 +381,7 @@ private fun ImportingContent(importState: SpotifyJsonImportService.ImportState) 
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
 
@@ -423,7 +423,7 @@ private fun CompletedContent(
                 text = "Import Complete!",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -477,13 +477,13 @@ private fun StatRow(label: String, value: Int) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
-            color = TextSecondary
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
             text = value.toString(),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
-            color = TextPrimary
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
@@ -514,7 +514,7 @@ private fun ErrorContent(
                 text = "Import Failed",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -522,7 +522,7 @@ private fun ErrorContent(
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
 
