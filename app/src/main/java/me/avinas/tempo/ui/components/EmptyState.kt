@@ -111,7 +111,7 @@ private fun TimeRangeEmptyState(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp), // Standard outer margins
-        backgroundColor = TempoRed.copy(alpha = 0.1f),
+        backgroundColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
         contentPadding = PaddingValues(32.dp)
     ) {
         Column(
@@ -146,7 +146,7 @@ private fun TimeRangeEmptyState(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.8f),
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                 modifier = Modifier.size(48.dp)
             )
             
@@ -157,7 +157,7 @@ private fun TimeRangeEmptyState(
                 text = title,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -170,7 +170,7 @@ private fun TimeRangeEmptyState(
                     text = contextLabel,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium,
-                    color = Color.White.copy(alpha = 0.5f), 
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), 
                     textAlign = TextAlign.Center
                 )
             }
@@ -183,7 +183,7 @@ private fun TimeRangeEmptyState(
                 style = MaterialTheme.typography.bodyMedium,
                 lineHeight = 24.sp,
                 fontWeight = FontWeight.Normal,
-                color = Color.White.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -194,8 +194,8 @@ private fun TimeRangeEmptyState(
             Button(
                 onClick = onCheckSupportedApps,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = TempoRed, 
-                    contentColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.primary, 
+                    contentColor = MaterialTheme.colorScheme.onPrimary
                 ),
                 shape = MaterialTheme.shapes.large,
                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
@@ -217,7 +217,7 @@ private fun SetupGuideEmptyState(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp),
-        backgroundColor = TempoRed.copy(alpha = 0.12f),
+        backgroundColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
         variant = GlassCardVariant.HighProminence, // Stand out more
         contentPadding = PaddingValues(32.dp)
     ) {
@@ -230,7 +230,7 @@ private fun SetupGuideEmptyState(
                 text = stringResource(R.string.empty_getting_started),
                 style = MaterialTheme.typography.headlineSmall, // Bigger than titleLarge
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
             )
             
@@ -239,7 +239,7 @@ private fun SetupGuideEmptyState(
             Text(
                 text = stringResource(R.string.empty_stats_flowing),
                 style = MaterialTheme.typography.bodyLarge,
-                color = Color.White.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center
             )
 
@@ -286,8 +286,8 @@ private fun SetupGuideEmptyState(
             Button(
                 onClick = onCheckSupportedApps,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = TempoRed,
-                    contentColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
                 ),
                 shape = MaterialTheme.shapes.extraLarge,
                 contentPadding = PaddingValues(horizontal = 32.dp, vertical = 14.dp),
@@ -316,13 +316,13 @@ private fun StepItem(
         Box(
             modifier = Modifier
                 .size(36.dp)
-                .background(Color.White.copy(alpha = 0.1f), androidx.compose.foundation.shape.CircleShape),
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f), androidx.compose.foundation.shape.CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon, 
                 contentDescription = null, 
-                tint = TempoRed, 
+                tint = MaterialTheme.colorScheme.primary, 
                 modifier = Modifier.size(18.dp)
             )
         }
@@ -332,7 +332,7 @@ private fun StepItem(
         Text(
             text = text, 
             style = MaterialTheme.typography.bodyMedium,
-            color = Color.White.copy(alpha = 0.9f),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
             fontWeight = FontWeight.Medium,
             lineHeight = 20.sp
         )
