@@ -1339,4 +1339,13 @@
     <string name="settings_tracking_access_title">Доступ к уведомлениям</string>
     <string name="settings_tracking_access_granted">Разрешён – нажмите для проверки</string>
     <string name="settings_tracking_access_missing">Нет доступа – нажмите, чтобы включить отслеживание</string>
+    <string name="settings_health_listener">Подключение службы</string>
+    <string name="settings_health_permission_required">Для отслеживания музыки требуется разрешение</string>
+    <string name="settings_health_waiting">Ожидание подключения службы</string>
+    <string name="settings_health_stale">Нет свежего сигнала службы; проверьте фоновые ограничения</string>
+    <string name="settings_health_connected">Недавно подключена; не подтверждает сохранение прослушивания</string>
+    <string name="settings_health_last_signal">Последний сигнал плеера</string>
+    <string name="settings_health_just_now">Только что</string>
+    <string name="settings_health_minutes_ago">%1$d мин назад</string>
+    <string name="settings_health_no_signal">Сигналы плеера пока не зарегистрированы</string>
 </resources>

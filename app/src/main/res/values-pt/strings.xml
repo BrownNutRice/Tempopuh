@@ -1222,4 +1222,13 @@
     <string name="settings_tracking_access_title">Acesso às notificações</string>
     <string name="settings_tracking_access_granted">Permitido – tocar para verificar o acesso</string>
     <string name="settings_tracking_access_missing">Não permitido – tocar para ativar o rastreio</string>
+    <string name="settings_health_listener">Ligação do serviço de deteção</string>
+    <string name="settings_health_permission_required">É necessária permissão para detetar música</string>
+    <string name="settings_health_waiting">A aguardar ligação do serviço</string>
+    <string name="settings_health_stale">Sem atividade recente; verificar restrições em segundo plano</string>
+    <string name="settings_health_connected">Ligado recentemente; não confirma a gravação das reproduções</string>
+    <string name="settings_health_last_signal">Último sinal do leitor</string>
+    <string name="settings_health_just_now">Agora mesmo</string>
+    <string name="settings_health_minutes_ago">Há %1$d minutos</string>
+    <string name="settings_health_no_signal">Ainda não foi registado um sinal do leitor</string>
 </resources>

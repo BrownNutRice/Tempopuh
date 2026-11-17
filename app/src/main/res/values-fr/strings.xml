@@ -1111,4 +1111,13 @@
     <string name="settings_tracking_access_title">Accès aux notifications</string>
     <string name="settings_tracking_access_granted">Autorisé – toucher pour vérifier</string>
     <string name="settings_tracking_access_missing">Non autorisé – toucher pour activer le suivi</string>
+    <string name="settings_health_listener">Connexion du service d’écoute</string>
+    <string name="settings_health_permission_required">Autorisation nécessaire pour détecter la musique</string>
+    <string name="settings_health_waiting">En attente de connexion du service d’écoute</string>
+    <string name="settings_health_stale">Aucun signal récent ; vérifier les restrictions en arrière-plan</string>
+    <string name="settings_health_connected">Connecté récemment ; ne confirme pas l’enregistrement d’une écoute</string>
+    <string name="settings_health_last_signal">Dernier signal du lecteur</string>
+    <string name="settings_health_just_now">À l’instant</string>
+    <string name="settings_health_minutes_ago">Il y a %1$d minutes</string>
+    <string name="settings_health_no_signal">Aucun signal du lecteur enregistré</string>
 </resources>

@@ -1571,4 +1571,13 @@
     <string name="settings_tracking_access_title">Notification permission</string>
     <string name="settings_tracking_access_granted">Granted — tap to review access</string>
     <string name="settings_tracking_access_missing">Not granted — tap to enable music tracking</string>
+    <string name="settings_health_listener">Listener connection</string>
+    <string name="settings_health_permission_required">Permission needed before listening can be detected</string>
+    <string name="settings_health_waiting">Waiting for the listener to connect</string>
+    <string name="settings_health_stale">No recent listener heartbeat; check background protection</string>
+    <string name="settings_health_connected">Connected recently; not proof that a play was saved</string>
+    <string name="settings_health_last_signal">Last player signal</string>
+    <string name="settings_health_just_now">Just now</string>
+    <string name="settings_health_minutes_ago">%1$d minutes ago</string>
+    <string name="settings_health_no_signal">No player callback recorded yet</string>
 </resources>

@@ -41,10 +41,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.avinas.tempo.R
 import me.avinas.tempo.service.SpotifyBroadcastPresence
+import me.avinas.tempo.service.TrackingServiceHeartbeat
 import me.avinas.tempo.ui.components.LiveNowPlayingCard
 import me.avinas.tempo.data.importexport.ImportConflictStrategy
 import me.avinas.tempo.data.importexport.ImportExportResult
@@ -106,6 +108,21 @@ fun SettingsScreen(
     val scope = rememberCoroutineScope()
     var notificationListenerGranted by remember {
         mutableStateOf(NotificationManagerCompat.getEnabledListenerPackages(context).contains(context.packageName))
+    }
+    var trackingHeartbeat by remember { mutableStateOf(TrackingServiceHeartbeat.snapshot(context)) }
+    var trackingStatusCheckedAt by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(settingsCategory, lifecycleOwner) {
+        if (settingsCategory == "overview") {
+            lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                while (true) {
+                    notificationListenerGranted = NotificationManagerCompat
+                        .getEnabledListenerPackages(context).contains(context.packageName)
+                    trackingHeartbeat = TrackingServiceHeartbeat.snapshot(context)
+                    trackingStatusCheckedAt = System.currentTimeMillis()
+                    delay(30_000L)
+                }
+            }
+        }
     }
     var spotifyBroadcastEnabled by remember { mutableStateOf(SpotifyBroadcastPresence.enabled(context)) }
     var spotifyConnected by remember { mutableStateOf(false) }
@@ -213,6 +230,8 @@ fun SettingsScreen(
                     notificationListenerGranted =
                         NotificationManagerCompat.getEnabledListenerPackages(context)
                             .contains(context.packageName)
+                    trackingHeartbeat = TrackingServiceHeartbeat.snapshot(context)
+                    trackingStatusCheckedAt = System.currentTimeMillis()
                 }
             }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -338,28 +357,68 @@ fun SettingsScreen(
             ) {
                 if (settingsCategory == "overview") {
                     SettingsSectionHeader(stringResource(R.string.settings_tracking_access_status))
+                    val trackingHealth = evaluateTrackingHealth(
+                        permissionGranted = notificationListenerGranted,
+                        listenerConnected = trackingHeartbeat.listenerConnected,
+                        lastHeartbeatAtMs = trackingHeartbeat.lastServiceAliveAt,
+                        lastNotificationCallbackAtMs = trackingHeartbeat.lastNotificationCallbackAt,
+                        lastMediaSessionCallbackAtMs = trackingHeartbeat.lastMediaSessionCallbackAt,
+                        nowMs = trackingStatusCheckedAt,
+                    )
                     GlassCard(
                         contentPadding = PaddingValues(0.dp),
                         variant = me.avinas.tempo.ui.components.GlassCardVariant.LowProminence,
                     ) {
-                        SettingsOption(
-                            title = stringResource(R.string.settings_tracking_access_title),
-                            subtitle = stringResource(
-                                if (notificationListenerGranted) R.string.settings_tracking_access_granted
-                                else R.string.settings_tracking_access_missing
-                            ),
-                            onClick = {
-                                try {
-                                    context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-                                } catch (_: ActivityNotFoundException) {
-                                    Toast.makeText(
-                                        context,
-                                        context.getString(R.string.settings_notification_settings_error),
-                                        Toast.LENGTH_SHORT,
-                                    ).show()
-                                }
-                            },
-                        )
+                        Column {
+                            SettingsOption(
+                                title = stringResource(R.string.settings_tracking_access_title),
+                                subtitle = stringResource(
+                                    if (notificationListenerGranted) R.string.settings_tracking_access_granted
+                                    else R.string.settings_tracking_access_missing
+                                ),
+                                onClick = {
+                                    try {
+                                        context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                                    } catch (_: ActivityNotFoundException) {
+                                        Toast.makeText(
+                                            context,
+                                            context.getString(R.string.settings_notification_settings_error),
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
+                                    }
+                                },
+                            )
+                            HorizontalDivider(color = GlassBorderSoft)
+                            SettingsOption(
+                                title = stringResource(R.string.settings_health_listener),
+                                subtitle = stringResource(
+                                    when (trackingHealth.listenerState) {
+                                        TrackingListenerState.PERMISSION_REQUIRED ->
+                                            R.string.settings_health_permission_required
+                                        TrackingListenerState.WAITING ->
+                                            R.string.settings_health_waiting
+                                        TrackingListenerState.STALE ->
+                                            R.string.settings_health_stale
+                                        TrackingListenerState.CONNECTED ->
+                                            R.string.settings_health_connected
+                                    }
+                                ),
+                                onClick = { settingsCategory = "tracking" },
+                            )
+                            HorizontalDivider(color = GlassBorderSoft)
+                            SettingsOption(
+                                title = stringResource(R.string.settings_health_last_signal),
+                                subtitle = trackingHealth.lastPlayerSignalAgeMs?.let {
+                                    val minutes = it / 60_000L
+                                    if (minutes < 1L) stringResource(R.string.settings_health_just_now)
+                                    else stringResource(R.string.settings_health_minutes_ago, minutes)
+                                } ?: stringResource(R.string.settings_health_no_signal),
+                                onClick = {
+                                    if (onNavigateToYourData != null) onNavigateToYourData()
+                                    else settingsCategory = "tracking"
+                                },
+                            )
+                        }
                     }
                     Spacer(modifier = Modifier.height(20.dp))
                     SettingsSectionHeader(stringResource(R.string.settings_category_browse))
