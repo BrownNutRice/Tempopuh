@@ -189,13 +189,18 @@ fun StatsScreen(
                              selectedTab = uiState.selectedTab,
                              onTabSelected = viewModel::onTabSelected
                          )
-                         TimePeriodSelector(
-                             selectedRange = uiState.selectedTimeRange,
-                             onRangeSelected = viewModel::onTimeRangeSelected,
-                             availableRanges = StatsAvailableRanges,
-                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                         )
                      }
+                }
+
+                item(key = "time_range_selector") {
+                    // Non-sticky row keeps the ranking tabs accessible without
+                    // pinning two full rows to the viewport.
+                    TimePeriodSelector(
+                        selectedRange = uiState.selectedTimeRange,
+                        onRangeSelected = viewModel::onTimeRangeSelected,
+                        availableRanges = StatsAvailableRanges,
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
                 }
 
                 item(key = "sort_by_selector") {
