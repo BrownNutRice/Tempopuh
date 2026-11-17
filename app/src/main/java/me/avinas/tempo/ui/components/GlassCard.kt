@@ -37,6 +37,8 @@ import me.avinas.tempo.ui.theme.GlassFrostSoft
 import me.avinas.tempo.ui.theme.GlassHighlightTop
 import me.avinas.tempo.ui.theme.GlassShadowTeal
 import me.avinas.tempo.ui.theme.GlassTintTeal
+import me.avinas.tempo.ui.theme.LocalTempoPalette
+import me.avinas.tempo.ui.appearance.AppearancePreset
 import me.avinas.tempo.ui.theme.TextPrimary
 import me.avinas.tempo.ui.theme.premiumClickable
 import me.avinas.tempo.ui.theme.TempoDarkSurface
@@ -77,13 +79,21 @@ fun GlassCard(
     fillMaxWidth: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-    val accent = accentColor ?: TempoPrimary
+    val palette = LocalTempoPalette.current
+    val customPalette = palette.preset != AppearancePreset.ABYSS
+    val accent = accentColor ?: palette.accent
 
     val surface =
-        remember(backgroundColor, accentColor, accentStrength, variant) {
+        remember(backgroundColor, accentColor, accentStrength, variant, palette) {
             when {
                 // Explicit surface wins; accent then only tints the border.
                 backgroundColor != GlassFrostMedium -> backgroundColor
+
+                customPalette && variant == GlassCardVariant.Obsidian -> palette.surfaceSunken
+                customPalette && variant == GlassCardVariant.QuietGlass -> palette.surface
+                customPalette && variant == GlassCardVariant.TintedSolid ->
+                    lerp(palette.surface, accent, 0.12f)
+                customPalette -> palette.elevatedSurface
 
                 variant == GlassCardVariant.Obsidian -> TempoDarkSurfaceSunken
 
@@ -104,11 +114,18 @@ fun GlassCard(
     val isTinted = accentColor != null || backgroundColor != GlassFrostMedium
 
     val borderBrush =
-        remember(variant, borderColor, accentColor, isTinted) {
+        remember(variant, borderColor, accentColor, isTinted, palette) {
             when {
                 borderColor != null -> {
                     null
                 }
+
+                customPalette -> Brush.verticalGradient(
+                    colors = listOf(
+                        palette.border.copy(alpha = 0.65f),
+                        palette.border.copy(alpha = 0.28f),
+                    ),
+                )
 
                 variant == GlassCardVariant.Obsidian -> {
                     Brush.verticalGradient(
@@ -171,11 +188,12 @@ fun GlassCard(
         }
 
     val bgBrush =
-        remember(surface, variant, accentColor) {
-            val bottom = when (variant) {
-                GlassCardVariant.QuietGlass -> TempoDarkSurfaceSunken.copy(alpha = 0.92f)
-                GlassCardVariant.TintedSolid -> lerp(TempoDarkSurfaceSunken, accent, 0.07f)
-                GlassCardVariant.Obsidian -> Color(0xFF060808)
+        remember(surface, variant, accentColor, palette) {
+            val bottom = when {
+                customPalette -> palette.surfaceSunken
+                variant == GlassCardVariant.QuietGlass -> TempoDarkSurfaceSunken.copy(alpha = 0.92f)
+                variant == GlassCardVariant.TintedSolid -> lerp(TempoDarkSurfaceSunken, accent, 0.07f)
+                variant == GlassCardVariant.Obsidian -> Color(0xFF060808)
                 else -> GlassTintTeal.copy(alpha = 0.32f)
             }
             Brush.verticalGradient(

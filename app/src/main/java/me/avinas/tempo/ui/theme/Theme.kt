@@ -10,6 +10,12 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
+import me.avinas.tempo.ui.appearance.AppearanceSettings
+import me.avinas.tempo.ui.appearance.AppearancePalette
+import me.avinas.tempo.ui.appearance.AppearancePaletteResolver
+import me.avinas.tempo.ui.appearance.AppearancePreset
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -61,17 +67,27 @@ private val DarkColorScheme = darkColorScheme(
     outlineVariant = GlassBorderSoft
 )
 
-private val LightColorScheme = DarkColorScheme
+/** Optional, explicit tokens used by migrated surfaces. Legacy constants remain stable. */
+val LocalTempoPalette = staticCompositionLocalOf {
+    AppearancePaletteResolver.forPreset(AppearancePreset.ABYSS)
+}
+val LocalTempoAppearance = staticCompositionLocalOf { AppearanceSettings() }
 
 @Composable
 fun TempoTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = false, // Disabled to enforce Premium Brand
+    dynamicColor: Boolean = false, // Retained for binary/source compatibility
+    appearance: AppearanceSettings = AppearanceSettings(),
     content: @Composable () -> Unit
 ) {
-    // Force Dark Theme for Premium Feel
-    val colorScheme = DarkColorScheme
+    // Live theme options are dark-compatible while legacy fixed-color screens
+    // migrate to semantic tokens; the default is pixel-compatible with Tempo.
+    val palette = androidx.compose.runtime.remember(appearance.preset) {
+        AppearancePaletteResolver.forPreset(appearance.preset)
+    }
+    val colorScheme = if (appearance.preset == AppearancePreset.ABYSS)
+        DarkColorScheme else palette.materialColorScheme()
     
     val view = LocalView.current
     if (!view.isInEditMode) {
@@ -83,9 +99,14 @@ fun TempoTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(
+        LocalTempoPalette provides palette,
+        LocalTempoAppearance provides appearance,
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content,
+        )
+    }
 }

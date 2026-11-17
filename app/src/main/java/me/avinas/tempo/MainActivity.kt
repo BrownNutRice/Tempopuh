@@ -68,6 +68,9 @@ class MainActivity : AppCompatActivity() {
     @javax.inject.Inject
     lateinit var userPreferencesDao: UserPreferencesDao
 
+    @javax.inject.Inject
+    lateinit var appearancePreferences: me.avinas.tempo.ui.appearance.AppearancePreferencesRepository
+
     private val navigationTrigger = mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -121,7 +124,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         setContent {
-            TempoTheme {
+            // The initial value preserves the previous dark Abyss appearance
+            // until DataStore finishes loading the user's chosen theme.
+            val appearance by appearancePreferences.settings.collectAsStateWithLifecycle(
+                initialValue = me.avinas.tempo.ui.appearance.AppearanceSettings()
+            )
+            TempoTheme(appearance = appearance) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

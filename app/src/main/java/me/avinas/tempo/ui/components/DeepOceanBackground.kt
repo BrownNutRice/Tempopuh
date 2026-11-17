@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import me.avinas.tempo.ui.theme.LocalTempoPalette
 
 /* DeepOcean — neutral depth.
  * Near-black matte with a single soft value vignette + top sheen.
@@ -22,18 +23,20 @@ fun DeepOceanBackground(
     modifier: Modifier = Modifier,
     content: @Composable BoxScope.() -> Unit,
 ) {
+    val colors = LocalTempoPalette.current
     Box(
         modifier = modifier
             .fillMaxSize()
             .drawBehind {
                 val height = size.height
-                drawRect(Color(0xFF0A0E0E))
+                drawRect(colors.background)
                 drawRect(
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            Color(0xFF101414),
-                            Color(0xFF0C1010),
-                            Color(0xFF080A0A)
+                            colors.topBackground,
+                            if (colors.preset == me.avinas.tempo.ui.appearance.AppearancePreset.ABYSS)
+                                Color(0xFF0C1010) else colors.surface,
+                            colors.surfaceSunken,
                         ),
                         startY = 0f,
                         endY = height,
