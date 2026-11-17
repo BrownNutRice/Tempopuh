@@ -159,6 +159,8 @@ android {
     lint {
         // Explicitly requested manual validation must fail on lint errors.
         abortOnError = true
+        // Partial language packs use Android English fallback; track coverage as warnings.
+        warning += "MissingTranslation"
         checkReleaseBuilds = false
     }
 

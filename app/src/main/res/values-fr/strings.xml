@@ -93,7 +93,7 @@
     <!-- Onboarding: Privacy -->
     <string name="privacy_title">Vos données restent ici</string>
     <string name="privacy_subtitle">La vie privée n\'est pas une fonctionnalité. C\'est une fondation.</string>
-    <string name="privacy_local_title">Stockage 100 %% local</string>
+    <string formatted="false" name="privacy_local_title">Stockage 100 % local</string>
     <string name="privacy_local_desc">Toutes vos données restent sur votre téléphone. Toujours.</string>
     <string name="privacy_notif_title">Notifications musicales uniquement</string>
     <string name="privacy_notif_desc">Nous lisons Spotify, YouTube Music, etc. Jamais vos messages.</string>
@@ -726,15 +726,15 @@
     <string name="details_unknown_album">Album inconnu</string>
 
     <!-- Fan Status Percentiles -->
-    <string name="fan_status_top_1">Top 1% Artiste</string>
+    <string formatted="false" name="fan_status_top_1">Top 1% Artiste</string>
     <string name="fan_status_top_1_desc">C\'est l\'un de vos favoris absolus !</string>
-    <string name="fan_status_top_5">Top 5% Artiste</string>
+    <string formatted="false" name="fan_status_top_5">Top 5% Artiste</string>
     <string name="fan_status_top_5_desc">Vous l\'écoutez plus que la plupart des autres.</string>
-    <string name="fan_status_top_10">Top 10% Artiste</string>
+    <string formatted="false" name="fan_status_top_10">Top 10% Artiste</string>
     <string name="fan_status_top_10_desc">Certainement l\'un de vos meilleurs choix.</string>
-    <string name="fan_status_top_25">Top 25% Artiste</string>
+    <string formatted="false" name="fan_status_top_25">Top 25% Artiste</string>
     <string name="fan_status_top_25_desc">Une partie solide de votre rotation.</string>
-    <string name="fan_status_top_50">Top 50% Artiste</string>
+    <string formatted="false" name="fan_status_top_50">Top 50% Artiste</string>
     <string name="fan_status_top_50_desc">Vous l\'écoutez de temps en temps.</string>
     <!-- Fan Status Counts -->
     <string name="fan_status_ultimate">Fan Ultime</string>

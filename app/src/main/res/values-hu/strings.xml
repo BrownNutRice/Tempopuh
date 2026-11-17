@@ -93,7 +93,7 @@
     <!-- Onboarding: Privacy -->
     <string name="privacy_title">Az Adatod Itt Marad</string>
     <string name="privacy_subtitle">A magánélet nem funkció. Ez az alap.</string>
-    <string name="privacy_local_title">100% Helyi Tárolás</string>
+    <string formatted="false" name="privacy_local_title">100% Helyi Tárolás</string>
     <string name="privacy_local_desc">Minden adatod a telefonodon marad. Mindig.</string>
     <string name="privacy_notif_title">Csak Zenei Értesítések</string>
     <string name="privacy_notif_desc">A Spotify-t, YouTube Music-ot, stb. olvassuk. Soha az üzeneteket.</string>
@@ -526,7 +526,7 @@
     <string name="settings_disconnect_spotify_title">Szabotál És Ront Spoti!?</string>
     <string name="settings_disconnect_spotify_msg">Ez El És Tépi Jelenét ÉS Jelen is! A Kis Forma Is Halotti Sors A Legy, Alakítja Is Nyújt Is Cél.</string>
     <string name="settings_disconnect">Lecsatlakozás</string>
-    <string name="settings_import_success">Sikeres Importálás</string>
+    <string name="settings_import_success">%1$d rekord és %2$d kép sikeresen feldolgozva</string>
 
     <!-- Asztali szinkron -->
     <string name="desktop_link_section_header">Asztali szinkron</string>

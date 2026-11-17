@@ -163,3 +163,5 @@ jobs:
             --prerelease
 
 # Retry after importer compilation fixes.
+
+# Retry with manifest, Compose and resource lint fixes.

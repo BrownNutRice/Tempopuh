@@ -134,11 +134,10 @@ internal class SpotifyBroadcastBridge(
             receiverThread = thread
             val scheduler = Handler(thread.looper)
             // Cross-app broadcasts must be exported on recent Android versions.
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                context.registerReceiver(receiver, filter, null, scheduler, Context.RECEIVER_EXPORTED)
-            } else {
-                context.registerReceiver(receiver, filter, null, scheduler)
-            }
+            androidx.core.content.ContextCompat.registerReceiver(
+                context, receiver, filter, null, scheduler,
+                androidx.core.content.ContextCompat.RECEIVER_EXPORTED
+            )
             registered = true
         } catch (e: Exception) {
             receiverThread?.quitSafely()

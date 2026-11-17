@@ -43,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -77,6 +78,7 @@ fun YourDataScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val resources = LocalResources.current
 
     Scaffold(
         containerColor = Color.Transparent,
@@ -217,7 +219,7 @@ fun YourDataScreen(
                                                 type = "text/plain"
                                                 putExtra(
                                                     Intent.EXTRA_SUBJECT,
-                                                    context.getString(R.string.diagnostics_share_subject),
+                                                    resources.getString(R.string.diagnostics_share_subject),
                                                 )
                                                 putExtra(Intent.EXTRA_TEXT, text)
                                             }

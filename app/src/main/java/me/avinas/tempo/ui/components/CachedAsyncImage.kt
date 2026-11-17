@@ -139,7 +139,7 @@ fun CachedAsyncImage(
         contentScale = contentScale
     )
     
-    val painterState = painter.state.value
+    val painterState by painter.state.collectAsState()
     
     LaunchedEffect(painterState) {
         when (painterState) {

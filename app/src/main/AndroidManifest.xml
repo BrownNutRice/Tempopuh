@@ -2,7 +2,6 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Notification access for tracking music playback -->
-    <uses-permission android:name="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" />
     
     <!-- Foreground service for persistent tracking -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -17,7 +16,6 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     
     <!-- Media session access -->
-    <uses-permission android:name="android.permission.MEDIA_CONTENT_CONTROL" />
     
     <!-- Wake lock for reliable background operation -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -31,6 +29,7 @@
 
     <!-- Desktop Satellite: camera access for scanning desktop QR code -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <!-- Query launchable apps instead of all packages -->
     <queries>

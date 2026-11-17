@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -98,6 +99,7 @@ fun SettingsScreen(
     var showHistoryAuditDialog by remember { mutableStateOf(false) }
     var historyBackupConfirmed by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val resources = LocalResources.current
     val lifecycleOwner = LocalLifecycleOwner.current
     // Settings home is intentionally a small category navigator.
     var settingsCategory by rememberSaveable { mutableStateOf("overview") }
@@ -276,7 +278,7 @@ fun SettingsScreen(
             when (result) {
                 is ImportExportResult.Success -> {
                     snackbarHostState.showSnackbar(
-                        context.getString(R.string.settings_import_success, result.totalRecords, result.imagesCount),
+                        resources.getString(R.string.settings_import_success, result.totalRecords, result.imagesCount),
                     )
                 }
 
@@ -385,7 +387,7 @@ fun SettingsScreen(
                                     } catch (_: ActivityNotFoundException) {
                                         Toast.makeText(
                                             context,
-                                            context.getString(R.string.settings_notification_settings_error),
+                                            resources.getString(R.string.settings_notification_settings_error),
                                             Toast.LENGTH_SHORT,
                                         ).show()
                                     }
@@ -701,7 +703,7 @@ fun SettingsScreen(
                                     Toast
                                         .makeText(
                                             context,
-                                            context.getString(R.string.settings_notification_settings_error),
+                                            resources.getString(R.string.settings_notification_settings_error),
                                             Toast.LENGTH_SHORT,
                                         ).show()
                                 }
@@ -860,7 +862,7 @@ fun SettingsScreen(
                                     } catch (cancelled: kotlinx.coroutines.CancellationException) {
                                         throw cancelled
                                     } catch (failure: Exception) {
-                                        Toast.makeText(context, context.getString(R.string.spotify_secure_storage_unavailable), Toast.LENGTH_LONG).show()
+                                        Toast.makeText(context, resources.getString(R.string.spotify_secure_storage_unavailable), Toast.LENGTH_LONG).show()
                                         return@launch
                                     }
                                     if (intent == null) {
@@ -1219,7 +1221,7 @@ fun SettingsScreen(
                                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.reddit.com/r/TempoStats/"))
                                     context.startActivity(intent)
                                 } catch (_: ActivityNotFoundException) {
-                                    Toast.makeText(context, context.getString(R.string.settings_no_browser), Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, resources.getString(R.string.settings_no_browser), Toast.LENGTH_SHORT).show()
                                 }
                             },
                         )
@@ -1233,7 +1235,7 @@ fun SettingsScreen(
                                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/avinaxhroy/Tempo"))
                                     context.startActivity(intent)
                                 } catch (_: ActivityNotFoundException) {
-                                    Toast.makeText(context, context.getString(R.string.settings_no_browser), Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, resources.getString(R.string.settings_no_browser), Toast.LENGTH_SHORT).show()
                                 }
                             },
                         )
@@ -1250,7 +1252,7 @@ fun SettingsScreen(
                                         )
                                     context.startActivity(intent)
                                 } catch (_: ActivityNotFoundException) {
-                                    Toast.makeText(context, context.getString(R.string.settings_no_browser), Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, resources.getString(R.string.settings_no_browser), Toast.LENGTH_SHORT).show()
                                 }
                             },
                         )
@@ -1280,7 +1282,7 @@ fun SettingsScreen(
                                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://tempo.avinash.im/privacy/"))
                                     context.startActivity(intent)
                                 } catch (_: ActivityNotFoundException) {
-                                    Toast.makeText(context, context.getString(R.string.settings_no_browser), Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, resources.getString(R.string.settings_no_browser), Toast.LENGTH_SHORT).show()
                                 }
                             },
                         )

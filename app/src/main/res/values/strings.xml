@@ -95,7 +95,7 @@
     <!-- Onboarding: Privacy -->
     <string name="privacy_title">Your Data Stays Here</string>
     <string name="privacy_subtitle">Privacy isn\'t a feature. It\'s the foundation.</string>
-    <string name="privacy_local_title">100% Local Storage</string>
+    <string formatted="false" name="privacy_local_title">100% Local Storage</string>
     <string name="privacy_local_desc">All data stays on your phone. Always.</string>
     <string name="privacy_no_cloud_title">No Tempo Servers</string>
     <string name="privacy_no_cloud_desc">We run no backend and have no account for you. The only thing that leaves your phone is anonymous app-health stats, which you can turn off any time in Settings.</string>
@@ -1033,15 +1033,15 @@
     <string name="details_unknown_album">Unknown Album</string>
 
     <!-- Fan Status Percentiles -->
-    <string name="fan_status_top_1">Top 1% Artist</string>
+    <string formatted="false" name="fan_status_top_1">Top 1% Artist</string>
     <string name="fan_status_top_1_desc">This is one of your absolute favorites!</string>
-    <string name="fan_status_top_5">Top 5% Artist</string>
+    <string formatted="false" name="fan_status_top_5">Top 5% Artist</string>
     <string name="fan_status_top_5_desc">You listen to them more than most.</string>
-    <string name="fan_status_top_10">Top 10% Artist</string>
+    <string formatted="false" name="fan_status_top_10">Top 10% Artist</string>
     <string name="fan_status_top_10_desc">Definitely one of your top picks.</string>
-    <string name="fan_status_top_25">Top 25% Artist</string>
+    <string formatted="false" name="fan_status_top_25">Top 25% Artist</string>
     <string name="fan_status_top_25_desc">A solid part of your rotation.</string>
-    <string name="fan_status_top_50">Top 50% Artist</string>
+    <string formatted="false" name="fan_status_top_50">Top 50% Artist</string>
     <string name="fan_status_top_50_desc">You listen to them occasionally.</string>
     <!-- Fan Status Counts -->
     <string name="fan_status_ultimate">Ultimate Stan</string>
