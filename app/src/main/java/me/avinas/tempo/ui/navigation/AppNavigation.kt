@@ -28,6 +28,7 @@ import me.avinas.tempo.ui.settings.BackupRestoreScreen
 import me.avinas.tempo.ui.settings.EnrichmentReportScreen
 import me.avinas.tempo.ui.settings.ExtensionImportScreen
 import me.avinas.tempo.ui.settings.SettingsScreen
+import me.avinas.tempo.ui.appearance.AppearanceScreen
 import me.avinas.tempo.ui.settings.SupportedAppsScreen
 import me.avinas.tempo.ui.settings.YourDataScreen
 import me.avinas.tempo.ui.spotlight.SpotlightScreen
@@ -53,6 +54,7 @@ sealed class Screen(
     object History : Screen("history")
 
     object Settings : Screen("settings")
+    object Appearance : Screen("appearance")
 
     object Spotlight : Screen("spotlight?timeRange={timeRange}&directLaunch={directLaunch}") {
         fun createRoute(
@@ -257,7 +259,12 @@ fun AppNavigation(
                             onNavigateToDesktop = { navController.navigate(Screen.DesktopLink.route) },
                             onNavigateToEnrichmentReport = { navController.navigate(Screen.EnrichmentReport.route) },
                             onNavigateToYourData = { navController.navigate(Screen.YourData.route) },
+                            onNavigateToAppearance = { navController.navigate(Screen.Appearance.route) },
                         )
+                    }
+
+                    composable(Screen.Appearance.route) {
+                        AppearanceScreen(onNavigateBack = { navController.popBackStack() })
                     }
 
                     composable(Screen.BackupRestore.route) {

@@ -89,6 +89,7 @@ fun SettingsScreen(
     onNavigateToDesktop: () -> Unit = {},
     onNavigateToEnrichmentReport: (() -> Unit)? = null,
     onNavigateToYourData: (() -> Unit)? = null,
+    onNavigateToAppearance: (() -> Unit)? = null,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -607,6 +608,20 @@ fun SettingsScreen(
                     }
                 }
 
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Appearance is a focused gallery instead of another long list of toggles.
+                SettingsSectionHeader(stringResource(R.string.appearance_title))
+                GlassCard(
+                    contentPadding = PaddingValues(0.dp),
+                    variant = me.avinas.tempo.ui.components.GlassCardVariant.LowProminence,
+                ) {
+                    SettingsOption(
+                        title = stringResource(R.string.appearance_title),
+                        subtitle = stringResource(R.string.appearance_settings_summary),
+                        onClick = { onNavigateToAppearance?.invoke() },
+                    )
+                }
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Language Section
