@@ -47,6 +47,18 @@ class StatsViewModel
         // Analytics is time-range dependent, not tab-dependent
         private var lastAnalyticsTimeRange: TimeRange? = null
         private var loadJob: Job? = null
+        private var loadMoreJob: Job? = null
+
+        // A filter/search switch must make in-flight query results obsolete.
+        // Cancellation alone is insufficient for repositories that complete
+        // work just as a cancellation is delivered.
+        private var resultGeneration = 0L
+
+        private fun invalidateInFlightQueries() {
+            resultGeneration++
+            loadJob?.cancel()
+            loadMoreJob?.cancel()
+        }
 
         init {
             loadJob = loadData()
@@ -90,7 +102,7 @@ class StatsViewModel
                     .collect { _ ->
                         // Invalidate cache and reload data
                         statsRepository.invalidateCache(_uiState.value.selectedTimeRange)
-                        loadJob?.cancel()
+                        invalidateInFlightQueries()
                         loadJob = loadData()
                     }
             }
@@ -99,7 +111,7 @@ class StatsViewModel
         fun onTabSelected(tab: StatsTab) {
             if (_uiState.value.selectedTab == tab && _uiState.value.items.isNotEmpty()) return
             searchJob?.cancel()
-            loadJob?.cancel()
+            invalidateInFlightQueries()
             _uiState.update { it.copy(selectedTab = tab, isLoading = true, items = emptyList(), page = 0, hasMore = true) }
             loadJob = loadData()
         }
@@ -107,7 +119,7 @@ class StatsViewModel
         fun onTimeRangeSelected(timeRange: TimeRange) {
             if (_uiState.value.selectedTimeRange == timeRange && _uiState.value.items.isNotEmpty()) return
             searchJob?.cancel()
-            loadJob?.cancel()
+            invalidateInFlightQueries()
             _uiState.update { it.copy(selectedTimeRange = timeRange, isLoading = true, items = emptyList(), page = 0, hasMore = true) }
             loadJob = loadData()
         }
@@ -115,7 +127,7 @@ class StatsViewModel
         fun onSortBySelected(sortBy: SortBy) {
             if (_uiState.value.selectedSortBy == sortBy && _uiState.value.items.isNotEmpty()) return
             searchJob?.cancel()
-            loadJob?.cancel()
+            invalidateInFlightQueries()
             _uiState.update { it.copy(selectedSortBy = sortBy, isLoading = true, items = emptyList(), page = 0, hasMore = true) }
             loadJob = loadData()
         }
@@ -126,12 +138,13 @@ class StatsViewModel
         private var searchJob: Job? = null
 
         fun onSearchQueryChanged(query: String) {
-            _uiState.update { it.copy(searchQuery = query) }
+            if (_uiState.value.searchQuery == query) return
             searchJob?.cancel()
+            invalidateInFlightQueries()
+            _uiState.update { it.copy(searchQuery = query) }
             searchJob =
                 viewModelScope.launch {
                     delay(300) // Debounce keystrokes
-                    loadJob?.cancel()
                     _uiState.update { it.copy(isLoading = true, items = emptyList(), page = 0, hasMore = false) }
                     loadJob = loadData()
                 }
@@ -142,19 +155,20 @@ class StatsViewModel
             if (state.isLoading || state.isLoadingMore || !state.hasMore) return
             if (state.searchQuery.isNotBlank()) return // Search results are not paginated
             _uiState.update { it.copy(isLoadingMore = true) }
-            loadData(isLoadMore = true)
+            loadMoreJob = loadData(isLoadMore = true)
         }
 
         /** Retries loading stats data after a failure. */
         fun retry() {
             searchJob?.cancel()
-            loadJob?.cancel()
+            invalidateInFlightQueries()
             _uiState.update { it.copy(error = null, isLoading = true, items = emptyList(), page = 0, hasMore = true) }
             loadJob = loadData()
         }
 
-        private fun loadData(isLoadMore: Boolean = false): Job =
-            viewModelScope.launch {
+        private fun loadData(isLoadMore: Boolean = false): Job {
+            val generation = resultGeneration
+            return viewModelScope.launch {
                 try {
                     val currentState = _uiState.value
                     val page = if (isLoadMore) currentState.page + 1 else 0
@@ -190,8 +204,10 @@ class StatsViewModel
                         }
 
                     val hasMore = searchQuery == null && result.isNotEmpty() // Simplified check, ideally use totalCount from PaginatedResult
+                    if (generation != resultGeneration) return@launch
 
                     _uiState.update { state ->
+                        if (generation != resultGeneration) return@update state
                         val newItems =
                             if (isLoadMore) {
                                 (state.items + result).distinctBy { item ->
@@ -215,20 +231,25 @@ class StatsViewModel
                     }
 
                     // Fetch listening overview only if time range changed (needed for share dialog)
-                    if (page == 0 && timeRange != lastAnalyticsTimeRange) {
+                    if (page == 0 && timeRange != lastAnalyticsTimeRange && generation == resultGeneration) {
                         lastAnalyticsTimeRange = timeRange
-                        loadAnalyticsData(timeRange)
+                        loadAnalyticsData(timeRange, generation)
                     }
                 } catch (e: Exception) {
                     if (e is kotlinx.coroutines.CancellationException) throw e
-                    _uiState.update { it.copy(isLoading = false, isLoadingMore = false, error = e.message) }
+                    if (generation == resultGeneration) {
+                        _uiState.update { it.copy(isLoading = false, isLoadingMore = false, error = e.message) }
+                    }
                 }
             }
+        }
 
-        private suspend fun loadAnalyticsData(timeRange: TimeRange) {
+        private suspend fun loadAnalyticsData(timeRange: TimeRange, generation: Long) {
             try {
                 val overview = statsRepository.getListeningOverview(timeRange, withLeeway = false)
+                if (generation != resultGeneration) return
                 _uiState.update {
+                    if (generation != resultGeneration) return@update it
                     it.copy(
                         analyticsData =
                             AnalyticsUiData(
@@ -245,6 +266,9 @@ class StatsViewModel
 
         /** Pull-to-refresh handler. */
         suspend fun refresh() {
+            searchJob?.cancel()
+            invalidateInFlightQueries()
+            val generation = resultGeneration
             _uiState.update { it.copy(isRefreshing = true) }
             val startTime = System.currentTimeMillis()
             try {
@@ -252,17 +276,19 @@ class StatsViewModel
                 lastAnalyticsTimeRange = null // Force analytics reload on manual refresh
                 _uiState.update { it.copy(isLoading = true, items = emptyList(), page = 0, hasMore = true) }
                 // Fetch data directly (inline, awaitable) rather than via fire-and-forget loadData()
-                fetchDataForRefresh()
+                fetchDataForRefresh(generation)
             } finally {
                 // Keep spinner visible for at least 600ms to prevent flicker
                 val elapsed = System.currentTimeMillis() - startTime
                 if (elapsed < 600) delay(600 - elapsed)
-                _uiState.update { it.copy(isRefreshing = false) }
+                if (generation == resultGeneration) {
+                    _uiState.update { it.copy(isRefreshing = false) }
+                }
             }
         }
 
         /** Awaitable version of data loading used by pull-to-refresh. */
-        private suspend fun fetchDataForRefresh() {
+        private suspend fun fetchDataForRefresh(generation: Long) {
             try {
                 val currentState = _uiState.value
                 val timeRange = currentState.selectedTimeRange
@@ -296,7 +322,9 @@ class StatsViewModel
                     }
 
                 val hasMore = searchQuery == null && result.isNotEmpty()
+                if (generation != resultGeneration) return
                 _uiState.update { state ->
+                    if (generation != resultGeneration) return@update state
                     state.copy(
                         items = result,
                         isLoading = false,
@@ -306,10 +334,15 @@ class StatsViewModel
                     )
                 }
 
-                lastAnalyticsTimeRange = null
-                loadAnalyticsData(timeRange)
+                if (generation == resultGeneration) {
+                    lastAnalyticsTimeRange = null
+                    loadAnalyticsData(timeRange, generation)
+                }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, isLoadingMore = false, error = e.message) }
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                if (generation == resultGeneration) {
+                    _uiState.update { it.copy(isLoading = false, isLoadingMore = false, error = e.message) }
+                }
             }
         }
     }
