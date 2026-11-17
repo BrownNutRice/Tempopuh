@@ -764,4 +764,27 @@
     <string name="settings_backup_overview_last_success">Utolsó sikeres Drive-mentés: %1$s</string>
     <string name="settings_backup_status_shared_destination">Ez az állapot csak a Google Drive-ra vonatkozik; a helyi mentések külön működnek.</string>
     <string name="settings_backup_overview_disabled">A Drive-mentés ki van kapcsolva</string>
+    <string name="appearance_title">Megjelenés</string>
+    <string name="appearance_settings_summary">Színek, vizuális stílusok és animáció</string>
+    <string name="appearance_gallery_heading">Alakítsd sajátodra a Tempót</string>
+    <string name="appearance_gallery_description">Válassz megjelenést. Először nézd meg, majd alkalmazd.</string>
+    <string name="appearance_cancel">Mégse</string>
+    <string name="appearance_apply">Alkalmaz</string>
+    <string name="appearance_preview_pending">Csak előnézet – a mentéshez koppints az Alkalmaz gombra</string>
+    <string name="appearance_preview_saved">A választott stílus aktív</string>
+    <string name="appearance_accessibility_heading">Mozgás és kényelem</string>
+    <string name="appearance_reduce_motion">Animációk csökkentése</string>
+    <string name="appearance_reduce_motion_description">Kevesebb mozgás, a rendszerbeállítások figyelembevételével</string>
+    <string name="appearance_light_later">A világos és rendszertéma a képernyők kontrasztjának frissítése után érkezik.</string>
+    <string name="appearance_restore">Tempo alapbeállítások visszaállítása</string>
+    <string name="appearance_abyss">Abyss</string>
+    <string name="appearance_gold">Obsidian Gold</string>
+    <string name="appearance_aurora">Aurora</string>
+    <string name="appearance_glacier">Glacier Night</string>
+    <string name="appearance_abyss_desc">Jellegzetes sötét türkiz</string>
+    <string name="appearance_gold_desc">Fekete és meleg arany</string>
+    <string name="appearance_aurora_desc">Indigó és lila fény</string>
+    <string name="appearance_glacier_desc">Hűvös jégkék éjszaka</string>
+    <string name="appearance_preview_song">Most szól</string>
+    <string name="appearance_preview_artist">A zenéd</string>
 </resources>

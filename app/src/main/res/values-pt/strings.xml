@@ -1239,4 +1239,27 @@
     <string name="settings_backup_overview_last_success">Última cópia do Drive concluída: %1$s</string>
     <string name="settings_backup_status_shared_destination">Este estado refere-se apenas ao Google Drive; as cópias locais são independentes.</string>
     <string name="settings_backup_overview_disabled">A cópia do Drive está desativada</string>
+    <string name="appearance_title">Aparência</string>
+    <string name="appearance_settings_summary">Cores, estilos visuais e animações</string>
+    <string name="appearance_gallery_heading">Personaliza o Tempo</string>
+    <string name="appearance_gallery_description">Escolhe um estilo. Pré-visualiza antes de aplicar.</string>
+    <string name="appearance_cancel">Cancelar</string>
+    <string name="appearance_apply">Aplicar</string>
+    <string name="appearance_preview_pending">Apenas pré-visualização — toca em Aplicar para guardar</string>
+    <string name="appearance_preview_saved">O estilo escolhido está ativo</string>
+    <string name="appearance_accessibility_heading">Movimento e conforto</string>
+    <string name="appearance_reduce_motion">Reduzir animações</string>
+    <string name="appearance_reduce_motion_description">Minimizar o movimento e respeitar as preferências do sistema</string>
+    <string name="appearance_light_later">Os temas claro e do sistema chegarão após a atualização do contraste de todos os ecrãs.</string>
+    <string name="appearance_restore">Restaurar padrão do Tempo</string>
+    <string name="appearance_abyss">Abyss</string>
+    <string name="appearance_gold">Obsidian Gold</string>
+    <string name="appearance_aurora">Aurora</string>
+    <string name="appearance_glacier">Glacier Night</string>
+    <string name="appearance_abyss_desc">Verde-água escuro característico</string>
+    <string name="appearance_gold_desc">Preto com dourado quente</string>
+    <string name="appearance_aurora_desc">Índigo com brilho violeta</string>
+    <string name="appearance_glacier_desc">Azul-gelo noturno</string>
+    <string name="appearance_preview_song">A ouvir agora</string>
+    <string name="appearance_preview_artist">A tua música</string>
 </resources>

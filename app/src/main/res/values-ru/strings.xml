@@ -1356,4 +1356,27 @@
     <string name="settings_backup_overview_last_success">Последняя успешная копия в Drive: %1$s</string>
     <string name="settings_backup_status_shared_destination">Этот статус относится только к Google Drive; локальные копии создаются отдельно.</string>
     <string name="settings_backup_overview_disabled">Копирование в Drive отключено</string>
+    <string name="appearance_title">Оформление</string>
+    <string name="appearance_settings_summary">Цвета, стили и анимации</string>
+    <string name="appearance_gallery_heading">Настройте Tempo под себя</string>
+    <string name="appearance_gallery_description">Выберите стиль. Сначала посмотрите, затем примените.</string>
+    <string name="appearance_cancel">Отмена</string>
+    <string name="appearance_apply">Применить</string>
+    <string name="appearance_preview_pending">Это предпросмотр — нажмите «Применить» для сохранения</string>
+    <string name="appearance_preview_saved">Выбранный стиль активен</string>
+    <string name="appearance_accessibility_heading">Движение и комфорт</string>
+    <string name="appearance_reduce_motion">Уменьшить анимацию</string>
+    <string name="appearance_reduce_motion_description">Уменьшать движение с учётом системных настроек</string>
+    <string name="appearance_light_later">Светлая и системная темы появятся после обновления контрастности остальных экранов.</string>
+    <string name="appearance_restore">Восстановить стиль Tempo</string>
+    <string name="appearance_abyss">Abyss</string>
+    <string name="appearance_gold">Obsidian Gold</string>
+    <string name="appearance_aurora">Aurora</string>
+    <string name="appearance_glacier">Glacier Night</string>
+    <string name="appearance_abyss_desc">Фирменный тёмно-бирюзовый</string>
+    <string name="appearance_gold_desc">Чёрный и тёплое золото</string>
+    <string name="appearance_aurora_desc">Индиго и фиолетовое свечение</string>
+    <string name="appearance_glacier_desc">Холодный ледяной синий ночью</string>
+    <string name="appearance_preview_song">Сейчас играет</string>
+    <string name="appearance_preview_artist">Ваша музыка</string>
 </resources>
