@@ -35,6 +35,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.runtime.DisposableEffect
+import java.time.LocalDate
+import java.time.ZoneId
 import kotlinx.coroutines.launch
 import me.avinas.tempo.ui.components.DeepOceanBackground
 import me.avinas.tempo.ui.components.LiveNowPlayingCard
@@ -74,12 +80,44 @@ fun HomeScreen(
     val flags by viewModel.flagsState.collectAsState()
     val analyticsDisclosure by analyticsDisclosureViewModel.uiState.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     var isLaunchingReview by remember { mutableStateOf(false) }
     var showTodaysOverview by remember { mutableStateOf(false) }
     // Saved in DataStore so a compact or expanded Home remains your choice.
     val showExtendedInsights by viewModel.expandedInsights.collectAsState()
     val scope = rememberCoroutineScope()
     val lazyListState = rememberLazyListState()
+
+    // Room invalidation alone cannot refresh a weekly chart when the calendar
+    // rolls over and no new play arrives. Refresh on resume after date/zone
+    // changes, and once at the next local midnight while Home remains visible.
+    DisposableEffect(lifecycleOwner, viewModel) {
+        var observedDate = LocalDate.now(ZoneId.systemDefault())
+        var observedZone = ZoneId.systemDefault()
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                val zone = ZoneId.systemDefault()
+                val date = LocalDate.now(zone)
+                if (date != observedDate || zone != observedZone) {
+                    observedDate = date
+                    observedZone = zone
+                    viewModel.refreshCalendarData()
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    LaunchedEffect(viewModel) {
+        while (true) {
+            val zone = ZoneId.systemDefault()
+            val now = java.time.ZonedDateTime.now(zone)
+            val nextMidnight = now.toLocalDate().plusDays(1).atStartOfDay(zone)
+            val waitMs = java.time.Duration.between(now, nextMidnight).toMillis().coerceAtLeast(1L)
+            kotlinx.coroutines.delay(waitMs)
+            viewModel.refreshCalendarData()
+        }
+    }
 
     // Streak insight cards are dropped for someone who asked not to see streaks, and the
     // section header goes with them when they were the only thing left in it.

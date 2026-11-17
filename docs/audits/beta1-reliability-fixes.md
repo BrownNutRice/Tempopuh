@@ -16,3 +16,12 @@ Validation: changed Kotlin syntax, XML and YAML parse checks; git diff --check. 
 
 - #11: set lint abortOnError=true; remove the unreachable PR-only changed-line gate from manual CI. Upload lint reports even after failure. Historical lint errors will now correctly fail an authorized run; no suppressions or automatic trigger were added.
 - #27: repeating decoration uses a shared policy-aware adapter, returning stable initial values without constructing InfiniteTransition when effective reduced motion is active. Existing component-specific static skeleton alpha overrides are preserved. This also covers equivalent patterns in Home, onboarding, Spotlight and walkthroughs. Device toggling and animation-clock checks remain outstanding.
+# Follow-up fixes on main
+
+- Removed two startup `runBlocking(Dispatchers.IO)` Room reads from `MusicTrackingService.initializeDependencies`; the existing asynchronous cache initialization and flows remain responsible for loading those preferences.
+- Home now refreshes date-scoped cards on local midnight and when the app resumes after a date/time-zone change, so the weekly chart is not dependent on a new listening event to advance.
+- Backup restore now caps the decompressed `data.json` stream at 1 GiB and rejects more than 5 million listening events or 2 million archive rows.
+- Musicolet ZIP members are streamed through bounded decryption into private cache files instead of holding ciphertext and a second plaintext copy in memory; the 256 MiB per-member and total archive budgets remain enforced.
+- Removed the browser extension's `<all_urls>` required host grant; paired-device access remains controlled by the existing local-server and optional-origin permission flow.
+
+These changes received source review and whitespace checks only. No Android build, tests, workflow, or release were run.

@@ -3,8 +3,11 @@ package me.avinas.tempo.data.musicolet
 import java.io.BufferedInputStream
 import java.io.File
 import java.io.InputStream
+import java.io.PushbackInputStream
 import java.util.Locale
 import java.util.zip.ZipInputStream
+import javax.crypto.Cipher
+import javax.crypto.spec.SecretKeySpec
 
 /**
  * The play-count databases Musicolet keeps alongside `DB_SONGS_LOG`.
@@ -108,10 +111,10 @@ internal object MusicoletArchiveReader {
         stream: InputStream,
         workDir: File,
     ): MusicoletArchive {
-        val raw = readCapped(stream, MAX_MEMBER_BYTES) ?: return MusicoletArchive(null, emptyList(), 0, 0)
-        val decrypted = MusicoletCrypto.decryptSqlite(raw) ?: return MusicoletArchive(null, emptyList(), 1, 0)
         val target = File(workDir, SONG_DB_NAME)
-        target.writeBytes(decrypted)
+        if (!decryptToFile(stream, target, MAX_MEMBER_BYTES)) {
+            return MusicoletArchive(null, emptyList(), 1, 0)
+        }
         return MusicoletArchive(
             songLog = target,
             periodFiles = emptyList(),
@@ -151,27 +154,16 @@ internal object MusicoletArchiveReader {
 
                 val remaining = MAX_TOTAL_BYTES - totalBytes
                 if (remaining <= 0) break
-                val raw = readCapped(zip, minOf(MAX_MEMBER_BYTES, remaining)) ?: continue
-                totalBytes += raw.size
-
-                val decrypted = MusicoletCrypto.decryptSqlite(raw)
-                if (decrypted == null) {
+                val memberBudget = minOf(MAX_MEMBER_BYTES, remaining)
+                val safeName = if (isSongLog) SONG_DB_NAME else periodFileName(requireNotNull(period))
+                val target = File(workDir, safeName)
+                val bytesRead = decryptToFile(zip, target, memberBudget)
+                if (bytesRead == null) {
                     skipped++
                     continue
                 }
-
-                if (isSongLog) {
-                    val target = File(workDir, SONG_DB_NAME)
-                    target.writeBytes(decrypted)
-                    songLog = target
-                } else if (period != null) {
-                    // The written name is composed from the parsed period, never from
-                    // the entry name, so a name like `../../x` cannot reach outside.
-                    val safeName = periodFileName(period)
-                    val target = File(workDir, safeName)
-                    target.writeBytes(decrypted)
-                    periods.add(period.copy(file = target))
-                }
+                totalBytes += bytesRead
+                if (isSongLog) songLog = target else if (period != null) periods.add(period.copy(file = target))
             }
         }
 
@@ -194,24 +186,67 @@ internal object MusicoletArchiveReader {
         return "PCs_${code}_${period.year}$bucket"
     }
 
-    /**
-     * Reads an entry, refusing anything past [limit] rather than trusting the ZIP's
-     * declared size. Returns null when the cap was hit or the read failed.
-     */
-    private fun readCapped(
-        stream: InputStream,
-        limit: Long,
-    ): ByteArray? {
-        val out = java.io.ByteArrayOutputStream()
-        val buffer = ByteArray(64 * 1024)
+    /** Streams a bounded raw or Blowfish-encrypted SQLite member straight to disk. */
+    private fun decryptToFile(stream: InputStream, target: File, limit: Long): Long? {
+        val input = PushbackInputStream(BufferedInputStream(stream, 64 * 1024), 16)
+        val prefix = ByteArray(16)
+        val prefixSize = input.read(prefix)
+        if (prefixSize <= 0) return null
+        input.unread(prefix, 0, prefixSize)
+        val rawSqlite = prefixSize == prefix.size && MusicoletCrypto.looksLikeSqlite(prefix)
+        val cipher: Cipher? = if (rawSqlite) null else runCatching {
+            Cipher.getInstance("Blowfish/ECB/NoPadding").apply {
+                init(Cipher.DECRYPT_MODE, SecretKeySpec(MusicoletCrypto.KEY.toByteArray(Charsets.UTF_8), "Blowfish"))
+            }
+        }.getOrNull() ?: return null
+
         var total = 0L
-        while (true) {
-            val read = stream.read(buffer)
-            if (read < 0) break
-            total += read
-            if (total > limit) return null
-            out.write(buffer, 0, read)
+        val buffer = ByteArray(64 * 1024)
+        try {
+            target.outputStream().buffered().use { out ->
+                while (true) {
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    total += count
+                    if (total > limit) throw IllegalArgumentException("Member exceeds size limit")
+                    if (cipher == null) {
+                        out.write(buffer, 0, count)
+                    } else {
+                        val plain = cipher.update(buffer, 0, count)
+                        if (plain != null && plain.isNotEmpty()) {
+                            out.write(plain)
+                        }
+                    }
+                }
+                if (cipher != null) {
+                    val final = cipher.doFinal()
+                    out.write(final)
+                }
+            }
+
+            if (cipher != null) {
+                if (total == 0L || total % 8L != 0L) return null.also { target.delete() }
+                // Musicolet's legacy tail padding is tolerated, but only strip a fully
+                // consistent PKCS#5 block. Leave malformed tails unchanged as before.
+                java.io.RandomAccessFile(target, "rw").use { file ->
+                    if (file.length() >= 16) {
+                        file.seek(file.length() - 1)
+                        val pad = file.readUnsignedByte()
+                        if (pad in 1..8 && pad <= file.length()) {
+                            file.seek(file.length() - pad)
+                            val tail = ByteArray(pad)
+                            file.readFully(tail)
+                            if (tail.all { (it.toInt() and 0xff) == pad }) file.setLength(file.length() - pad)
+                        }
+                    }
+                }
+            }
+            val header = ByteArray(16)
+            target.inputStream().use { if (it.read(header) != header.size || !MusicoletCrypto.looksLikeSqlite(header)) return null.also { target.delete() } }
+            total
+        } catch (_: Exception) {
+            target.delete()
+            null
         }
-        return out.toByteArray()
     }
 }

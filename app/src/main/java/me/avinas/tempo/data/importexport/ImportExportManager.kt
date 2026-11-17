@@ -48,6 +48,11 @@ class ImportExportManager @Inject constructor(
         private const val IMAGES_DIR = "images/"
         private const val MAX_BUNDLED_IMAGE_BYTES = 10L * 1024L * 1024L
         private const val MAX_TOTAL_IMAGE_BYTES = 50L * 1024L * 1024L
+        // ZIP entry sizes are attacker-controlled metadata. Cap the *decompressed*
+        // JSON stream and the two staged row sets before they can exhaust disk.
+        private const val MAX_DATA_JSON_BYTES = 1024L * 1024L * 1024L
+        private const val MAX_IMPORTED_EVENTS = 5_000_000
+        private const val MAX_IMPORTED_ARCHIVE_ROWS = 2_000_000
 
         // Page size for keyset-streaming the unbounded tables (listening events,
         // scrobble archive) during export. Keeps peak memory flat regardless of
@@ -370,7 +375,7 @@ class ImportExportManager @Inject constructor(
                             entry.name == TempoExportData.DATA_FILENAME -> {
                                 // Stream-parse the document: bounded tables are collected,
                                 // unbounded arrays are staged row by row.
-                                val reader = JsonReader.of(zipIn.source().buffer())
+                                val reader = JsonReader.of(LimitedEntryInputStream(zipIn, MAX_DATA_JSON_BYTES).source().buffer())
                                 val eventAdapter = moshi.adapter(ListeningEvent::class.java)
                                 val archiveAdapter = moshi.adapter(ScrobbleArchive::class.java)
                                 val eventSink = stagedEventsFile.sink().buffer()
@@ -380,11 +385,17 @@ class ImportExportManager @Inject constructor(
                                         reader,
                                         TempoExportJsonCodec.StreamHandlers(
                                             onListeningEvent = { event ->
+                                                if (stagedEventCount >= MAX_IMPORTED_EVENTS) {
+                                                    throw SecurityException("Backup contains too many listening events")
+                                                }
                                                 eventAdapter.toJson(eventSink, event)
                                                 eventSink.writeUtf8("\n")
                                                 stagedEventCount++
                                             },
                                             onScrobbleArchiveRow = { row ->
+                                                if (stagedArchiveCount >= MAX_IMPORTED_ARCHIVE_ROWS) {
+                                                    throw SecurityException("Backup contains too many archive rows")
+                                                }
                                                 archiveAdapter.toJson(archiveSink, row)
                                                 archiveSink.writeUtf8("\n")
                                                 stagedArchiveCount++
@@ -1133,6 +1144,36 @@ internal class ImportExportOperationGate {
             if (released.compareAndSet(false, true)) owner.release()
         }
     }
+}
+
+/** Enforces a decompressed ZIP entry limit without closing its owning ZipInputStream. */
+private class LimitedEntryInputStream(
+    private val source: InputStream,
+    private val limit: Long,
+) : InputStream() {
+    private var bytesRead = 0L
+
+    override fun read(): Int {
+        if (bytesRead >= limit) {
+            val extra = source.read()
+            if (extra < 0) return -1
+            throw SecurityException("Backup JSON exceeds the decompressed size limit")
+        }
+        val value = source.read()
+        if (value >= 0) bytesRead++
+        return value
+    }
+
+    override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
+        if (length == 0) return 0
+        if (bytesRead >= limit) return if (read() < 0) -1 else error("unreachable")
+        val allowed = minOf(length.toLong(), limit - bytesRead).toInt()
+        val count = source.read(buffer, offset, allowed)
+        if (count > 0) bytesRead += count
+        return count
+    }
+
+    override fun close() = Unit
 }
 
 private data class ExtractedImage(

@@ -210,6 +210,11 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    /** Requery date-scoped Home cards after the local calendar day or zone changes. */
+    fun refreshCalendarData() {
+        loadData()
+    }
+
     private fun loadData() {
         loadJob?.cancel()
         loadJob = viewModelScope.launch {

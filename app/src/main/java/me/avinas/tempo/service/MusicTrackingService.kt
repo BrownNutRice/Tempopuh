@@ -1358,27 +1358,6 @@ class MusicTrackingService : NotificationListenerService() {
             refreshCoordinator = entryPoint.refreshCoordinator()
             analyticsDailyReporter = entryPoint.analyticsDailyReporter()
 
-            // Manual overrides participate in synchronous MediaSession decisions, so load the
-            // small Room table once before any session scan. A Flow keeps it fresh afterwards.
-            cachedManualContentMarks =
-                runBlocking(Dispatchers.IO) {
-                    try {
-                        manualContentMarkDao.getAllSync()
-                    } catch (_: Exception) {
-                        emptyList()
-                    }
-                }
-
-            // Preload app preferences synchronously before the first MediaSession/notification
-            // scan. Without this, a statically-known app that the user explicitly disabled
-            // could be treated as enabled for a brief startup window.
-            try {
-                val initialApps = runBlocking(Dispatchers.IO) { appPreferenceDao.getAllApps().first() }
-                applyAppPreferenceCache(initialApps)
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to preload app preferences; falling back to startup defaults", e)
-            }
-
             // Load initial preferences for caching
             serviceScope.launch {
                 try {
