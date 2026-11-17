@@ -59,9 +59,9 @@ class AppearancePaletteTest {
         }
     }
 
-    @Test fun `unsafe live tones remain preview only`() {
-        assertEquals(AppearanceTone.DARK, AppearanceSettings(tone = AppearanceTone.LIGHT).forLiveApp().tone)
-        assertEquals(AppearanceTone.DARK, AppearanceSettings(tone = AppearanceTone.SYSTEM).forLiveApp().tone)
+    @Test fun `opt in beta tones survive live settings`() {
+        assertEquals(AppearanceTone.LIGHT, AppearanceSettings(tone = AppearanceTone.LIGHT).forLiveApp().tone)
+        assertEquals(AppearanceTone.SYSTEM, AppearanceSettings(tone = AppearanceTone.SYSTEM).forLiveApp().tone)
         assertEquals(AppearanceTone.OLED, AppearanceSettings(tone = AppearanceTone.OLED).forLiveApp().tone)
     }
 
