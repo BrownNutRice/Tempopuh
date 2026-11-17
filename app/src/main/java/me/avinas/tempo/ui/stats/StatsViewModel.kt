@@ -235,7 +235,6 @@ class StatsViewModel
 
                     // Fetch listening overview only if time range changed (needed for share dialog)
                     if (page == 0 && timeRange != lastAnalyticsTimeRange && generation == resultGeneration) {
-                        lastAnalyticsTimeRange = timeRange
                         loadAnalyticsData(timeRange, generation)
                     }
                 } catch (e: Exception) {
@@ -253,6 +252,7 @@ class StatsViewModel
                 if (generation != resultGeneration) return
                 _uiState.update {
                     if (generation != resultGeneration) return@update it
+                    lastAnalyticsTimeRange = timeRange
                     it.copy(
                         analyticsData =
                             AnalyticsUiData(
@@ -262,6 +262,8 @@ class StatsViewModel
                             ),
                     )
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 // Non-fatal if overview loading fails
             }
