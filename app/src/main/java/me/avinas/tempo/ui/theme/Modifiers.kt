@@ -18,19 +18,35 @@ import androidx.compose.ui.composed
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 
-/** True when the user has disabled system animations (reduced motion). */
+/** Honors in-app reduction and the OS accessibility setting, including changes on resume. */
 @Composable
 fun rememberReducedMotion(): Boolean {
     val view = LocalView.current
-    return remember {
+    val owner = LocalLifecycleOwner.current
+    val userReduced = LocalTempoAppearance.current.reduceMotion
+    fun systemReduced(): Boolean =
         android.provider.Settings.Global.getFloat(
             view.context.contentResolver,
             android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
             1f,
         ) == 0f
+    var systemReducedMotion by remember(view) { mutableStateOf(systemReduced()) }
+    DisposableEffect(owner, view) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) systemReducedMotion = systemReduced()
+        }
+        owner.lifecycle.addObserver(observer)
+        onDispose { owner.lifecycle.removeObserver(observer) }
     }
+    return userReduced || systemReducedMotion
 }
 
 fun Modifier.innerShadow(
@@ -75,9 +91,10 @@ fun Modifier.premiumClickable(
 ): Modifier = composed {
     val interactionSource = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
+    val reducedMotion = rememberReducedMotion()
 
     val scale by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = if (isPressed) pressedScale else 1f,
+        targetValue = if (isPressed && !reducedMotion) pressedScale else 1f,
         animationSpec = androidx.compose.animation.core.tween(120, easing = androidx.compose.animation.core.FastOutSlowInEasing),
         label = "premium_click_scale"
     )

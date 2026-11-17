@@ -17,6 +17,7 @@ import me.avinas.tempo.ui.theme.TextOnAccent
 import me.avinas.tempo.ui.theme.TextPrimary
 import me.avinas.tempo.ui.theme.TextSecondary
 import me.avinas.tempo.ui.theme.TextTertiary
+import me.avinas.tempo.ui.theme.LocalTempoPalette
 import java.util.Locale
 
 @Composable
@@ -76,6 +77,7 @@ fun SettingsSwitch(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
+    val palette = LocalTempoPalette.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -101,10 +103,10 @@ fun SettingsSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = TextOnAccent,
-                checkedTrackColor = TempoPrimary,
-                uncheckedThumbColor = TextTertiary,
-                uncheckedTrackColor = TempoDarkSurfaceElevated
+                checkedThumbColor = palette.onAccent,
+                checkedTrackColor = palette.accent,
+                uncheckedThumbColor = palette.mutedText,
+                uncheckedTrackColor = palette.elevatedSurface
             )
         )
     }

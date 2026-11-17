@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -276,7 +277,7 @@ private fun AppearancePresetCard(
                     listOf(0.36f, 0.70f, 0.48f, 0.9f, 0.60f, 0.80f).forEach { proportion ->
                         Box(
                             Modifier.weight(1f)
-                                .fillMaxSize(proportion)
+                                .fillMaxHeight(proportion)
                                 .background(palette.accent.copy(alpha = 0.60f)),
                         )
                     }

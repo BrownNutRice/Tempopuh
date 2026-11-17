@@ -5,6 +5,8 @@ import me.avinas.tempo.ui.theme.TempoDarkSurface
 import me.avinas.tempo.ui.theme.TempoDarkSurfaceElevated
 import me.avinas.tempo.ui.theme.TextPrimary
 import me.avinas.tempo.ui.theme.TextSecondary
+import me.avinas.tempo.ui.theme.LocalTempoPalette
+import me.avinas.tempo.ui.theme.rememberReducedMotion
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -64,6 +66,7 @@ fun TempoBottomNavigation(
     onNavigateToHistory: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val palette = LocalTempoPalette.current
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -80,7 +83,7 @@ fun TempoBottomNavigation(
             .background(
                 // Vertical gradient fill
                 Brush.verticalGradient(
-                    colors = listOf(TempoDarkSurfaceElevated, TempoDarkSurface)
+                    colors = listOf(palette.elevatedSurface, palette.surface)
                 )
             )
             .drawBehind {
@@ -97,8 +100,8 @@ fun TempoBottomNavigation(
                 width = 1.dp,
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.15f), // Increased from 0.05f for visibility
-                        Color.White.copy(alpha = 0.05f)  // Increased from 0.02f
+                        palette.border.copy(alpha = 0.65f),
+                        palette.border.copy(alpha = 0.20f)
                     )
                 ),
                 shape = RoundedCornerShape(36.dp)
@@ -155,8 +158,10 @@ private fun TempoNavItem(
     val haptics = LocalHapticFeedback.current
     val isSelected = selected
 
-    val selectedColor = TextPrimary
-    val unselectedColor = TextSecondary
+    val palette = LocalTempoPalette.current
+    val reducedMotion = rememberReducedMotion()
+    val selectedColor = palette.accent
+    val unselectedColor = palette.mutedText
 
     val iconColor by animateColorAsState(
         targetValue = if (selected) selectedColor else unselectedColor,
@@ -165,7 +170,7 @@ private fun TempoNavItem(
 
     // Separate selection bounce and touch-press animations
     val selectionScale by animateFloatAsState(
-        targetValue = if (selected) 1.03f else 1.0f,
+        targetValue = if (!reducedMotion && selected) 1.03f else 1.0f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessLow
@@ -174,7 +179,7 @@ private fun TempoNavItem(
     )
     val pressed by interactionSource.collectIsPressedAsState()
     val pressScale by animateFloatAsState(
-        targetValue = if (pressed) 0.88f else 1f,
+        targetValue = if (!reducedMotion && pressed) 0.88f else 1f,
         animationSpec = tween(120, easing = FastOutSlowInEasing),
         label = "pressScale"
     )
