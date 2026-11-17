@@ -39,6 +39,7 @@ fun TempoDialogSurface(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -51,12 +52,12 @@ fun TempoDialogSurface(
             .clip(TempoDialogShape.shape)
             .background(
                 Brush.verticalGradient(
-                    listOf(TempoSurfaceRaised, TempoSurfaceDialog)
+                    listOf(appearancePalette.elevatedSurface, appearancePalette.elevatedSurface)
                 )
             )
             .border(
                 width = 1.dp,
-                color = GlassBorderSoft,
+                color = appearancePalette.border.copy(alpha = 0.45f),
                 shape = TempoDialogShape.shape
             )
     ) {
@@ -125,11 +126,12 @@ fun TempoDialogTitle(
     text: String,
     modifier: Modifier = Modifier
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Text(
         text = text,
         style = MaterialTheme.typography.titleLarge,
         fontWeight = FontWeight.SemiBold,
-        color = TextPrimary,
+        color = appearancePalette.onSurface,
         textAlign = TextAlign.Center,
         modifier = modifier
     )
@@ -142,7 +144,7 @@ fun TempoDialogTitle(
 fun TempoDialogBody(
     text: String,
     modifier: Modifier = Modifier,
-    color: Color = TextSecondary
+    color: Color = LocalTempoPalette.current.mutedText
 ) {
     Text(
         text = text,
@@ -193,8 +195,8 @@ fun TempoDialogPrimaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     icon: ImageVector? = null,
-    containerColor: Color = TempoPrimary,
-    contentColor: Color = TextOnAccent
+    containerColor: Color = LocalTempoPalette.current.accent,
+    contentColor: Color = LocalTempoPalette.current.onAccent
 ) {
     val shape = RoundedCornerShape(12.dp)
     Button(
@@ -237,8 +239,9 @@ fun TempoDialogSecondaryButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    color: Color = TextTertiary
+    color: Color = LocalTempoPalette.current.mutedText
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Button(
         onClick = onClick,
         enabled = enabled,
@@ -247,9 +250,9 @@ fun TempoDialogSecondaryButton(
             .height(46.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = color.copy(alpha = 0.14f),
-            contentColor = TextSecondary,
+            contentColor = appearancePalette.mutedText,
             disabledContainerColor = color.copy(alpha = 0.07f),
-            disabledContentColor = TextTertiary
+            disabledContentColor = appearancePalette.mutedText
         ),
         shape = RoundedCornerShape(12.dp)
     ) {
@@ -273,9 +276,10 @@ fun TempoDialogButtonRow(
     modifier: Modifier = Modifier,
     primaryEnabled: Boolean = true,
     secondaryEnabled: Boolean = true,
-    primaryColor: Color = TempoPrimary,
-    primaryContentColor: Color = TextOnAccent
+    primaryColor: Color = LocalTempoPalette.current.accent,
+    primaryContentColor: Color = LocalTempoPalette.current.onAccent
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val shape = RoundedCornerShape(12.dp)
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -288,10 +292,10 @@ fun TempoDialogButtonRow(
                 .weight(1f)
                 .height(48.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = TextTertiary.copy(alpha = 0.14f),
-                contentColor = TextSecondary,
-                disabledContainerColor = TextTertiary.copy(alpha = 0.07f),
-                disabledContentColor = TextTertiary
+                containerColor = appearancePalette.mutedText.copy(alpha = 0.14f),
+                contentColor = appearancePalette.mutedText,
+                disabledContainerColor = appearancePalette.mutedText.copy(alpha = 0.07f),
+                disabledContentColor = appearancePalette.mutedText
             ),
             shape = shape
         ) {
@@ -362,12 +366,13 @@ fun TempoDialogTextField(
     supportingText: String? = null,
     maxLines: Int = 1
 ) {
+    val appearancePalette = LocalTempoPalette.current
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier.fillMaxWidth(),
         label = label?.let { { Text(it, style = MaterialTheme.typography.bodyMedium) } },
-        placeholder = placeholder?.let { { Text(it, style = MaterialTheme.typography.bodyMedium, color = TextTertiary) } },
+        placeholder = placeholder?.let { { Text(it, style = MaterialTheme.typography.bodyMedium, color = appearancePalette.mutedText) } },
         singleLine = singleLine,
         maxLines = maxLines,
         isError = isError,
@@ -376,23 +381,23 @@ fun TempoDialogTextField(
                 Text(
                     text = it,
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (isError) TempoError else TextTertiary
+                    color = if (isError) TempoError else appearancePalette.mutedText
                 )
             }
         },
         shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedTextColor = TextPrimary,
-            unfocusedTextColor = TextPrimary,
-            focusedBorderColor = TempoPrimary,
-            unfocusedBorderColor = GlassBorderSoft,
-            focusedLabelColor = TempoPrimary,
-            unfocusedLabelColor = TextTertiary,
-            cursorColor = TempoPrimary,
-            focusedContainerColor = TempoDarkSurfaceSunken,
-            unfocusedContainerColor = TempoDarkSurfaceSunken,
+            focusedTextColor = appearancePalette.onSurface,
+            unfocusedTextColor = appearancePalette.onSurface,
+            focusedBorderColor = appearancePalette.accent,
+            unfocusedBorderColor = appearancePalette.border.copy(alpha = 0.45f),
+            focusedLabelColor = appearancePalette.accent,
+            unfocusedLabelColor = appearancePalette.mutedText,
+            cursorColor = appearancePalette.accent,
+            focusedContainerColor = appearancePalette.surfaceSunken,
+            unfocusedContainerColor = appearancePalette.surfaceSunken,
             errorBorderColor = TempoError,
-            errorContainerColor = TempoDarkSurfaceSunken
+            errorContainerColor = appearancePalette.surfaceSunken
         )
     )
 }

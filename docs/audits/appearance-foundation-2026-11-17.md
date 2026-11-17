@@ -58,3 +58,12 @@ Read `docs/APPEARANCE_PERSONALIZATION_PLAN.md` for the full roadmap.
 Validation performed: reviewed the source diff, checked balanced delimiters in changed Kotlin files, verified manual-only CI/APK triggers and ran `git diff --check`. No Android compile, unit tests, lint, emulator, APK build, workflow dispatch or release was run. Visual contrast, navigation while artwork loads, offline backup fallback, TalkBack and large-font behavior still require the authorized validation step.
 
 A2 is **not complete across all shared UI**: generic dialogs, other analytics visualizations, reusable artwork overlays and picker sheets still need an audit/migration. Continue there before enabling true light/system modes. Other pending increments listed above remain deferred; rebranding has not started.
+
+## Continuation checkpoint — draft and shared controls
+
+- Palette, font, reduced motion and Restore Default are now one local draft. Apply writes the complete supported configuration atomically; Cancel/back leaves saved preferences unchanged. Editing waits for initial preference hydration. Changes are disabled during save, failures retain the draft and show localized retry guidance.
+- Schema v1 is written on Apply; existing unversioned preferences remain readable. Future schema versions are protected from writes by older code. Corrupt appearance storage resets only appearance preferences; transient read I/O failures emit safe defaults and retry. This does not implement appearance backup/export.
+- Shared Tempo dialog surfaces, text, buttons and input fields now use appearance roles. Share card/background picker sheet chrome follows the palette, while background design thumbnails keep their intended colors.
+- Updated font instructions and save-failure copy in all six supported locales.
+
+Validation: source review, XML parsing and `git diff --check` only. No compilation, tests, CI, build or release executed. Device behavior and storage-failure paths remain unverified. Remaining A2 audit: other chart families, reusable artwork overlays, bespoke dialogs and inline text editor controls. Next: finish these consumers before exposing true light/system modes. Whole-screen draft preview, backup/export and advanced effects remain future work.

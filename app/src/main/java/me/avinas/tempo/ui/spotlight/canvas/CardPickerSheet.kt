@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
+import me.avinas.tempo.ui.theme.LocalTempoPalette
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,13 +31,14 @@ fun CardPickerSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val palette = LocalTempoPalette.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color(0xFF0F172A).copy(alpha = 0.95f),
-        contentColor = Color.White,
+        containerColor = palette.surface,
+        contentColor = palette.onSurface,
         dragHandle = {
             Box(
                 modifier = Modifier
@@ -44,7 +46,7 @@ fun CardPickerSheet(
                     .width(40.dp)
                     .height(4.dp)
                     .clip(RoundedCornerShape(2.dp))
-                    .background(Color.White.copy(alpha = 0.2f))
+                    .background(palette.onSurface.copy(alpha = 0.2f))
             )
         },
         modifier = modifier
@@ -67,12 +69,12 @@ fun CardPickerSheet(
                         text = "Add a Card",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = palette.onSurface
                     )
                     Text(
                         text = if (canAddMore) "Tap to add to your canvas" else "Maximum cards reached",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.6f)
+                        color = palette.onSurface.copy(alpha = 0.6f)
                     )
                 }
                 
@@ -80,7 +82,7 @@ fun CardPickerSheet(
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Close",
-                        tint = Color.White.copy(alpha = 0.7f)
+                        tint = palette.onSurface.copy(alpha = 0.7f)
                     )
                 }
             }
@@ -97,7 +99,7 @@ fun CardPickerSheet(
                 ) {
                     Text(
                         text = "No cards available",
-                        color = Color.White.copy(alpha = 0.5f),
+                        color = palette.onSurface.copy(alpha = 0.5f),
                         style = MaterialTheme.typography.bodyLarge
                     )
                 }

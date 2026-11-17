@@ -68,9 +68,21 @@ fun AppearanceScreen(
     onNavigateBack: () -> Unit,
     viewModel: AppearanceViewModel = hiltViewModel(),
 ) {
-    val saved by viewModel.settings.collectAsState()
-    var draft by rememberSaveable(saved.preset) { mutableStateOf(saved.preset) }
-    val modified = draft != saved.preset
+    val loaded by viewModel.settings.collectAsState()
+    val saving by viewModel.saving.collectAsState()
+    val saveFailed by viewModel.saveFailed.collectAsState()
+    // Do not initialize an editable draft from placeholder preferences.
+    val saved = loaded ?: run {
+        androidx.compose.foundation.layout.Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            androidx.compose.material3.CircularProgressIndicator()
+        }
+        return
+    }
+    var draft by rememberSaveable(saved) { mutableStateOf(saved.preset) }
+    var draftFont by rememberSaveable(saved) { mutableStateOf(saved.fontStyle) }
+    var draftMotion by rememberSaveable(saved) { mutableStateOf(saved.reduceMotion) }
+    val pending = saved.copy(preset = draft, fontStyle = draftFont, reduceMotion = draftMotion)
+    val modified = pending != saved
     val foreground = MaterialTheme.colorScheme.onSurface
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
 
@@ -99,11 +111,13 @@ fun AppearanceScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         OutlinedButton(
-                            onClick = { draft = saved.preset },
+                            onClick = { draft = saved.preset; draftFont = saved.fontStyle; draftMotion = saved.reduceMotion },
+                            enabled = !saving,
                             modifier = Modifier.weight(1f),
                         ) { Text(stringResource(R.string.appearance_cancel)) }
                         Button(
-                            onClick = { viewModel.applyPreset(draft) },
+                            onClick = { viewModel.apply(pending) },
+                            enabled = !saving,
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = AppearancePaletteResolver.forPreset(draft).accent,
@@ -145,7 +159,7 @@ fun AppearanceScreen(
                                 preset = preset,
                                 active = preset == saved.preset,
                                 selected = draft == preset,
-                                onClick = { draft = preset },
+                                onClick = { if (!saving) draft = preset },
                                 modifier = Modifier.weight(1f),
                             )
                         }
@@ -177,8 +191,8 @@ fun AppearanceScreen(
                         pair.forEach { style ->
                             FontStyleCard(
                                 style = style,
-                                selected = saved.fontStyle == style,
-                                onClick = { viewModel.setFontStyle(style) },
+                                selected = draftFont == style,
+                                onClick = { if (!saving) draftFont = style },
                                 modifier = Modifier.weight(1f),
                             )
                         }
@@ -207,8 +221,9 @@ fun AppearanceScreen(
                             )
                         }
                         Switch(
-                            checked = saved.reduceMotion,
-                            onCheckedChange = viewModel::setReduceMotion,
+                            checked = draftMotion,
+                            enabled = !saving,
+                            onCheckedChange = { draftMotion = it },
                         )
                     }
                 }
@@ -217,11 +232,15 @@ fun AppearanceScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = muted,
                 )
-                OutlinedButton(onClick = {
+                OutlinedButton(enabled = !saving, onClick = {
                     draft = AppearancePreset.ABYSS
-                    viewModel.restoreDefaults()
+                    draftFont = AppearanceFontStyle.TEMPO
+                    draftMotion = false
                 }) {
                     Text(stringResource(R.string.appearance_restore))
+                }
+                if (saveFailed) {
+                    Text(stringResource(R.string.appearance_save_failed), color = MaterialTheme.colorScheme.error)
                 }
                 Spacer(Modifier.height(18.dp))
             }

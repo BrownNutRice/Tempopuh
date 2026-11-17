@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
+import me.avinas.tempo.ui.theme.LocalTempoPalette
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,13 +37,14 @@ fun BackgroundPickerSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val palette = LocalTempoPalette.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color(0xFF0F172A).copy(alpha = 0.95f),
-        contentColor = Color.White,
+        containerColor = palette.surface,
+        contentColor = palette.onSurface,
         dragHandle = {
             Box(
                 modifier = Modifier
@@ -50,7 +52,7 @@ fun BackgroundPickerSheet(
                     .width(40.dp)
                     .height(4.dp)
                     .clip(RoundedCornerShape(2.dp))
-                    .background(Color.White.copy(alpha = 0.2f))
+                    .background(palette.onSurface.copy(alpha = 0.2f))
             )
         },
         modifier = modifier
@@ -72,14 +74,14 @@ fun BackgroundPickerSheet(
                     text = "Choose Background",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = palette.onSurface
                 )
                 
                 IconButton(onClick = onDismiss) {
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Close",
-                        tint = Color.White.copy(alpha = 0.7f)
+                        tint = palette.onSurface.copy(alpha = 0.7f)
                     )
                 }
             }
@@ -90,7 +92,7 @@ fun BackgroundPickerSheet(
             Text(
                 text = "GRADIENTS",
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.5f),
+                color = palette.onSurface.copy(alpha = 0.5f),
                 letterSpacing = 2.sp,
                 modifier = Modifier.padding(horizontal = 20.dp)
             )
@@ -119,7 +121,7 @@ fun BackgroundPickerSheet(
             Text(
                 text = "SOLID COLORS",
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.5f),
+                color = palette.onSurface.copy(alpha = 0.5f),
                 letterSpacing = 2.sp,
                 modifier = Modifier.padding(horizontal = 20.dp)
             )
@@ -225,13 +227,13 @@ private fun BackgroundThumbnail(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(Color.Black.copy(alpha = 0.3f))
-                        .border(2.dp, Color(0xFF60A5FA), RoundedCornerShape(12.dp)),
+                        .border(2.dp, LocalTempoPalette.current.accent, RoundedCornerShape(12.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Box(
                         modifier = Modifier
                             .size(24.dp)
-                            .background(Color(0xFF60A5FA), CircleShape),
+                            .background(LocalTempoPalette.current.accent, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(

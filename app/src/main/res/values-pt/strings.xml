@@ -1263,10 +1263,11 @@
     <string name="appearance_preview_song">A ouvir agora</string>
     <string name="appearance_preview_artist">A tua música</string>
     <string name="appearance_font_heading">Tipografia</string>
-    <string name="appearance_font_description">Escolhe o estilo dos títulos. A alteração é aplicada imediatamente.</string>
+    <string name="appearance_font_description">Escolha um estilo de título. Guarde as alterações com Aplicar.</string>
     <string name="appearance_font_tempo">Tempo</string>
     <string name="appearance_font_neo">Neo Sans</string>
     <string name="appearance_font_archive">Archive Serif</string>
     <string name="appearance_font_studio">Studio Mono</string>
     <string name="appearance_font_selected">Selecionado</string>
+    <string name="appearance_save_failed">Não foi possível guardar a aparência. O rascunho foi mantido; toque em Aplicar para tentar novamente.</string>
 </resources>

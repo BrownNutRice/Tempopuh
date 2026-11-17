@@ -13,22 +13,25 @@ class AppearanceViewModel @Inject constructor(
     private val preferences: AppearancePreferencesRepository,
 ) : ViewModel() {
     val settings = preferences.settings.stateIn(
-        viewModelScope, SharingStarted.WhileSubscribed(5_000L), AppearanceSettings(),
+        viewModelScope, SharingStarted.WhileSubscribed(5_000L), null,
     )
+    val saving = kotlinx.coroutines.flow.MutableStateFlow(false)
+    val saveFailed = kotlinx.coroutines.flow.MutableStateFlow(false)
 
-    fun applyPreset(preset: AppearancePreset) {
-        viewModelScope.launch { preferences.setPreset(preset) }
-    }
-
-    fun setFontStyle(style: AppearanceFontStyle) {
-        viewModelScope.launch { preferences.setFontStyle(style) }
-    }
-
-    fun setReduceMotion(reduced: Boolean) {
-        viewModelScope.launch { preferences.setReducedMotion(reduced) }
-    }
-
-    fun restoreDefaults() {
-        viewModelScope.launch { preferences.restoreDefaults() }
+    fun apply(settings: AppearanceSettings) {
+        if (saving.value) return
+        saving.value = true
+        saveFailed.value = false
+        viewModelScope.launch {
+            try {
+                preferences.apply(settings)
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                saveFailed.value = true
+            } finally {
+                saving.value = false
+            }
+        }
     }
 }

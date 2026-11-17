@@ -1,6 +1,12 @@
 package me.avinas.tempo.ui.appearance
 
 import android.content.Context
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
+import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.intPreferencesKey
+import kotlinx.coroutines.flow.retryWhen
+import kotlinx.coroutines.delay
+import java.io.IOException
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -11,7 +17,10 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private val Context.appearanceDataStore by preferencesDataStore(name = "tempo_appearance")
+private val Context.appearanceDataStore by preferencesDataStore(
+    name = "tempo_appearance",
+    corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
+)
 
 /**
  * The appearance store is intentionally separate from listening data and playback settings.
@@ -22,13 +31,21 @@ class AppearancePreferencesRepository @Inject constructor(
     @param:ApplicationContext private val context: Context,
 ) {
     private companion object {
+        val VERSION = intPreferencesKey("appearance_schema_version")
+        const val CURRENT_VERSION = 1
         val PRESET = stringPreferencesKey("appearance_preset_id")
         val TONE = stringPreferencesKey("appearance_tone")
         val FONT = stringPreferencesKey("appearance_font_style")
         val REDUCED_MOTION = booleanPreferencesKey("appearance_reduce_motion")
     }
 
-    val settings: Flow<AppearanceSettings> = context.appearanceDataStore.data.map { prefs ->
+    val settings: Flow<AppearanceSettings> = context.appearanceDataStore.data.retryWhen { cause, _ ->
+        if (cause is IOException) {
+            emit(emptyPreferences())
+            delay(1_000)
+            true
+        } else false
+    }.map { prefs ->
         AppearanceSettings(
             preset = AppearancePreset.decode(prefs[PRESET]),
             tone = decodeAppearanceTone(prefs[TONE]),
@@ -37,25 +54,15 @@ class AppearancePreferencesRepository @Inject constructor(
         )
     }
 
-    suspend fun setPreset(preset: AppearancePreset) {
-        context.appearanceDataStore.edit { it[PRESET] = preset.name }
-    }
-
-    suspend fun setFontStyle(style: AppearanceFontStyle) {
-        context.appearanceDataStore.edit { it[FONT] = style.name }
-    }
-
-    suspend fun setReducedMotion(reduced: Boolean) {
-        context.appearanceDataStore.edit { it[REDUCED_MOTION] = reduced }
-    }
-
-    /** Keep the legacy dark UI as the safe live option until light-mode migration. */
-    suspend fun restoreDefaults() {
+    /** Apply one complete draft in a single transaction. Legacy unversioned data is v0. */
+    suspend fun apply(settings: AppearanceSettings) {
         context.appearanceDataStore.edit { prefs ->
-            prefs[PRESET] = AppearancePreset.ABYSS.name
+            check((prefs[VERSION] ?: 0) <= CURRENT_VERSION) { "Unsupported appearance schema" }
+            prefs[VERSION] = CURRENT_VERSION
+            prefs[PRESET] = settings.preset.name
             prefs[TONE] = AppearanceTone.DARK.name
-            prefs[FONT] = AppearanceFontStyle.TEMPO.name
-            prefs[REDUCED_MOTION] = false
+            prefs[FONT] = settings.fontStyle.name
+            prefs[REDUCED_MOTION] = settings.reduceMotion
         }
     }
 }
