@@ -60,6 +60,9 @@ class DiagnosticsViewModel @Inject constructor(
 
     private suspend fun collectInputs(): DiagnosticsInput = withContext(Dispatchers.IO) {
         val heartbeat = TrackingServiceHeartbeat.snapshot(context)
+        val capturedAt = System.currentTimeMillis()
+        fun ageSince(timestamp: Long): Long? =
+            timestamp.takeIf { it > 0L && it <= capturedAt }?.let { capturedAt - it }
         val allApps = appPreferenceRepository.getAllApps().first()
         val enabledApps = appPreferenceRepository.getEnabledApps().first()
 
@@ -79,9 +82,9 @@ class DiagnosticsViewModel @Inject constructor(
             }.getOrDefault(emptyMap()),
             notificationAccessGranted = isNotificationListenerEnabled(context),
             listenerConnected = heartbeat.listenerConnected,
-            listenerAliveAgoMillis = heartbeat.lastServiceAliveAt
-                .takeIf { it > 0L }
-                ?.let { System.currentTimeMillis() - it },
+            listenerAliveAgoMillis = ageSince(heartbeat.lastServiceAliveAt),
+            lastNotificationCallbackAgoMillis = ageSince(heartbeat.lastNotificationCallbackAt),
+            lastMediaSessionCallbackAgoMillis = ageSince(heartbeat.lastMediaSessionCallbackAt),
             batteryOptimisationExempt = isBatteryOptimizationDisabled(context),
             // Read through AnalyticsConsent so the DataStore key names stay owned in one place.
             analyticsEnabled = analyticsConsent.isEnabled.first(),

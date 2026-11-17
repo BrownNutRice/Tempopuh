@@ -38,6 +38,8 @@ class DiagnosticsReportTest {
         assertTrue(report.contains("Notification access   : yes"))
         assertTrue(report.contains("Tracked apps          : 9 (7 enabled)"))
         assertTrue(report.contains("service_health_check"))
+        assertTrue(report.contains("Last notification     : never"))
+        assertTrue(report.contains("Callbacks indicate player activity"))
     }
 
     /**
@@ -88,6 +90,18 @@ class DiagnosticsReportTest {
             .contains("3 h ago"))
         assertTrue(DiagnosticsReport.build(input.copy(listenerAliveAgoMillis = 2 * 24L * 60L * 60_000L))
             .contains("2 d ago"))
+    }
+
+    @Test
+    fun `different player callbacks retain separate ages in diagnostic reports`() {
+        val report = DiagnosticsReport.build(
+            input.copy(
+                lastNotificationCallbackAgoMillis = 120_000L,
+                lastMediaSessionCallbackAgoMillis = 15_000L
+            )
+        )
+        assertTrue(report.contains("Last notification     : 2 min ago"))
+        assertTrue(report.contains("Last media session    : just now"))
     }
 
     /** A record with no tracks must not read as if it had some. */

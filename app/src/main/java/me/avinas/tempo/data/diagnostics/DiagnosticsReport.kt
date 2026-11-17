@@ -32,6 +32,8 @@ data class DiagnosticsInput(
     val trackedAppCount: Int,
     val enabledAppCount: Int,
     val workerStates: Map<String, String>,
+    val lastNotificationCallbackAgoMillis: Long? = null,
+    val lastMediaSessionCallbackAgoMillis: Long? = null,
 )
 
 object DiagnosticsReport {
@@ -73,6 +75,9 @@ object DiagnosticsReport {
             appendLine("Notification access   : ${input.notificationAccessGranted.yesNo()}")
             appendLine("Listener connected    : ${input.listenerConnected.yesNo()}")
             appendLine("Last heartbeat        : ${input.listenerAliveAgoMillis.describeAge()}")
+            appendLine("Last notification     : ${input.lastNotificationCallbackAgoMillis.describeAge()}")
+            appendLine("Last media session    : ${input.lastMediaSessionCallbackAgoMillis.describeAge()}")
+            appendLine("Callbacks indicate player activity, not a confirmed saved listening event.")
             appendLine("Battery optimisation  : ${if (input.batteryOptimisationExempt) "exempt" else "NOT exempt"}")
             appendLine("Tracked apps          : ${input.trackedAppCount} (${input.enabledAppCount} enabled)")
             appendLine()
