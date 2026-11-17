@@ -125,7 +125,7 @@ fun AlbumArtImage(
         // painter.state is NOT composition-reactive in this Coil/Compose combo
         // (the painter draws fine, but reading .value in composition never
         // recomposes). Drive all load-state logic from local state instead.
-        var painterState by remember { mutableStateOf<AsyncImagePainter.State?>(null) }
+        var painterState by remember(painter) { mutableStateOf<AsyncImagePainter.State?>(null) }
         val hasCanvasCallbacks = onPaletteExtracted != null || onArtworkReady != null
         LaunchedEffect(painter) {
             snapshotFlow { painter.state.value }.collect { painterState = it }
@@ -179,12 +179,18 @@ fun AlbumArtImage(
             }
         }
 
-        Image(
-            painter = painter,
-            contentDescription = contentDescription,
-            contentScale = contentScale,
-            modifier = modifier,
-        )
+        if (painterState is AsyncImagePainter.State.Error &&
+            (!isHotlink || localArtUrl.isNullOrBlank())
+        ) {
+            AlbumArtPlaceholder(emoji = placeholderEmoji, modifier = modifier)
+        } else {
+            Image(
+                painter = painter,
+                contentDescription = contentDescription,
+                contentScale = contentScale,
+                modifier = modifier,
+            )
+        }
     }
 }
 

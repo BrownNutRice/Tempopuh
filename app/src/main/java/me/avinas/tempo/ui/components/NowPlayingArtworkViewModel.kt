@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
@@ -77,16 +78,28 @@ class NowPlayingArtworkViewModel @Inject constructor(
                     flowOf(null)
                 } else {
                     flow {
-                        val track = trackRepository.findByTitleAndArtist(identity.title, identity.artist)
-                            ?: trackRepository.findByTitleAndArtistFuzzy(identity.title, identity.artist)
-                        if (track == null) {
+                        // New playback can reach the UI before getOrInsertTrack()
+                        // finishes its asynchronous insert. Retry only for this
+                        // identity, then switch to cheap Room flows.
+                        var resolvedTrackId: Long? = null
+                        for (attempt in 0 until 5) {
+                            val track = trackRepository.findByTitleAndArtist(identity.title, identity.artist)
+                                ?: trackRepository.findByTitleAndArtistFuzzy(identity.title, identity.artist)
+                            if (track != null) {
+                                resolvedTrackId = track.id
+                                break
+                            }
+                            if (attempt < 4) delay(750L)
+                        }
+                        val trackId = resolvedTrackId
+                        if (trackId == null) {
                             emit(null)
                             return@flow
                         }
                         emitAll(
                             combine(
-                                trackRepository.getById(track.id),
-                                enrichedMetadataRepository.forTrack(track.id),
+                                trackRepository.getById(trackId),
+                                enrichedMetadataRepository.forTrack(trackId),
                             ) { currentTrack, metadata ->
                                 selectNowPlayingArtwork(
                                     identity = identity,
