@@ -22,6 +22,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -94,9 +95,13 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             // A one-shot persisted preference restore. A user tap during startup
             // always wins over an older preference read.
-            val remembered = runCatching {
+            val remembered = try {
                 context.dataStore.data.first()[extendedInsightsKey] ?: false
-            }.getOrDefault(false)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                false
+            }
             if (!userChangedExpansion && remembered) {
                 extendedInsightsVisible = true
                 _expandedInsights.value = true

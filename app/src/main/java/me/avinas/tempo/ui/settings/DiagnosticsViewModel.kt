@@ -9,6 +9,8 @@ import androidx.work.WorkManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -46,15 +48,25 @@ class DiagnosticsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(DiagnosticsUiState())
     val uiState: StateFlow<DiagnosticsUiState> = _uiState.asStateFlow()
 
+    private var refreshJob: Job? = null
+
     init {
         refresh()
     }
 
     fun refresh() {
-        viewModelScope.launch {
+        // Rapid taps should never allow an older report to overwrite the latest.
+        refreshJob?.cancel()
+        refreshJob = viewModelScope.launch {
             _uiState.value = DiagnosticsUiState(isLoading = true, report = null)
-            val report = runCatching { DiagnosticsReport.build(collectInputs()) }
-            _uiState.value = DiagnosticsUiState(isLoading = false, report = report.getOrNull())
+            val report = try {
+                DiagnosticsReport.build(collectInputs())
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                null
+            }
+            _uiState.value = DiagnosticsUiState(isLoading = false, report = report)
         }
     }
 
