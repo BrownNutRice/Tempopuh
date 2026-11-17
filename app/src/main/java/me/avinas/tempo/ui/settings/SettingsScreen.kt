@@ -324,7 +324,7 @@ fun SettingsScreen(
                             "about" -> stringResource(R.string.settings_category_about)
                             else -> stringResource(R.string.settings_title)
                         },
-                        color = TextPrimary,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                 },
                 navigationIcon = {
@@ -335,15 +335,15 @@ fun SettingsScreen(
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.settings_back),
-                            tint = TextPrimary,
+                            tint = MaterialTheme.colorScheme.onSurface,
                         )
                     }
                 },
                 colors =
                     TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.Transparent,
-                        titleContentColor = TextPrimary,
-                        navigationIconContentColor = TextPrimary,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
                     ),
             )
         },
@@ -541,7 +541,7 @@ fun SettingsScreen(
                                                 ?.uppercase() ?: "U",
                                         style = MaterialTheme.typography.headlineMedium,
                                         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                                        color = TextPrimary,
+                                        color = MaterialTheme.colorScheme.onSurface,
                                     )
                                 } else {
                                     me.avinas.tempo.ui.components.CachedAsyncImage(
@@ -555,7 +555,7 @@ fun SettingsScreen(
 
                             Surface(
                                 shape = CircleShape,
-                                color = TempoDarkSurfaceSunken,
+                                color = MaterialTheme.colorScheme.surfaceContainerLowest,
                                 tonalElevation = 0.dp,
                                 modifier = Modifier.size(22.dp),
                             ) {
@@ -563,7 +563,7 @@ fun SettingsScreen(
                                     Icon(
                                         imageVector = Icons.Default.Edit,
                                         contentDescription = stringResource(R.string.settings_change_photo),
-                                        tint = TextPrimary,
+                                        tint = MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.size(12.dp),
                                     )
                                 }
@@ -577,7 +577,7 @@ fun SettingsScreen(
                                 text = uiState.userName,
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                                color = TextPrimary,
+                                color = MaterialTheme.colorScheme.onSurface,
                             )
                             Text(
                                 text = stringResource(R.string.settings_tap_to_edit),
@@ -595,13 +595,13 @@ fun SettingsScreen(
                             Icon(
                                 imageVector = Icons.Default.Edit,
                                 contentDescription = stringResource(R.string.settings_update_name),
-                                tint = TextPrimary.copy(alpha = 0.6f),
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                             )
                         } else {
                             TextButton(onClick = viewModel::removeProfileImage) {
                                 Text(
                                     text = stringResource(R.string.settings_remove_photo),
-                                    color = TextSecondary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         }
@@ -1340,7 +1340,7 @@ fun SettingsScreen(
             onDismissRequest = { showLanguageDialog = false },
             containerColor = TempoSurfaceDialog,
             shape = RoundedCornerShape(24.dp),
-            title = { Text(stringResource(R.string.settings_select_language), color = TextPrimary, fontWeight = FontWeight.SemiBold) },
+            title = { Text(stringResource(R.string.settings_select_language), color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold) },
             text = {
                 Column {
                     languages.forEach { (langTag, langName) ->
@@ -1374,7 +1374,7 @@ fun SettingsScreen(
                             Text(
                                 text = langName,
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = TextPrimary,
+                                color = MaterialTheme.colorScheme.onSurface,
                             )
                         }
                     }
@@ -1398,7 +1398,7 @@ fun SettingsScreen(
             title = {
                 Text(
                     stringResource(R.string.settings_cover_source_title),
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold,
                 )
             },
@@ -1407,7 +1407,7 @@ fun SettingsScreen(
                     Text(
                         stringResource(R.string.settings_cover_source_description),
                         style = MaterialTheme.typography.bodySmall,
-                        color = TextSecondary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     coverSourceOptions.forEach { (source, name) ->
@@ -1432,7 +1432,7 @@ fun SettingsScreen(
                                 colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary),
                             )
                             Spacer(modifier = Modifier.width(12.dp))
-                            Text(name, style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
+                            Text(name, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 }
@@ -1452,7 +1452,7 @@ fun SettingsScreen(
             onDismissRequest = { /* Cannot dismiss while in progress */ },
             containerColor = TempoSurfaceDialog,
             shape = RoundedCornerShape(24.dp),
-            title = { Text(stringResource(R.string.settings_processing), color = TextPrimary, fontWeight = FontWeight.SemiBold) },
+            title = { Text(stringResource(R.string.settings_processing), color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold) },
             text = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -1461,7 +1461,7 @@ fun SettingsScreen(
                     Text(
                         text = progress.phase,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
                     )
                     Spacer(modifier = Modifier.height(16.dp))
@@ -1493,9 +1493,9 @@ fun SettingsScreen(
             onDismissRequest = { viewModel.cancelImport() },
             containerColor = TempoSurfaceDialog,
             shape = RoundedCornerShape(24.dp),
-            title = { Text(stringResource(R.string.settings_import_options), color = TextPrimary, fontWeight = FontWeight.SemiBold) },
+            title = { Text(stringResource(R.string.settings_import_options), color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold) },
             text = {
-                Text(stringResource(R.string.settings_import_conflict_msg), color = TextSecondary)
+                Text(stringResource(R.string.settings_import_conflict_msg), color = MaterialTheme.colorScheme.onSurfaceVariant)
             },
             confirmButton = {
                 TextButton(
@@ -1512,7 +1512,7 @@ fun SettingsScreen(
                     TextButton(
                         onClick = { viewModel.importData(uri, ImportConflictStrategy.SKIP) },
                     ) {
-                        Text(stringResource(R.string.settings_skip_duplicates), color = TextSecondary)
+                        Text(stringResource(R.string.settings_skip_duplicates), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             },
