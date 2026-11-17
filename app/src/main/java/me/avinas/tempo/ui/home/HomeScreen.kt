@@ -109,6 +109,11 @@ fun HomeScreen(
         }
         if (currentLevel > 0) lastKnownLevel = currentLevel
     }
+    // Consent and user-requested overlays take priority over promotional
+    // prompts; never stack competing dialogs on the same entry to Home.
+    val optionalPromptsAllowed = !analyticsDisclosure.shouldShow &&
+        !showTodaysOverview && !(uiState.isGamificationEnabled && showLevelUp)
+
     DeepOceanBackground {
         Box(modifier = Modifier.fillMaxSize()) {
             PullToRefreshBox(
@@ -379,7 +384,7 @@ fun HomeScreen(
         }
         
         // Rate App Bottom Sheet
-        if (flags.showRateAppPopup) {
+        if (flags.showRateAppPopup && optionalPromptsAllowed) {
             RateAppBottomSheet(
                 onDismiss = viewModel::onRateAppDismissed,
                 onRate = {
@@ -409,7 +414,8 @@ fun HomeScreen(
         // Share Nudge — gated in the ViewModel; opens the artist share preview
         // (music share card) directly instead of showing a message popup. Never
         // stacks with the rate popup or spotlight reminder.
-        if (flags.showShareNudge && flags.shareNudgeArtists.isNotEmpty() &&
+        if (optionalPromptsAllowed &&
+            flags.showShareNudge && flags.shareNudgeArtists.isNotEmpty() &&
             !flags.showRateAppPopup && !flags.showSpotlightReminder
         ) {
             val nudgeRange = flags.shareNudgeTimeRange ?: TimeRange.THIS_WEEK
@@ -430,7 +436,9 @@ fun HomeScreen(
 
         // Spotlight Story Reminder Popup
         val reminderType = flags.reminderType
-        if (flags.showSpotlightReminder && reminderType != null) {
+        if (optionalPromptsAllowed && !flags.showRateAppPopup &&
+            flags.showSpotlightReminder && reminderType != null
+        ) {
             me.avinas.tempo.ui.components.SpotlightReminderPopup(
                 type = reminderType,
                 timeRange = flags.reminderTimeRange,
