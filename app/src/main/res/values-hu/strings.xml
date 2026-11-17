@@ -756,4 +756,10 @@
     <string name="settings_health_just_now">Épp most</string>
     <string name="settings_health_minutes_ago">%1$d perce</string>
     <string name="settings_health_no_signal">Még nem érkezett lejátszójel</string>
+    <string name="settings_backup_overview_header">Biztonsági mentés állapota</string>
+    <string name="settings_backup_overview_never">Még nem történt biztonsági mentés</string>
+    <string name="settings_backup_overview_success">Az utolsó mentés sikerült</string>
+    <string name="settings_backup_overview_failed">Az utolsó mentés sikertelen – ellenőrizd a beállításokat</string>
+    <string name="settings_backup_overview_running">Mentés folyamatban</string>
+    <string name="settings_backup_overview_last_success">Utolsó sikeres mentés: %1$s</string>
 </resources>
