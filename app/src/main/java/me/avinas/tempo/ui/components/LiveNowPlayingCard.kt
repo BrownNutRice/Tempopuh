@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
@@ -13,44 +15,55 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.delay
 import me.avinas.tempo.service.SpotifyBroadcastPresence
 
 /**
- * Local, privacy-preserving Rich Presence style card, shared by Home/Profile/Settings.
- * MediaSession and Spotify broadcasts update one source of truth. Spotify's
- * recently-played Web API only reconciles *completed* history in the background.
+ * Local, privacy-preserving live presence card shared by Home/Profile/Settings.
+ * Artwork is resolved only on track changes and decoded at thumbnail size.
+ * The second-by-second timer is isolated below so it does not recompose the
+ * cover and track text every second.
  */
 @Composable
-fun LiveNowPlayingCard(modifier: Modifier = Modifier) {
-    val presence by SpotifyBroadcastPresence.presence.collectAsState()
-    var nowMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
+fun LiveNowPlayingCard(
+    modifier: Modifier = Modifier,
+    artworkViewModel: NowPlayingArtworkViewModel = hiltViewModel(),
+) {
+    val current by SpotifyBroadcastPresence.presence.collectAsStateWithLifecycle()
+    val artwork by artworkViewModel.artwork.collectAsStateWithLifecycle()
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Estimate visual progress from the last observed position, never write this
-    // estimate back into the listening database.
-    LaunchedEffect(presence?.updatedAtMs, presence?.playing) {
-        nowMs = System.currentTimeMillis()
-        if (presence?.playing == true) {
+    // Slow freshness clock, distinct from the progress ticker. It also expires
+    // a paused/stopped presence without keeping a 1 Hz coroutine alive.
+    var checkedAtMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(lifecycleOwner, current?.updatedAtMs) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            checkedAtMs = System.currentTimeMillis()
             while (true) {
-                delay(1000L)
-                nowMs = System.currentTimeMillis()
+                delay(60_000L)
+                checkedAtMs = System.currentTimeMillis()
             }
         }
     }
 
-    val current = presence
-    val ageMs = if (current == null) Long.MAX_VALUE
-        else (nowMs - current.updatedAtMs).coerceAtLeast(0L)
-    val isRecent = current != null && ageMs < 15 * 60_000L
+    val presence = current
+    val ageMs = if (presence == null) Long.MAX_VALUE
+        else (checkedAtMs - presence.updatedAtMs).coerceAtLeast(0L)
+    val isRecent = presence != null && ageMs < 15 * 60_000L
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -60,7 +73,7 @@ fun LiveNowPlayingCard(modifier: Modifier = Modifier) {
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
                 text = "NOW PLAYING",
@@ -68,7 +81,7 @@ fun LiveNowPlayingCard(modifier: Modifier = Modifier) {
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold,
             )
-            if (!isRecent || current == null) {
+            if (!isRecent || presence == null) {
                 Text(
                     text = "Nothing playing on this device",
                     style = MaterialTheme.typography.bodyMedium,
@@ -79,70 +92,63 @@ fun LiveNowPlayingCard(modifier: Modifier = Modifier) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
-                Text(
-                    text = current.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = listOfNotNull(current.artist, current.album)
-                        .filter { it.isNotBlank() }.joinToString(" · "),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                val choice = artwork?.takeIf {
+                    it.identity == NowPlayingArtworkIdentity(
+                        presence.packageName, presence.title, presence.artist
+                    )
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    AlbumArtImage(
+                        albumArtUrl = choice?.remoteUrl,
+                        localArtUrl = presence.albumArtUri ?: choice?.localUrl,
+                        contentDescription = "Cover art for ${presence.title}",
+                        placeholderEmoji = "♫",
+                        targetSizePx = 256,
+                        modifier = Modifier.size(84.dp).clip(RoundedCornerShape(12.dp)),
+                    )
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(3.dp),
+                    ) {
+                        Text(
+                            text = presence.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = listOfNotNull(presence.artist, presence.album)
+                                .filter { it.isNotBlank() }.joinToString(" · "),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+
                 Row(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = if (current.playing) "▶ Playing" else "Ⅱ Paused",
+                        text = if (presence.playing) "▶ Playing" else "Ⅱ Paused",
                         color = MaterialTheme.colorScheme.primary,
                         style = MaterialTheme.typography.labelMedium,
                     )
                     Spacer(modifier = Modifier.weight(1f))
                     Text(
-                        text = if (current.verifiedByApiAtMs != null &&
-                            nowMs - current.verifiedByApiAtMs < 3 * 60_000L
-                        ) "${current.source} · API verified" else current.source,
+                        text = if (presence.verifiedByApiAtMs != null &&
+                            checkedAtMs - presence.verifiedByApiAtMs < 3 * 60_000L
+                        ) "${presence.source} · API verified" else presence.source,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
-                // Unlike library totals, this value is live and provisional.
-                // It is driven by observed playback-position progress and the
-                // monotonic UI clock, not by repeated database queries.
-                if (current.listenedMs != null) {
-                    val liveListenedMs = (current.listenedMs +
-                        if (current.playing) ageMs else 0L).coerceAtLeast(0L)
-                    Text(
-                        text = "Listening this session · ${liveListenedMs / 60_000}:" +
-                            (liveListenedMs / 1000 % 60).toString().padStart(2, '0'),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    Text(
-                        text = "Live estimate · saved to statistics after playback ends",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                if (current.durationMs > 0L) {
-                    val elapsed = if (current.playing) ageMs else 0L
-                    val position = (current.positionMs + elapsed)
-                        .coerceIn(0L, current.durationMs)
-                    LinearProgressIndicator(
-                        progress = { position.toFloat() / current.durationMs.toFloat() },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Text(
-                        text = "${position / 60_000}:${(position / 1000 % 60).toString().padStart(2, '0')} / " +
-                            "${current.durationMs / 60_000}:${(current.durationMs / 1000 % 60).toString().padStart(2, '0')}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+
+                LivePlaybackProgress(presence)
+
                 if (ageMs > 2 * 60_000L) {
                     Text(
                         text = "Last status may be stale; waiting for another playback update",
@@ -152,5 +158,55 @@ fun LiveNowPlayingCard(modifier: Modifier = Modifier) {
                 }
             }
         }
+    }
+}
+
+/** The only subtree ticking at 1 Hz, and only while visible and playing. */
+@Composable
+private fun LivePlaybackProgress(current: SpotifyBroadcastPresence.Presence) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var nowMs by remember(current.updatedAtMs) {
+        mutableLongStateOf(System.currentTimeMillis())
+    }
+    LaunchedEffect(lifecycleOwner, current.updatedAtMs, current.playing) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            nowMs = System.currentTimeMillis()
+            while (current.playing) {
+                delay(1_000L)
+                nowMs = System.currentTimeMillis()
+            }
+        }
+    }
+
+    val ageMs = (nowMs - current.updatedAtMs).coerceAtLeast(0L)
+    if (current.listenedMs != null) {
+        val liveListenedMs = (current.listenedMs +
+            if (current.playing) ageMs else 0L).coerceAtLeast(0L)
+        Text(
+            text = "Listening this session · ${liveListenedMs / 60_000}:" +
+                (liveListenedMs / 1000 % 60).toString().padStart(2, '0'),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Text(
+            text = "Live estimate · saved to statistics after playback ends",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    if (current.durationMs > 0L) {
+        val position = (current.positionMs + if (current.playing) ageMs else 0L)
+            .coerceIn(0L, current.durationMs)
+        LinearProgressIndicator(
+            progress = { position.toFloat() / current.durationMs.toFloat() },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(
+            text = "${position / 60_000}:${(position / 1000 % 60).toString().padStart(2, '0')} / " +
+                "${current.durationMs / 60_000}:${(current.durationMs / 1000 % 60).toString().padStart(2, '0')}",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
