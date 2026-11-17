@@ -32,6 +32,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import me.avinas.tempo.ui.theme.LocalTempoPalette
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -56,6 +57,7 @@ fun InlineTextEditor(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val palette = LocalTempoPalette.current
     var localText by remember { mutableStateOf(textItem.text.takeIf { it != "Tap to edit" } ?: "") }
     var localStyle by remember { mutableStateOf(textItem.style) }
     var showColorPicker by remember { mutableStateOf(false) }
@@ -71,13 +73,13 @@ fun InlineTextEditor(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.9f))
+            .background(palette.background.copy(alpha = 0.97f))
     ) {
         // Done button
         // Done button
         Text(
             text = "Done",
-            color = Color.White,
+            color = palette.onSurface,
             fontWeight = FontWeight.Bold,
             fontSize = 16.sp,
             modifier = Modifier
@@ -126,7 +128,7 @@ fun InlineTextEditor(
                         blurRadius = 4f
                     ) else null
                 ),
-                cursorBrush = SolidColor(Color.White),
+                cursorBrush = SolidColor(palette.accent),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(
                     onDone = {
@@ -220,7 +222,7 @@ fun InlineTextEditor(
                     IconButton(onClick = { /* Toggle font list visibility if we had a mode for it */ }) {
                          Text(
                             "Aa",
-                            color = Color.White,
+                            color = palette.onSurface,
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp
                         )
@@ -257,7 +259,7 @@ fun InlineTextEditor(
                                 else -> Icons.Default.FormatAlignCenter
                             },
                             contentDescription = "Align",
-                            tint = Color.White
+                            tint = palette.onSurface
                         )
                     }
                     
@@ -310,11 +312,12 @@ fun InlineTextEditor(
  
 @Composable
 private fun VerticalDivider() {
+    val palette = LocalTempoPalette.current
     Box(
         modifier = Modifier
             .height(24.dp)
             .width(1.dp)
-            .background(Color.White.copy(alpha = 0.1f))
+            .background(palette.onSurface.copy(alpha = 0.1f))
     )
 }
 
@@ -324,16 +327,17 @@ private fun FontStyleChip(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
+    val palette = LocalTempoPalette.current
     GlassCard(
         modifier = Modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
         variant = if (isSelected) GlassCardVariant.HighProminence else GlassCardVariant.LowProminence,
-        backgroundColor = if (isSelected) Color.White else Color.White.copy(alpha = 0.05f),
+        backgroundColor = if (isSelected) palette.accent else palette.surface,
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
     ) {
         Text(
             text = name,
-            color = if (isSelected) Color.Black else Color.White,
+            color = if (isSelected) palette.onAccent else palette.onSurface,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
             fontSize = 14.sp
         )
@@ -347,16 +351,17 @@ private fun QuickActionButton(
     isActive: Boolean,
     onClick: () -> Unit
 ) {
+    val palette = LocalTempoPalette.current
     Box(
         modifier = Modifier
             .size(44.dp)
             .clip(CircleShape)
             .background(
-                if (isActive) Color.White.copy(alpha = 0.2f) else Color.Transparent
+                if (isActive) palette.onSurface.copy(alpha = 0.2f) else Color.Transparent
             )
             .border(
                 1.dp,
-                if (isActive) Color.White else Color.White.copy(alpha = 0.3f),
+                if (isActive) palette.onSurface else palette.onSurface.copy(alpha = 0.3f),
                 CircleShape
             )
             .clickable(onClick = onClick),
@@ -365,7 +370,7 @@ private fun QuickActionButton(
         Icon(
             imageVector = icon,
             contentDescription = label,
-            tint = if (isActive) Color.White else Color.White.copy(alpha = 0.7f),
+            tint = if (isActive) palette.onSurface else palette.onSurface.copy(alpha = 0.7f),
             modifier = Modifier.size(22.dp)
         )
     }
@@ -376,6 +381,7 @@ private fun ColorWheelButton(
     currentColor: Color,
     onClick: () -> Unit
 ) {
+    val palette = LocalTempoPalette.current
     Box(
         modifier = Modifier
             .size(44.dp)
@@ -393,7 +399,7 @@ private fun ColorWheelButton(
                     )
                 )
             )
-            .border(2.dp, Color.White, CircleShape)
+            .border(2.dp, palette.onSurface, CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -403,7 +409,7 @@ private fun ColorWheelButton(
                 .size(24.dp)
                 .clip(CircleShape)
                 .background(currentColor)
-                .border(2.dp, Color.White, CircleShape)
+                .border(2.dp, palette.onSurface, CircleShape)
         )
     }
 }
@@ -414,6 +420,7 @@ private fun ColorDot(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
+    val palette = LocalTempoPalette.current
     Box(
         modifier = Modifier
             .size(36.dp)
@@ -421,7 +428,7 @@ private fun ColorDot(
             .background(color)
             .border(
                 width = if (isSelected) 3.dp else 1.dp,
-                color = if (isSelected) Color(0xFF60A5FA) else Color.White.copy(alpha = 0.5f),
+                color = if (isSelected) palette.accent else Color.White.copy(alpha = 0.5f),
                 shape = CircleShape
             )
             .clickable(onClick = onClick),

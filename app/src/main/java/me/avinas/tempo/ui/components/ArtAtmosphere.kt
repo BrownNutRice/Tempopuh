@@ -1,5 +1,6 @@
 package me.avinas.tempo.ui.components
 
+import me.avinas.tempo.ui.theme.LocalTempoPalette
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.FastOutLinearInEasing
@@ -32,7 +33,6 @@ import coil3.imageLoader
 import coil3.request.ImageRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import me.avinas.tempo.ui.theme.TempoDarkBackground
 import me.avinas.tempo.ui.theme.rememberReducedMotion
 import kotlin.math.max
 import kotlin.math.min
@@ -62,6 +62,7 @@ fun ArtAtmosphereLayer(
     tint: Color,
     modifier: Modifier = Modifier,
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val context = LocalContext.current
     val reducedMotion = rememberReducedMotion()
 
@@ -70,7 +71,7 @@ fun ArtAtmosphereLayer(
     var overlay by remember { mutableStateOf<ImageBitmap?>(null) }
     val reveal = remember { Animatable(1f) }
 
-    LaunchedEffect(artUrl) {
+    LaunchedEffect(artUrl, reducedMotion) {
         if (artUrl.isNullOrBlank()) {
             if (overlay == null && base == null) return@LaunchedEffect
             overlay = overlay ?: base
@@ -89,7 +90,13 @@ fun ArtAtmosphereLayer(
                 .size(64, 64)
                 .build(),
         )
-        val bitmap = (result.image as? BitmapImage)?.bitmap ?: return@LaunchedEffect
+        val bitmap = (result.image as? BitmapImage)?.bitmap
+        if (bitmap == null) {
+            base = null
+            overlay = null
+            reveal.snapTo(1f)
+            return@LaunchedEffect
+        }
         val software = if (bitmap.config == android.graphics.Bitmap.Config.HARDWARE) {
             bitmap.copy(android.graphics.Bitmap.Config.ARGB_8888, false)
         } else {
@@ -146,10 +153,10 @@ fun ArtAtmosphereLayer(
                     alpha = roomAlpha,
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            TempoDarkBackground.copy(alpha = 0.80f),
-                            TempoDarkBackground.copy(alpha = 0.55f),
-                            TempoDarkBackground.copy(alpha = 0.74f),
-                            TempoDarkBackground.copy(alpha = 0.92f),
+                            appearancePalette.background.copy(alpha = 0.80f),
+                            appearancePalette.background.copy(alpha = 0.55f),
+                            appearancePalette.background.copy(alpha = 0.74f),
+                            appearancePalette.background.copy(alpha = 0.92f),
                         ),
                         startY = 0f,
                         endY = h,
@@ -172,7 +179,7 @@ fun ArtAtmosphereLayer(
                     brush = Brush.radialGradient(
                         colors = listOf(
                             Color.Transparent,
-                            TempoDarkBackground.copy(alpha = 0.55f),
+                            appearancePalette.background.copy(alpha = 0.55f),
                         ),
                         center = Offset(w / 2f, h / 2f),
                         radius = max(w, h) * 0.85f,

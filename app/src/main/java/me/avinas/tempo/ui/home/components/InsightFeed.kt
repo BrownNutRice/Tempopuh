@@ -464,6 +464,7 @@ fun VibeHeader(
     onSettingsClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -497,8 +498,8 @@ fun VibeHeader(
                     .shadow(
                         elevation = 10.dp,
                         shape = RoundedCornerShape(100.dp),
-                        spotColor = TempoDarkSurfaceSunken,
-                        ambientColor = TempoDarkSurfaceSunken.copy(alpha = 0.8f)
+                        spotColor = appearancePalette.surfaceSunken,
+                        ambientColor = appearancePalette.surfaceSunken.copy(alpha = 0.8f)
                     )
                     .border(width = 1.dp, color = me.avinas.tempo.ui.theme.PillBorder, shape = RoundedCornerShape(100.dp)),
                 color = me.avinas.tempo.ui.theme.PillSurface,
@@ -647,6 +648,7 @@ fun VibeHeader(
  */
 @Composable
 private fun MoodVisualizer(valence: Float, energy: Float, color: Color) {
+    val appearancePalette = LocalTempoPalette.current
     val safeEnergy = energy.coerceIn(0f, 1f)
     val safeValence = valence.coerceIn(0f, 1f)
     val energyPercent = (safeEnergy * 100).toInt()
@@ -681,7 +683,7 @@ private fun MoodVisualizer(valence: Float, energy: Float, color: Color) {
                 .fillMaxWidth()
                 .height(48.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(TempoDarkSurfaceSunken.copy(alpha = 0.5f))
+                .background(appearancePalette.surfaceSunken.copy(alpha = 0.5f))
                 .padding(horizontal = 8.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(3.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -717,7 +719,7 @@ private fun MoodVisualizer(valence: Float, energy: Float, color: Color) {
                     .weight(1f)
                     .clip(RoundedCornerShape(10.dp))
                     .background(Color.White.copy(alpha = 0.03f))
-                    .border(0.6.dp, GlassBorderSoft, RoundedCornerShape(10.dp))
+                    .border(0.6.dp, appearancePalette.border.copy(alpha = 0.45f), RoundedCornerShape(10.dp))
                     .padding(horizontal = 10.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
@@ -729,7 +731,7 @@ private fun MoodVisualizer(valence: Float, energy: Float, color: Color) {
                     Text(
                         text = "ENERGY",
                         style = KickerSmall,
-                        color = TextTertiary
+                        color = appearancePalette.mutedText
                     )
                     Text(
                         text = "$energyPercent%",
@@ -763,7 +765,7 @@ private fun MoodVisualizer(valence: Float, energy: Float, color: Color) {
                     .weight(1f)
                     .clip(RoundedCornerShape(10.dp))
                     .background(Color.White.copy(alpha = 0.03f))
-                    .border(0.6.dp, GlassBorderSoft, RoundedCornerShape(10.dp))
+                    .border(0.6.dp, appearancePalette.border.copy(alpha = 0.45f), RoundedCornerShape(10.dp))
                     .padding(horizontal = 10.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
@@ -775,7 +777,7 @@ private fun MoodVisualizer(valence: Float, energy: Float, color: Color) {
                     Text(
                         text = if (safeValence >= 0.5f) "UPBEAT" else "MELLOW",
                         style = KickerSmall,
-                        color = TextTertiary,
+                        color = appearancePalette.mutedText,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -785,7 +787,7 @@ private fun MoodVisualizer(valence: Float, energy: Float, color: Color) {
                             fontFamily = DisplayFontFamily,
                             fontWeight = FontWeight.Bold
                         ),
-                        color = TextPrimary
+                        color = appearancePalette.onSurface
                     )
                 }
                 // Calibration track
@@ -817,6 +819,7 @@ private fun MoodVisualizer(valence: Float, energy: Float, color: Color) {
  */
 @Composable
 private fun PeakTimeVisualizer(peakHour: Int, hourlyDistribution: List<HourlyDistribution>, color: Color) {
+    val appearancePalette = LocalTempoPalette.current
     val safePeak = peakHour.coerceIn(0, 23)
     val formattedPeak = remember(safePeak) {
         when {
@@ -955,8 +958,8 @@ private fun PeakTimeVisualizer(peakHour: Int, hourlyDistribution: List<HourlyDis
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("12 AM", style = KickerSmall, color = TextTertiary)
-            Text("6 AM", style = KickerSmall, color = TextTertiary)
+            Text("12 AM", style = KickerSmall, color = appearancePalette.mutedText)
+            Text("6 AM", style = KickerSmall, color = appearancePalette.mutedText)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -969,8 +972,8 @@ private fun PeakTimeVisualizer(peakHour: Int, hourlyDistribution: List<HourlyDis
                 Box(modifier = Modifier.size(4.dp).background(color, CircleShape))
                 Text("PEAK // $formattedPeak", style = KickerSmall, color = color)
             }
-            Text("6 PM", style = KickerSmall, color = TextTertiary)
-            Text("11 PM", style = KickerSmall, color = TextTertiary)
+            Text("6 PM", style = KickerSmall, color = appearancePalette.mutedText)
+            Text("11 PM", style = KickerSmall, color = appearancePalette.mutedText)
         }
     }
 }
@@ -986,6 +989,7 @@ private fun BingeVisualizer(
     color: Color,
     onArtistClick: ((String) -> Unit)? = null
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val safeArtist = artist.ifBlank { "Top Artist" }
     val safeCount = playCount.coerceAtLeast(1)
     val minutes = (durationMs / 1000 / 60).coerceAtLeast(0)
@@ -1040,7 +1044,7 @@ private fun BingeVisualizer(
                         fontWeight = FontWeight.Bold,
                         fontSize = 17.sp
                     ),
-                    color = TextPrimary,
+                    color = appearancePalette.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -1093,7 +1097,7 @@ private fun BingeVisualizer(
                 .fillMaxWidth()
                 .height(34.dp)
                 .clip(RoundedCornerShape(8.dp))
-                .background(TempoDarkSurfaceSunken.copy(alpha = 0.4f))
+                .background(appearancePalette.surfaceSunken.copy(alpha = 0.4f))
                 .padding(horizontal = 6.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(2.5.dp),
             verticalAlignment = Alignment.Bottom
@@ -1127,13 +1131,13 @@ private fun BingeVisualizer(
                     .weight(1f)
                     .clip(RoundedCornerShape(10.dp))
                     .background(Color.White.copy(alpha = 0.03f))
-                    .border(0.6.dp, GlassBorderSoft, RoundedCornerShape(10.dp))
+                    .border(0.6.dp, appearancePalette.border.copy(alpha = 0.45f), RoundedCornerShape(10.dp))
                     .padding(horizontal = 10.dp, vertical = 8.dp)
             ) {
                 Text(
                     text = "STREAK PLAYS",
                     style = KickerSmall,
-                    color = TextTertiary
+                    color = appearancePalette.mutedText
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
@@ -1154,13 +1158,13 @@ private fun BingeVisualizer(
                     .weight(1f)
                     .clip(RoundedCornerShape(10.dp))
                     .background(Color.White.copy(alpha = 0.03f))
-                    .border(0.6.dp, GlassBorderSoft, RoundedCornerShape(10.dp))
+                    .border(0.6.dp, appearancePalette.border.copy(alpha = 0.45f), RoundedCornerShape(10.dp))
                     .padding(horizontal = 10.dp, vertical = 8.dp)
             ) {
                 Text(
                     text = "SESSION TIME",
                     style = KickerSmall,
-                    color = TextTertiary
+                    color = appearancePalette.mutedText
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
@@ -1170,7 +1174,7 @@ private fun BingeVisualizer(
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
                     ),
-                    color = TextPrimary,
+                    color = appearancePalette.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -1185,6 +1189,7 @@ private fun BingeVisualizer(
  */
 @Composable
 private fun DiscoveryVisualizer(newArtistsCount: Int, trends: List<DiscoveryTrend>, color: Color) {
+    val appearancePalette = LocalTempoPalette.current
     val safeCount = newArtistsCount.coerceAtLeast(0)
 
     Column(
@@ -1215,7 +1220,7 @@ private fun DiscoveryVisualizer(newArtistsCount: Int, trends: List<DiscoveryTren
                 Text(
                     text = "NEW ARTISTS",
                     style = KickerSmall,
-                    color = TextPrimary
+                    color = appearancePalette.onSurface
                 )
             }
 
@@ -1338,7 +1343,7 @@ private fun DiscoveryVisualizer(newArtistsCount: Int, trends: List<DiscoveryTren
                     Text(
                         text = displayMonth,
                         style = KickerSmall,
-                        color = TextTertiary
+                        color = appearancePalette.mutedText
                     )
                 }
             }
@@ -1360,7 +1365,7 @@ private fun DiscoveryVisualizer(newArtistsCount: Int, trends: List<DiscoveryTren
                     .fillMaxWidth()
                     .height(68.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(TempoDarkSurfaceSunken.copy(alpha = 0.5f)),
+                    .background(appearancePalette.surfaceSunken.copy(alpha = 0.5f)),
                 contentAlignment = Alignment.Center
             ) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
@@ -1413,7 +1418,7 @@ private fun DiscoveryVisualizer(newArtistsCount: Int, trends: List<DiscoveryTren
                 Text(
                     text = "Actively mapping new sounds to your library",
                     style = KickerSmall,
-                    color = TextTertiary,
+                    color = appearancePalette.mutedText,
                     modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 4.dp)
                 )
             }
@@ -1426,6 +1431,7 @@ private fun DiscoveryVisualizer(newArtistsCount: Int, trends: List<DiscoveryTren
  */
 @Composable
 private fun TempoBPMVisualizer(bpm: Float, color: Color) {
+    val appearancePalette = LocalTempoPalette.current
     val safeBpm = bpm.coerceIn(40f, 240f)
     val cycleMs = (60_000 / safeBpm).toInt().coerceIn(250, 1500)
     val infiniteTransition = rememberInfiniteTransition(label = "metronome")
@@ -1485,7 +1491,7 @@ private fun TempoBPMVisualizer(bpm: Float, color: Color) {
                 modifier = Modifier
                     .size(24.dp)
                     .clip(CircleShape)
-                    .background(TempoDarkSurfaceSunken)
+                    .background(appearancePalette.surfaceSunken)
                     .border(2.dp, color, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
@@ -1512,7 +1518,7 @@ private fun TempoBPMVisualizer(bpm: Float, color: Color) {
                         fontWeight = FontWeight.Bold,
                         fontSize = 28.sp
                     ),
-                    color = TextPrimary
+                    color = appearancePalette.onSurface
                 )
                 Text(
                     text = "BPM",
@@ -1544,7 +1550,7 @@ private fun TempoBPMVisualizer(bpm: Float, color: Color) {
             Text(
                 text = stringResource(R.string.tempo_bpm_hint),
                 style = KickerSmall,
-                color = TextTertiary,
+                color = appearancePalette.mutedText,
                 maxLines = 2,
                 softWrap = true,
                 overflow = TextOverflow.Ellipsis
@@ -1559,6 +1565,7 @@ private fun TempoBPMVisualizer(bpm: Float, color: Color) {
  */
 @Composable
 private fun StreakVisualizer(days: Int) {
+    val appearancePalette = LocalTempoPalette.current
     val safeDays = days.coerceAtLeast(1)
     val infiniteTransition = rememberInfiniteTransition(label = "flame")
     val flameScale by infiniteTransition.animateFloat(
@@ -1649,7 +1656,7 @@ private fun StreakVisualizer(days: Int) {
             Text(
                 text = stringResource(R.string.streak_hint),
                 style = KickerSmall,
-                color = TextTertiary,
+                color = appearancePalette.mutedText,
                 maxLines = 2,
                 softWrap = true,
                 overflow = TextOverflow.Ellipsis
@@ -1663,6 +1670,7 @@ private fun StreakVisualizer(days: Int) {
  */
 @Composable
 private fun GenreVisualizer(genre: String, color: Color) {
+    val appearancePalette = LocalTempoPalette.current
     val safeGenre = genre.ifBlank { "Eclectic Sound" }
 
     Column(
@@ -1679,7 +1687,7 @@ private fun GenreVisualizer(genre: String, color: Color) {
             Text(
                 text = "PRIMARY SOUND PROFILE",
                 style = KickerSmall,
-                color = TextTertiary
+                color = appearancePalette.mutedText
             )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -1703,7 +1711,7 @@ private fun GenreVisualizer(genre: String, color: Color) {
                 fontSize = 20.sp,
                 letterSpacing = 1.0.sp
             ),
-            color = TextPrimary,
+            color = appearancePalette.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -1714,7 +1722,7 @@ private fun GenreVisualizer(genre: String, color: Color) {
                 .fillMaxWidth()
                 .height(26.dp)
                 .clip(RoundedCornerShape(6.dp))
-                .background(TempoDarkSurfaceSunken.copy(alpha = 0.4f))
+                .background(appearancePalette.surfaceSunken.copy(alpha = 0.4f))
                 .padding(horizontal = 6.dp, vertical = 3.dp),
             horizontalArrangement = Arrangement.spacedBy(2.5.dp),
             verticalAlignment = Alignment.Bottom
@@ -1743,6 +1751,7 @@ private fun GenreVisualizer(genre: String, color: Color) {
  */
 @Composable
 private fun FeatureGaugeVisualizer(value: Float, color: Color, label: String) {
+    val appearancePalette = LocalTempoPalette.current
     val safeValue = value.coerceIn(0f, 1f)
     val animValue = remember { Animatable(0f) }
     LaunchedEffect(safeValue) {
@@ -1773,7 +1782,7 @@ private fun FeatureGaugeVisualizer(value: Float, color: Color, label: String) {
             Text(
                 text = label.uppercase(java.util.Locale.getDefault()),
                 style = KickerSmall,
-                color = TextTertiary
+                color = appearancePalette.mutedText
             )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -1790,7 +1799,7 @@ private fun FeatureGaugeVisualizer(value: Float, color: Color, label: String) {
                         fontFamily = DisplayFontFamily,
                         fontWeight = FontWeight.Bold
                     ),
-                    color = TextPrimary
+                    color = appearancePalette.onSurface
                 )
             }
         }
@@ -1821,9 +1830,9 @@ private fun FeatureGaugeVisualizer(value: Float, color: Color, label: String) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("0% LOW", style = TextStyle(fontFamily = AppFontFamily, fontSize = 8.5.sp), color = TextTertiary.copy(alpha = 0.6f))
-            Text("50% MODERATE", style = TextStyle(fontFamily = AppFontFamily, fontSize = 8.5.sp), color = TextTertiary.copy(alpha = 0.6f))
-            Text("100% HIGH", style = TextStyle(fontFamily = AppFontFamily, fontSize = 8.5.sp), color = TextTertiary.copy(alpha = 0.6f))
+            Text("0% LOW", style = TextStyle(fontFamily = AppFontFamily, fontSize = 8.5.sp), color = appearancePalette.mutedText.copy(alpha = 0.6f))
+            Text("50% MODERATE", style = TextStyle(fontFamily = AppFontFamily, fontSize = 8.5.sp), color = appearancePalette.mutedText.copy(alpha = 0.6f))
+            Text("100% HIGH", style = TextStyle(fontFamily = AppFontFamily, fontSize = 8.5.sp), color = appearancePalette.mutedText.copy(alpha = 0.6f))
         }
     }
 }
@@ -1833,6 +1842,7 @@ private fun FeatureGaugeVisualizer(value: Float, color: Color, label: String) {
  */
 @Composable
 private fun EngagementVisualizer(value: Float, color: Color) {
+    val appearancePalette = LocalTempoPalette.current
     val isSkipRate = value < 0f
     val absValue = kotlin.math.abs(value).coerceIn(0f, 1f)
     val percentage = (absValue * 100).toInt()
@@ -1924,7 +1934,7 @@ private fun EngagementVisualizer(value: Float, color: Color) {
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp
                     ),
-                    color = TextPrimary
+                    color = appearancePalette.onSurface
                 )
             }
         }
@@ -1952,12 +1962,12 @@ private fun EngagementVisualizer(value: Float, color: Color) {
                     fontWeight = FontWeight.Bold,
                     fontSize = 17.sp
                 ),
-                color = TextPrimary
+                color = appearancePalette.onSurface
             )
             Text(
                 text = descriptor,
                 style = KickerSmall,
-                color = TextSecondary,
+                color = appearancePalette.mutedText,
                 maxLines = 2,
                 softWrap = true,
                 overflow = TextOverflow.Ellipsis
@@ -1971,6 +1981,7 @@ private fun EngagementVisualizer(value: Float, color: Color) {
  */
 @Composable
 private fun FallbackVisualizer(color: Color) {
+    val appearancePalette = LocalTempoPalette.current
     val barCount = 14
     val infiniteTransition = rememberInfiniteTransition(label = "ambient_wave")
     val animations = (0 until barCount).map { index ->
@@ -1991,7 +2002,7 @@ private fun FallbackVisualizer(color: Color) {
             .fillMaxWidth()
             .height(28.dp)
             .clip(RoundedCornerShape(6.dp))
-            .background(TempoDarkSurfaceSunken.copy(alpha = 0.4f))
+            .background(appearancePalette.surfaceSunken.copy(alpha = 0.4f))
             .padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(3.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -2024,6 +2035,7 @@ fun InsightCard(
     onNavigateToArtist: ((String) -> Unit)? = null,
     onNavigateToTrack: ((Long) -> Unit)? = null
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val (icon, color) = when(insight.type) {
         InsightType.MOOD -> Icons.Filled.Face to me.avinas.tempo.ui.theme.InsightMood
         InsightType.PEAK_TIME -> Icons.Filled.DateRange to me.avinas.tempo.ui.theme.InsightPeakTime
@@ -2072,7 +2084,7 @@ fun InsightCard(
         accentStrength = 0.08f,
         variant = GlassCardVariant.Obsidian,
         shape = RoundedCornerShape(22.dp),
-        borderColor = GlassBorderSoft,
+        borderColor = appearancePalette.border.copy(alpha = 0.45f),
         borderWidth = 0.8.dp,
         contentPadding = PaddingValues(18.dp)
     ) {
@@ -2089,7 +2101,7 @@ fun InsightCard(
                     modifier = Modifier
                         .size(38.dp)
                         .clip(CircleShape)
-                        .background(TempoDarkSurfaceSunken)
+                        .background(appearancePalette.surfaceSunken)
                         .background(
                             Brush.radialGradient(
                                 colors = listOf(color.copy(alpha = 0.22f), Color.Transparent)
@@ -2135,7 +2147,7 @@ fun InsightCard(
                         icon = Icons.Default.Close,
                         contentDescription = stringResource(R.string.insight_close),
                         onClick = onCloseClick,
-                        iconTint = TextSecondary,
+                        iconTint = appearancePalette.mutedText,
                         modifier = Modifier.size(36.dp)
                     )
                 }
@@ -2152,7 +2164,7 @@ fun InsightCard(
                     fontSize = 21.sp,
                     lineHeight = 26.sp
                 ),
-                color = TextPrimary,
+                color = appearancePalette.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 softWrap = true
@@ -2166,7 +2178,7 @@ fun InsightCard(
                 style = MaterialTheme.typography.bodyMedium.copy(
                     lineHeight = 20.sp
                 ),
-                color = TextSecondary,
+                color = appearancePalette.mutedText,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
                 softWrap = true
@@ -2179,7 +2191,7 @@ fun InsightCard(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
                     .background(Color.White.copy(alpha = 0.025f))
-                    .border(0.6.dp, GlassBorderSoft, RoundedCornerShape(14.dp))
+                    .border(0.6.dp, appearancePalette.border.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
                     .padding(horizontal = 12.dp, vertical = 10.dp)
             ) {
                 when (val payload = insight.payload) {

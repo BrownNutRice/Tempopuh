@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import me.avinas.tempo.ui.theme.rememberReducedMotion
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -34,18 +35,19 @@ fun StatCard(
     gradientColors: List<Color>? = null,
     content: @Composable () -> Unit
 ) {
+    val reducedMotion = rememberReducedMotion()
     var isVisible by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (isVisible) 1f else 0.95f,
-        animationSpec = spring(
+        targetValue = if (isVisible || reducedMotion) 1f else 0.95f,
+        animationSpec = if (reducedMotion) tween(0) else spring(
             dampingRatio = Spring.DampingRatioLowBouncy,
             stiffness = Spring.StiffnessLow
         ),
         label = "scale"
     )
     val alpha by animateFloatAsState(
-        targetValue = if (isVisible) 1f else 0f,
-        animationSpec = tween(300),
+        targetValue = if (isVisible || reducedMotion) 1f else 0f,
+        animationSpec = tween(if (reducedMotion) 0 else 300),
         label = "alpha"
     )
 

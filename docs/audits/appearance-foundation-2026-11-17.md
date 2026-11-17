@@ -73,3 +73,14 @@ Validation: source review, XML parsing and `git diff --check` only. No compilati
 Artist rename/split and song/album/artist merge dialogs now use selected appearance roles for neutral surfaces, text, borders, focus, selection and loading indicators. Analytics disclosure accents follow the selected palette. Error/status colors are preserved. The interactive trend line was audited and already uses Material primary for its line/fill; no change was needed.
 
 Validation: source diff review and `git diff --check` only; no builds, tests, workflows or release. Remaining audit includes reusable artwork overlays, other chart families and inline text editor controls. True light/system support remains deferred.
+
+## Continuation checkpoint — artwork, Home and editor controls
+
+- Artwork atmosphere scrims now use the selected background; failed loads clear the previous artwork. Reduced-motion changes restart the effect with the current animation policy.
+- Home summary/listening controls and insight-card neutral text, borders, surfaces and decorative primary accents now use appearance roles. Category/data colors and fixed contrasting editorial pills remain independent.
+- Inline text editor chrome, font selection, toolbar and color-selection accents follow appearance. User-authored text colors, outlines, background colors and color-wheel choices are preserved.
+- Generic StatCard entrance scale/fade now respects effective reduced motion.
+
+Validation: source review, balanced-delimiter checks and `git diff --check`. No compilation, tests, CI, build or release. Concurrent reference-image changes on main were preserved.
+
+The migration is still not a guarantee of whole-app light compatibility: remaining bespoke surfaces and fixed white/black overlays require contrast review across the app. Do not expose light/system modes until that audit and authorized Android validation are complete. The next larger milestone remains true Glacier Light and system-bar contrast, followed by Ember/Solstice and layout controls.

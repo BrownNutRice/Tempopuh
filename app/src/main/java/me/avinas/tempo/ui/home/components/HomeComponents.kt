@@ -74,6 +74,7 @@ fun HeroCard(
     peakDayMinutes: Long = 0L,
     modifier: Modifier = Modifier
 ) {
+    val appearancePalette = LocalTempoPalette.current
     var scrubbingTime by remember { mutableStateOf<String?>(null) }
     var scrubbingLabel by remember { mutableStateOf<String?>(null) }
 
@@ -102,7 +103,7 @@ fun HeroCard(
         modifier = modifier.fillMaxWidth(),
         variant = GlassCardVariant.Obsidian,
         shape = RoundedCornerShape(24.dp),
-        borderColor = GlassBorderSoft,
+        borderColor = appearancePalette.border.copy(alpha = 0.45f),
         borderWidth = 0.8.dp,
         contentPadding = PaddingValues(18.dp)
     ) {
@@ -118,12 +119,12 @@ fun HeroCard(
                     modifier = Modifier
                         .size(5.dp)
                         .clip(CircleShape)
-                        .background(TempoPrimary)
+                        .background(appearancePalette.accent)
                 )
                 Text(
                     text = periodLabel.uppercase(Locale.getDefault()),
                     style = KickerSmall,
-                    color = TextTertiary,
+                    color = appearancePalette.mutedText,
                     letterSpacing = 1.0.sp
                 )
             }
@@ -142,7 +143,7 @@ fun HeroCard(
                         fontWeight = FontWeight.Bold,
                         letterSpacing = (-1).sp
                     ),
-                    color = TextPrimary
+                    color = appearancePalette.onSurface
                 )
 
                 if (scrubbingLabel != null) {
@@ -152,7 +153,7 @@ fun HeroCard(
                             fontFamily = DisplayFontFamily,
                             fontWeight = FontWeight.SemiBold
                         ),
-                        color = TextSecondary,
+                        color = appearancePalette.mutedText,
                         modifier = Modifier.padding(bottom = 6.dp)
                     )
                 }
@@ -209,7 +210,7 @@ fun HeroCard(
                     Text(
                         text = comparisonText,
                         style = MaterialTheme.typography.bodySmall,
-                        color = TextSecondary,
+                        color = appearancePalette.mutedText,
                         maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
@@ -222,7 +223,7 @@ fun HeroCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(0.8.dp)
-                    .background(GlassBorderSoft)
+                    .background(appearancePalette.border.copy(alpha = 0.45f))
             )
             Spacer(modifier = Modifier.height(14.dp))
 
@@ -244,7 +245,7 @@ fun HeroCard(
                         modifier = Modifier
                             .fillMaxHeight()
                             .width(0.8.dp)
-                            .background(GlassBorderSoft)
+                            .background(appearancePalette.border.copy(alpha = 0.45f))
                     )
 
                     TelemetryMiniCell(
@@ -257,7 +258,7 @@ fun HeroCard(
                         modifier = Modifier
                             .fillMaxHeight()
                             .width(0.8.dp)
-                            .background(GlassBorderSoft)
+                            .background(appearancePalette.border.copy(alpha = 0.45f))
                     )
 
                     TelemetryMiniCell(
@@ -354,6 +355,7 @@ private fun ActiveSpotlightRing(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val storyAccessibilityLabel = stringResource(R.string.spotlight_view_story)
     val infiniteTransition = rememberInfiniteTransition(label = "spotlightRingTransition")
     val rotationAngle by infiniteTransition.animateFloat(
@@ -397,7 +399,7 @@ private fun ActiveSpotlightRing(
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        TempoPrimary.copy(alpha = pulseAlpha * 0.36f),
+                        appearancePalette.accent.copy(alpha = pulseAlpha * 0.36f),
                         Color(0xFF8B5CF6).copy(alpha = pulseAlpha * 0.16f),
                         Color.Transparent
                     ),
@@ -428,7 +430,7 @@ private fun ActiveSpotlightRing(
         val badgeGradient = remember {
             Brush.linearGradient(
                 colors = listOf(
-                    TempoPrimary,
+                    appearancePalette.accent,
                     Color(0xFF8B5CF6)
                 )
             )
@@ -439,7 +441,7 @@ private fun ActiveSpotlightRing(
                 .offset(x = 1.dp, y = 1.dp)
                 .size(18.dp)
                 .clip(CircleShape)
-                .background(TempoDarkSurfaceElevated)
+                .background(appearancePalette.elevatedSurface)
                 .padding(1.8.dp)
                 .clip(CircleShape)
                 .background(badgeGradient),
@@ -500,11 +502,12 @@ private fun SpotlightAvatarContent(
     albumArtUrl: String?,
     modifier: Modifier = Modifier
 ) {
+    val appearancePalette = LocalTempoPalette.current
     Box(
         modifier = modifier
             .clip(CircleShape)
-            .background(TempoDarkSurfaceElevated)
-            .border(2.dp, TempoDarkSurfaceElevated, CircleShape),
+            .background(appearancePalette.elevatedSurface)
+            .border(2.dp, appearancePalette.elevatedSurface, CircleShape),
         contentAlignment = Alignment.Center
     ) {
         if (!albumArtUrl.isNullOrBlank()) {
@@ -524,8 +527,8 @@ private fun SpotlightAvatarContent(
                     .background(
                         Brush.radialGradient(
                             colors = listOf(
-                                TempoPrimary.copy(alpha = 0.20f),
-                                TempoDarkSurfaceElevated
+                                appearancePalette.accent.copy(alpha = 0.20f),
+                                appearancePalette.elevatedSurface
                             )
                         )
                     ),
@@ -534,7 +537,7 @@ private fun SpotlightAvatarContent(
                 Icon(
                     imageVector = Icons.Rounded.AutoAwesome,
                     contentDescription = null,
-                    tint = TempoPrimary,
+                    tint = appearancePalette.accent,
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -551,11 +554,12 @@ fun SpotlightStoryCard(
     storyViewed: Boolean = false,
     modifier: Modifier = Modifier
 ) {
+    val appearancePalette = LocalTempoPalette.current
     val cardShape = RoundedCornerShape(22.dp)
     val cardBlendBrush = remember {
         Brush.linearGradient(
             colors = listOf(
-                TempoPrimary.copy(alpha = 0.12f),
+                appearancePalette.accent.copy(alpha = 0.12f),
                 Color(0xFFA855F7).copy(alpha = 0.08f),
                 Color(0xFFEC4899).copy(alpha = 0.06f)
             )
@@ -564,7 +568,7 @@ fun SpotlightStoryCard(
     val cardBorderBrush = remember {
         Brush.linearGradient(
             colors = listOf(
-                TempoPrimary.copy(alpha = 0.35f),
+                appearancePalette.accent.copy(alpha = 0.35f),
                 Color(0xFFA855F7).copy(alpha = 0.25f),
                 Color(0xFFEC4899).copy(alpha = 0.18f)
             )
@@ -575,7 +579,7 @@ fun SpotlightStoryCard(
         modifier = modifier
             .fillMaxWidth()
             .clip(cardShape)
-            .background(TempoDarkSurfaceElevated.copy(alpha = 0.94f))
+            .background(appearancePalette.elevatedSurface.copy(alpha = 0.94f))
             .background(cardBlendBrush)
             .border(0.8.dp, cardBorderBrush, cardShape)
             .premiumClickable(onClick = onClick, pressedScale = 0.98f)
@@ -600,20 +604,20 @@ fun SpotlightStoryCard(
                         fontWeight = FontWeight.Bold,
                         fontSize = 17.sp
                     ),
-                    color = TextPrimary
+                    color = appearancePalette.onSurface
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = stringResource(R.string.home_spotlight_subtitle),
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary
+                    color = appearancePalette.mutedText
                 )
             }
 
             val buttonBlendBrush = remember {
                 Brush.linearGradient(
                     colors = listOf(
-                        TempoPrimary.copy(alpha = 0.20f),
+                        appearancePalette.accent.copy(alpha = 0.20f),
                         Color(0xFFA855F7).copy(alpha = 0.22f),
                         Color(0xFFEC4899).copy(alpha = 0.18f)
                     )
@@ -622,7 +626,7 @@ fun SpotlightStoryCard(
             val buttonBorderBrush = remember {
                 Brush.linearGradient(
                     colors = listOf(
-                        TempoPrimary.copy(alpha = 0.48f),
+                        appearancePalette.accent.copy(alpha = 0.48f),
                         Color(0xFFA855F7).copy(alpha = 0.38f),
                         Color(0xFFEC4899).copy(alpha = 0.30f)
                     )
@@ -640,7 +644,7 @@ fun SpotlightStoryCard(
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.ArrowForwardIos,
                     contentDescription = null,
-                    tint = TextPrimary,
+                    tint = appearancePalette.onSurface,
                     modifier = Modifier.size(12.dp)
                 )
             }
