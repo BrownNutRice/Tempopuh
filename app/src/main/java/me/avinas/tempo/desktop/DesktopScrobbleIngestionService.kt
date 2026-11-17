@@ -12,6 +12,8 @@ import me.avinas.tempo.data.repository.ArtistLinkingService
 import me.avinas.tempo.data.repository.EnrichedMetadataRepository
 import me.avinas.tempo.data.repository.ListeningRepository
 import me.avinas.tempo.data.repository.RefreshCoordinator
+import me.avinas.tempo.data.repository.StatsRepository
+import kotlinx.coroutines.CancellationException
 import me.avinas.tempo.data.repository.TrackRepository
 import me.avinas.tempo.utils.ArtistParser
 import me.avinas.tempo.utils.BatteryUtils
@@ -42,15 +44,13 @@ class DesktopPlayIngestionService @Inject constructor(
     private val enrichedMetadataRepository: EnrichedMetadataRepository,
     private val artistLinkingService: ArtistLinkingService,
     private val refreshCoordinator: RefreshCoordinator,
+    private val statsRepository: StatsRepository,
     private val trackAliasDao: TrackAliasDao
 ) {
     companion object {
         private const val TAG = "DesktopIngestion"
 
-        /** Deduplication window: skip if same track exists within ±5 min. */
-        private const val DEDUP_WINDOW_MS = 300_000L
-
-        /** Minimum sensible play duration to accept (5 seconds). */
+         /** Minimum sensible play duration to accept (5 seconds). */
         private const val MIN_PLAY_DURATION_MS = 5_000L
 
         // Without a catalog duration, completion is unknown, not 90% verified.
@@ -92,6 +92,7 @@ class DesktopPlayIngestionService @Inject constructor(
 
         var accepted = 0
         var duplicates = 0
+        var failed = 0
         val newTrackIds = mutableSetOf<Long>()
 
         for (i in 0 until playsArray.length()) {
@@ -108,9 +109,10 @@ class DesktopPlayIngestionService @Inject constructor(
             val listenedMs = entry.optLong("listened_ms", 0L).takeIf { it > 0L } ?: durationMs
             val sourceApp = entry.optString("source_app", "Desktop").trim()
 
-            // Guard: ignore implausibly short plays
-            if (durationMs in 1 until MIN_PLAY_DURATION_MS) {
-                Log.d(TAG, "Skipping short play ($durationMs ms): $title")
+            // Use observed listened time, not the full catalog duration, for
+            // short-play detection. A 2-second clip of a 3-minute song isn't a play.
+            if (listenedMs < MIN_PLAY_DURATION_MS) {
+                Log.d(TAG, "Skipping short listen ($listenedMs ms): $title")
                 continue
             }
 
@@ -157,14 +159,7 @@ class DesktopPlayIngestionService @Inject constructor(
                     }
                 }
 
-                val isDuplicate = checkDuplicate(trackId, timestampUtc)
-                if (isDuplicate) {
-                    Log.d(TAG, "Duplicate skipped: $title @ $timestampUtc")
-                    duplicates++
-                    continue
-                }
-
-                val completionPct = if (durationMs > 0L) {
+                 val completionPct = if (durationMs > 0L) {
                     ((listenedMs.toDouble() / durationMs) * 100).toInt().coerceIn(0, 100)
                 } else {
                     UNKNOWN_COMPLETION_PERCENT
@@ -189,10 +184,24 @@ class DesktopPlayIngestionService @Inject constructor(
                     duplicates++
                 }
 
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Error processing play [$title / $artist]", e)
-                // Continue with remaining entries rather than aborting the whole batch
+                failed++
+                // Continue collecting valid events; tell the caller to retry the batch.
             }
+        }
+
+        if (failed > 0) {
+            if (accepted > 0) {
+                statsRepository.invalidateCache()
+                refreshCoordinator.notifyNewTrackRecorded()
+            }
+            newTrackIds.forEach { EnrichmentWorker.enqueueImmediate(context, it) }
+            // The server returns HTTP 500; clients replay this idempotent batch.
+            // Never acknowledge a partly lost batch as complete.
+            return IngestionResult.Error("partial_failure")
         }
 
         pairingManager.recordSuccessfulSync(
@@ -216,6 +225,7 @@ class DesktopPlayIngestionService @Inject constructor(
         // in the background or on a non-zero page. This mirrors what MusicTrackingService
         // does after recording a live play.
         if (accepted > 0) {
+            statsRepository.invalidateCache()
             refreshCoordinator.notifyNewTrackRecorded()
         }
 
@@ -293,10 +303,4 @@ class DesktopPlayIngestionService @Inject constructor(
         return stored.any { it in incoming }
     }
 
-    private suspend fun checkDuplicate(trackId: Long, timestampUtc: Long): Boolean {
-        val windowStart = timestampUtc - DEDUP_WINDOW_MS
-        val windowEnd = timestampUtc + DEDUP_WINDOW_MS
-        val existing = listeningRepository.getEventsInRange(windowStart, windowEnd)
-        return existing.any { it.track_id == trackId }
-    }
-}
+ }

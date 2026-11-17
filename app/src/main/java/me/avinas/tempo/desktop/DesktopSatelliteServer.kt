@@ -580,7 +580,12 @@ class DesktopSatelliteServer @Inject constructor(
                             is IngestionResult.Error -> {
                                 val escaped = JSONObject.quote(result.message)
                                 syncFailureCount++
-                                IngestOutcome(Response.Status.BAD_REQUEST, """{"ok":false,"error":$escaped}""")
+                                // Retry a partially applied batch; the client treats other 4xx
+                                // as permanent rejection, which would lose failed records.
+                                val status = if (result.message == "partial_failure") {
+                                    Response.Status.INTERNAL_ERROR
+                                } else Response.Status.BAD_REQUEST
+                                IngestOutcome(status, """{"ok":false,"error":$escaped}""")
                             }
                         }
                     }

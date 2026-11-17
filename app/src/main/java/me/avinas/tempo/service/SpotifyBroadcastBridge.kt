@@ -88,6 +88,12 @@ internal class SpotifyBroadcastBridge(
                             .coerceIn(0L, 24 * 60 * 60_000L),
                     )
                     if (Build.VERSION.SDK_INT < 34 && !allowLegacyBroadcast(candidate)) return
+                    // The last PLAYBACK state belongs to the *previous* track.
+                    // Do not start a new track with stale playing=true or old position
+                    // until the matching playback broadcast (or MediaSession) arrives.
+                    if (track?.title != candidate.title || track?.artist != candidate.artist) {
+                        playing = null
+                    }
                     track = candidate
                     positionMs = 0L
                 }

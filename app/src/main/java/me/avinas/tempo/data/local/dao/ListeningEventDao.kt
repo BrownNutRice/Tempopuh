@@ -331,6 +331,12 @@ interface ListeningEventDao {
         incoming: ListeningEvent,
     ): Boolean {
         val sameSource = slot.source == incoming.source
+        // Desktop clients do not expose Android session IDs. Different
+        // timestamps outside clock-jitter tolerance represent distinct plays
+        // even when the same three-minute track repeats within five minutes.
+        if (sameSource && slot.source.startsWith("desktop:")) {
+            return DesktopObservedReplayPolicy.isSamePlay(slot.timestamp, incoming.timestamp)
+        }
         if (sameSource && !slot.sessionId.isNullOrBlank() &&
             !incoming.sessionId.isNullOrBlank() && slot.sessionId != incoming.sessionId
         ) return false
