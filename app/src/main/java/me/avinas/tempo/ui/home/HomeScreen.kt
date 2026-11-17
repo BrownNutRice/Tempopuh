@@ -22,8 +22,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.rememberCoroutineScope
+ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -74,12 +73,8 @@ fun HomeScreen(
     val context = androidx.compose.ui.platform.LocalContext.current
     var isLaunchingReview by remember { mutableStateOf(false) }
     var showTodaysOverview by remember { mutableStateOf(false) }
-    // Focused dashboard by default: extended discovery cards are opt-in.
-    // Save across rotation/process recreation without changing app preferences.
-    var showExtendedInsights by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(showExtendedInsights) {
-        viewModel.setExtendedInsightsVisible(showExtendedInsights)
-    }
+    // Saved in DataStore so a compact or expanded Home remains your choice.
+    val showExtendedInsights by viewModel.expandedInsights.collectAsState()
     val scope = rememberCoroutineScope()
     val lazyListState = rememberLazyListState()
 
@@ -220,7 +215,9 @@ fun HomeScreen(
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                                 horizontalArrangement = Arrangement.End,
                             ) {
-                                TextButton(onClick = { showExtendedInsights = !showExtendedInsights }) {
+                                TextButton(onClick = {
+                                    viewModel.setExtendedInsightsVisible(!showExtendedInsights)
+                                }) {
                                     Text(
                                         text = stringResource(
                                             if (showExtendedInsights) R.string.home_hide_more_insights

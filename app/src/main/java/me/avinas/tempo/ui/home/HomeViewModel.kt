@@ -60,7 +60,11 @@ class HomeViewModel @Inject constructor(
     val flagsState: StateFlow<HomeFlags> = _flagsState.asStateFlow()
 
     private var loadJob: Job? = null
+    private val extendedInsightsKey = booleanPreferencesKey("home_extended_insights")
     private var extendedInsightsVisible = false
+    private var userChangedExpansion = false
+    private val _expandedInsights = MutableStateFlow(false)
+    val expandedInsights: StateFlow<Boolean> = _expandedInsights.asStateFlow()
 
     /**
      * Paces the dashboard's Room access. [fetchData] launches ~20 concurrent
@@ -87,6 +91,18 @@ class HomeViewModel @Inject constructor(
 
     init {
         loadData()
+        viewModelScope.launch {
+            // A one-shot persisted preference restore. A user tap during startup
+            // always wins over an older preference read.
+            val remembered = runCatching {
+                context.dataStore.data.first()[extendedInsightsKey] ?: false
+            }.getOrDefault(false)
+            if (!userChangedExpansion && remembered) {
+                extendedInsightsVisible = true
+                _expandedInsights.value = true
+                loadData()
+            }
+        }
         observeDataChanges()
         checkSpotlightReminder()
     }
@@ -148,11 +164,26 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /** Extra cards are opt-in; don't query detailed insight data on every song. */
+    /** Persists the reader's preferred Home density without touching the library. */
     fun setExtendedInsightsVisible(visible: Boolean) {
         if (extendedInsightsVisible == visible) return
+        userChangedExpansion = true
         extendedInsightsVisible = visible
-        if (visible) loadData()
+        _expandedInsights.value = visible
+        if (visible) {
+            loadData()
+        } else {
+            // Cancel the optional query burst and release heavy cards immediately.
+            loadJob?.cancel()
+            _uiState.update {
+                it.copy(topTrack = null, topArtist = null, spotlightTopTrack = null, insights = emptyList())
+            }
+        }
+        viewModelScope.launch {
+            context.dataStore.edit { preferences ->
+                preferences[extendedInsightsKey] = visible
+            }
+        }
     }
 
     fun onTimeRangeSelected(timeRange: TimeRange) {
