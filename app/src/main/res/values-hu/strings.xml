@@ -521,7 +521,7 @@
     <string name="settings_replace_existing">Minden lecserélése</string>
     <string name="settings_skip_duplicates">Duplikátumok kihagyása</string>
     <string name="settings_clear_data_title">Minden Adat Törlése?</string>
-    <string name="settings_clear_data_msg">Biztosan törölni akarod az összes adatot? Ez visszavonhatatlan!</string>
+    <string name="settings_clear_data_msg">A Tempo összes helyi adata, köztük az előzmények, beállítások, mentett bejelentkezések és függő lejátszások véglegesen törlődnek. A Tempo bezárul; a beállításhoz nyisd meg újra. A Tempón kívül mentett fájlok, felhőmentések és szolgáltatói adatok megmaradnak.</string>
     <string name="settings_clear_everything">Igen, töröld!</string>
     <string name="settings_disconnect_spotify_title">Szabotál És Ront Spoti!?</string>
     <string name="settings_disconnect_spotify_msg">Ez El És Tépi Jelenét ÉS Jelen is! A Kis Forma Is Halotti Sors A Legy, Alakítja Is Nyújt Is Cél.</string>
@@ -857,4 +857,6 @@
     <string name="spotify_secure_storage_unavailable">A Spotify biztonságos tárhelye nem érhető el. Oldd fel az eszközt, és próbáld újra. A titkosított adatok megmaradtak.</string>
     <string name="home_session_start_attribution">A hallgatási idő ahhoz a naphoz kerül, amikor a lejátszás elkezdődött.</string>
     <string name="settings_analytics_reset_id_desc">Módosítja a jövőbeli események azonosítóját. A szolgáltatáshoz már beérkezett eseményeket nem törli.</string>
+    <string name="settings_clear_data_requesting">Visszaállítás…</string>
+    <string name="settings_clear_data_failed">Nem sikerült kérni az alkalmazás alaphelyzetbe állítását. Próbáld újra, vagy töröld a tárhelyét az Android alkalmazásbeállításaiban.</string>
 </resources>

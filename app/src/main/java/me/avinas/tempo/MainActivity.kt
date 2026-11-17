@@ -398,12 +398,6 @@ fun TempoApp(
                 OnboardingStep.COMPLETED -> {
                     AppNavigation(
                         walkthroughController = walkthroughController,
-                        onResetToOnboarding = {
-                            skippedSteps = 0
-                            onboardingStartedAt = System.currentTimeMillis()
-                            stepStartedAt = System.currentTimeMillis()
-                            currentStep = OnboardingStep.WELCOME
-                        },
                         navigationTrigger = localNavigationTrigger ?: navigationTrigger
                     )
                     // Clear local trigger after passing it

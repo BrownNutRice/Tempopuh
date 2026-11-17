@@ -635,7 +635,7 @@
     <string name="settings_replace_existing">Заменять существующие</string>
     <string name="settings_skip_duplicates">Пропускать дубликаты</string>
     <string name="settings_clear_data_title">Удалить все данные?</string>
-    <string name="settings_clear_data_msg">Это действие нельзя отменить. Вся ваша история прослушивания и настройки будут безвозвратно удалены.</string>
+    <string name="settings_clear_data_msg">Все локальные данные Tempo, включая историю, настройки, сохранённые входы и ожидающие записи прослушиваний, будут удалены безвозвратно. Tempo закроется; откройте приложение снова для настройки. Файлы вне хранилища Tempo, облачные копии и данные у поставщиков сохранятся.</string>
     <string name="settings_clear_everything">Стереть всё</string>
     <string name="settings_disconnect_spotify_title">Disconnect Spotify?</string>
     <string name="settings_disconnect_spotify_msg">Это отключит связь со Spotify. Анализ аудиопараметров и настроения станет недоступен.</string>
@@ -1449,4 +1449,6 @@
     <string name="spotify_secure_storage_unavailable">Защищённое хранилище Spotify недоступно. Разблокируйте устройство и повторите попытку. Зашифрованные данные сохранены.</string>
     <string name="home_session_start_attribution">Время прослушивания относится к дате начала каждого сеанса.</string>
     <string name="settings_analytics_reset_id_desc">Меняет идентификатор будущих событий. Это не удаляет события, уже полученные сервисом.</string>
+    <string name="settings_clear_data_requesting">Сброс…</string>
+    <string name="settings_clear_data_failed">Не удалось запросить сброс приложения. Повторите попытку или очистите хранилище в настройках приложения Android.</string>
 </resources>

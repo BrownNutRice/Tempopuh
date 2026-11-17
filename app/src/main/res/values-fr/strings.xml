@@ -521,7 +521,7 @@
     <string name="settings_replace_existing">Remplacer les données existantes</string>
     <string name="settings_skip_duplicates">Ignorer les doublons</string>
     <string name="settings_clear_data_title">Effacer toutes les données ?</string>
-    <string name="settings_clear_data_msg">Cette action est irréversible. Tout votre historique d\'écoute et vos préférences seront définitivement supprimés.</string>
+    <string name="settings_clear_data_msg">Toutes les données locales de Tempo, y compris l’historique, les réglages, les connexions enregistrées et les écoutes en attente, seront définitivement supprimées. Tempo se fermera ; rouvrez l’application pour la configurer. Les fichiers enregistrés hors de Tempo, sauvegardes cloud et données des fournisseurs seront conservés.</string>
     <string name="settings_clear_everything">Tout effacer</string>
     <string name="settings_disconnect_spotify_title">Déconnecter Spotify ?</string>
     <string name="settings_disconnect_spotify_msg">Cela supprimera votre connexion Spotify. Les fonctionnalités audio et le suivi d\'humeur ne seront plus disponibles.</string>
@@ -1221,4 +1221,6 @@
     <string name="spotify_secure_storage_unavailable">Le stockage sécurisé Spotify est indisponible. Déverrouillez votre appareil et réessayez. Vos données chiffrées sont conservées.</string>
     <string name="home_session_start_attribution">La durée d’écoute est attribuée à la date de début de chaque session.</string>
     <string name="settings_analytics_reset_id_desc">Change l’identifiant des futurs événements. Cela ne supprime pas les événements déjà reçus par le service.</string>
+    <string name="settings_clear_data_requesting">Réinitialisation…</string>
+    <string name="settings_clear_data_failed">Impossible de demander la réinitialisation. Réessayez ou effacez le stockage dans les paramètres Android de l’application.</string>
 </resources>

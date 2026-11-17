@@ -37,6 +37,7 @@ import me.avinas.tempo.data.local.AppDatabase
 import me.avinas.tempo.data.local.entities.AlbumArtSource
 import me.avinas.tempo.data.local.entities.EnrichmentStatus
 import me.avinas.tempo.data.enrichment.CoverArtSourcePreference
+import me.avinas.tempo.data.reset.AppDataResetter
 import me.avinas.tempo.data.profile.ProfileIdentityManager
 import me.avinas.tempo.ui.onboarding.dataStore
 import me.avinas.tempo.worker.ChallengeWorker
@@ -65,6 +66,7 @@ class SettingsViewModel
         private val backupSettingsManager: BackupSettingsManager,
         private val spotifyAuthManager: Lazy<SpotifyAuthManager>,
         private val spotifyTokenStorage: Lazy<SpotifyTokenStorage>,
+        private val appDataResetter: AppDataResetter,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(SettingsUiState())
         val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
@@ -482,15 +484,13 @@ class SettingsViewModel
             }
         }
 
+        val resetState = appDataResetter.state
+
         fun clearAllData() {
-            viewModelScope.launch {
-                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    database.clearAllTables()
-                }
-                profileIdentityManager.clearProfileImage()
-                context.dataStore.edit { it.clear() }
-                NotificationWorker.cancelDaily(context)
-                NotificationWorker.cancelWeekly(context)
+            viewModelScope.launch(Dispatchers.IO) {
+                // Android stops all app code and owns the deletion. Do not navigate to a
+                // new onboarding screen while old services/imports can still write.
+                appDataResetter.requestReset()
             }
         }
 

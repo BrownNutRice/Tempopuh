@@ -22,6 +22,7 @@
 | `data/local/` | Room entities, DAOs, migrations and local query helpers |
 | `data/repository/` | Persistence orchestration, statistics/caches and refresh coordination |
 | `data/remote/`, provider packages under `data/` | Provider auth/APIs, imports and enrichment |
+| `data/reset/` | OS-owned local reset request and observable failure/retry state |
 | `domain/` | Existing insight/domain logic |
 | `service/`, `receiver/` | Playback observation, session recovery and platform entry points |
 | `worker/` | Deferrable import/enrichment/backup/maintenance work |

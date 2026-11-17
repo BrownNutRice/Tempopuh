@@ -574,7 +574,7 @@
     <string name="settings_replace_existing">Substituir existente</string>
     <string name="settings_skip_duplicates">Ignorar duplicatas</string>
     <string name="settings_clear_data_title">Limpar todos os dados?</string>
-    <string name="settings_clear_data_msg">Esta ação não pode ser desfeita. Todo o seu histórico de audição e preferências serão excluídos permanentemente.</string>
+    <string name="settings_clear_data_msg">Todos os dados locais do Tempo, incluindo histórico, configurações, acessos salvos e reproduções pendentes, serão removidos permanentemente. O Tempo será fechado; abra-o novamente para configurá-lo. Arquivos salvos fora do Tempo, backups na nuvem e dados dos provedores serão mantidos.</string>
     <string name="settings_clear_everything">Limpar tudo</string>
     <string name="settings_disconnect_spotify_title">Desconectar o Spotify?</string>
     <string name="settings_disconnect_spotify_msg">Isso removerá sua conexão do Spotify. Os recursos de áudio e monitoramento de humor não estarão mais disponíveis.</string>
@@ -1332,4 +1332,6 @@
     <string name="spotify_secure_storage_unavailable">O armazenamento seguro do Spotify está indisponível. Desbloqueie o dispositivo e tente novamente. Os dados encriptados foram preservados.</string>
     <string name="home_session_start_attribution">O tempo de audição é atribuído à data em que cada sessão começou.</string>
     <string name="settings_analytics_reset_id_desc">Altera o ID dos eventos futuros. Isso não exclui eventos já recebidos pelo serviço.</string>
+    <string name="settings_clear_data_requesting">Redefinindo…</string>
+    <string name="settings_clear_data_failed">Não foi possível solicitar a redefinição. Tente novamente ou limpe o armazenamento nas configurações do aplicativo no Android.</string>
 </resources>

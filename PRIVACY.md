@@ -73,7 +73,9 @@ Turn reporting off in **Settings → Your Data**. This stops collection under th
 
 ## Controls, retention and diagnostics
 
-Use account disconnect controls, tracking settings, permissions, queue controls, exports and the library-clear action for the corresponding data. The current beta has [known reset/recovery gaps](https://github.com/matchalattewithbanana/Tempo/issues/44); the library-clear command should not be treated as a verified erasure of every pending/private store. Android app-storage removal clears app-private storage, while external and provider copies remain separate.
+Use account disconnect controls, tracking settings, permissions, queue controls and exports for their corresponding data. On current main, **Clear all data** requests Android’s full app-data reset. It closes Tempo and removes app-private data and its app-specific external storage, including the library, preferences, saved sign-ins, pairing information, local reporting queues and pending/recovery stores. Android’s operation also revokes runtime permissions and URI grants. Reopen Tempo to set it up again. A successful return only confirms that Android accepted the request.
+
+Files outside Tempo’s app-specific storage, cloud backups, provider accounts, browser/desktop companion stores and previously received reporting events remain at their destinations. Clear or revoke those separately if desired. The published `4.9.0-beta.1` APK predates the [reset fix](https://github.com/matchalattewithbanana/Tempo/issues/44); its older partial-clear behavior has known gaps. Device validation of the new reset boundary remains pending.
 
 There is no declared automatic one-year deletion policy for listening history. Metadata caches and temporary import/backup files have separate cleanup behavior. Keep a verified backup of records you want to retain.
 

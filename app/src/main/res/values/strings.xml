@@ -667,7 +667,7 @@
     <string name="settings_replace_existing">Replace Existing</string>
     <string name="settings_skip_duplicates">Skip Duplicates</string>
     <string name="settings_clear_data_title">Clear All Data?</string>
-    <string name="settings_clear_data_msg">This action cannot be undone. All your listening history and preferences will be permanently deleted.</string>
+    <string name="settings_clear_data_msg">All local Tempo data, including history, settings, saved sign-ins and pending plays, will be permanently removed. Tempo will close; reopen it to set up again. Files saved outside Tempo, cloud backups and provider data will remain.</string>
     <string name="settings_clear_everything">Clear Everything</string>
     <string name="settings_disconnect_spotify_title">Disconnect Spotify?</string>
     <string name="settings_disconnect_spotify_msg">This will remove your Spotify connection. Audio features and mood tracking will no longer be available.</string>
@@ -1680,4 +1680,6 @@
     <string name="now_playing_last_detected">Last detected</string>
     <string name="spotify_secure_storage_unavailable">Secure Spotify storage is unavailable. Unlock your device and try again. Your encrypted data has been preserved.</string>
     <string name="home_session_start_attribution">Listening time is grouped by the date each session started.</string>
+    <string name="settings_clear_data_requesting">Resetting…</string>
+    <string name="settings_clear_data_failed">Could not request an app reset. Try again or use Clear storage in Android app settings.</string>
 </resources>

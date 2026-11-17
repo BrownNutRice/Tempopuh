@@ -36,6 +36,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import me.avinas.tempo.data.reset.AppResetState
 import androidx.core.os.LocaleListCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -77,7 +79,6 @@ import me.avinas.tempo.utils.ReviewUtils
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToOnboarding: (() -> Unit)? = null,
     onNavigateToBackup: (() -> Unit)? = null,
     onNavigateToSupportedApps: (() -> Unit)? = null,
     onNavigateToBackgroundProtection: (() -> Unit)? = null,
@@ -164,7 +165,9 @@ fun SettingsScreen(
                 "Unknown"
             }
         }
-    var showClearDataDialog by remember { mutableStateOf(false) }
+    var showClearDataDialog by rememberSaveable { mutableStateOf(false) }
+    val resetState by viewModel.resetState.collectAsState()
+    val resetInProgress = resetState == AppResetState.Requesting || resetState == AppResetState.Requested
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Import/Export states
@@ -305,6 +308,13 @@ fun SettingsScreen(
         if (uiState.analyticsIdResetAt != null) {
             snackbarHostState.showSnackbar(analyticsIdResetMessage)
             viewModel.clearAnalyticsIdReset()
+        }
+    }
+
+    LaunchedEffect(resetState) {
+        if (resetState == AppResetState.Failed) {
+            showClearDataDialog = false
+            snackbarHostState.showSnackbar(resources.getString(R.string.settings_clear_data_failed))
         }
     }
 
@@ -1529,8 +1539,14 @@ fun SettingsScreen(
     }
 
     if (showClearDataDialog) {
-        Dialog(onDismissRequest = { showClearDataDialog = false }) {
-            TempoDialogSurface {
+        Dialog(
+            onDismissRequest = { if (!resetInProgress) showClearDataDialog = false },
+            properties = DialogProperties(
+                dismissOnBackPress = !resetInProgress,
+                dismissOnClickOutside = !resetInProgress
+            )
+        ) {
+            TempoDialogSurface(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 TempoDialogIcon(
                     icon = TempoIcons.Trash,
                     tint = TempoError,
@@ -1542,17 +1558,17 @@ fun SettingsScreen(
                 TempoDialogBody(text = stringResource(R.string.settings_clear_data_msg))
                 Spacer(modifier = Modifier.height(24.dp))
                 TempoDialogDangerButton(
-                    text = stringResource(R.string.settings_clear_everything),
-                    onClick = {
-                        viewModel.clearAllData()
-                        showClearDataDialog = false
-                        onNavigateToOnboarding?.invoke()
-                    },
+                    text = stringResource(
+                        if (resetInProgress) R.string.settings_clear_data_requesting else R.string.settings_clear_everything
+                    ),
+                    enabled = !resetInProgress,
+                    onClick = { viewModel.clearAllData() },
                     icon = TempoIcons.Trash,
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 TempoDialogSecondaryButton(
                     text = stringResource(R.string.settings_cancel),
+                    enabled = !resetInProgress,
                     onClick = { showClearDataDialog = false },
                 )
             }

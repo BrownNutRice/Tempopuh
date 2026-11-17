@@ -12,7 +12,7 @@
 | Companion | Built manifests, pairing storage and transport implementation | Media/page data, host access, local-network intent and actual routes |
 | Reporting | Build fields, AnalyticsGate, consent/defaults, payload and backend | Pseudonymous ID, event timestamps, versions/locale, crash device model |
 | Diagnostics/sharing | Report/export preview and recipients | User-selected disclosure; exported files may contain personal records |
-| Deletion | Queue/session/cache/account and external-copy behavior | Local clear/reset is not server or external-file deletion |
+| Deletion | Queue/session/cache/account and external-copy behavior | OS-owned full local reset on current main; verify process/storage/permission behavior and separate server/external copies |
 
 ## Operator details needed for reporting-enabled distribution
 

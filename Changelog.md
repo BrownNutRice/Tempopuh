@@ -6,6 +6,8 @@ Fork-specific changes. Published tags and artifacts are listed in the [release c
 
 ### Fixed
 
+- Clear all data now requests Android’s full app-data reset, replacing partial database/preference deletion while producers remain alive. Confirmation explains closure and scope in all six locales; rejected requests show an error without navigating to onboarding.
+
 - Backup export stages database JSON in one Room transaction, validates references and copies images/compresses the ZIP after releasing the database transaction.
 - Spotify disconnect, new login and client-ID changes invalidate pending token operations; cancelled or stale responses cannot restore credentials or overwrite newer auth state.
 

@@ -521,7 +521,7 @@
     <string name="settings_replace_existing">Bestehendes ersetzen</string>
     <string name="settings_skip_duplicates">Duplikate überspringen</string>
     <string name="settings_clear_data_title">Alle Daten löschen?</string>
-    <string name="settings_clear_data_msg">Diese Aktion kann nicht rückgängig gemacht werden. Dein gesamter Hörverlauf und deine Präferenzen werden dauerhaft gelöscht.</string>
+    <string name="settings_clear_data_msg">Alle lokalen Tempo-Daten, einschließlich Verlauf, Einstellungen, gespeicherter Anmeldungen und ausstehender Wiedergaben, werden dauerhaft entfernt. Tempo wird geschlossen. Öffne die App erneut, um sie einzurichten. Außerhalb von Tempo gespeicherte Dateien, Cloud-Sicherungen und Daten bei Anbietern bleiben erhalten.</string>
     <string name="settings_clear_everything">Alles löschen</string>
     <string name="settings_disconnect_spotify_title">Spotify trennen?</string>
     <string name="settings_disconnect_spotify_msg">Dies entfernt deine Spotify-Verbindung. Audio-Features und Stimmungs-Erfassung werden nicht mehr verfügbar sein.</string>
@@ -1223,4 +1223,6 @@
     <string name="spotify_secure_storage_unavailable">Der sichere Spotify-Speicher ist nicht verfügbar. Entsperre dein Gerät und versuche es erneut. Deine verschlüsselten Daten bleiben erhalten.</string>
     <string name="home_session_start_attribution">Die Hörzeit wird dem Datum zugeordnet, an dem die Wiedergabe begann.</string>
     <string name="settings_analytics_reset_id_desc">Ändert die ID für künftige Ereignisse. Bereits empfangene Ereignisse werden beim Dienst dadurch nicht gelöscht.</string>
+    <string name="settings_clear_data_requesting">Wird zurückgesetzt…</string>
+    <string name="settings_clear_data_failed">Das Zurücksetzen konnte nicht angefordert werden. Versuche es erneut oder lösche den Speicher in den Android-App-Einstellungen.</string>
 </resources>

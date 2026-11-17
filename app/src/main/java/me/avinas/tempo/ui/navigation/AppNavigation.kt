@@ -47,7 +47,6 @@ private fun NavHostController.safeNavigate(route: String) {
 @Composable
 fun AppNavigation(
     walkthroughController: me.avinas.tempo.ui.components.WalkthroughController,
-    onResetToOnboarding: () -> Unit,
     navigationTrigger: String? = null,
 ) {
     val navController = rememberNavController()
@@ -169,7 +168,6 @@ fun AppNavigation(
                     composable(Screen.Settings.route) {
                         SettingsScreen(
                             onNavigateBack = { navController.popBackStack() },
-                            onNavigateToOnboarding = onResetToOnboarding,
                             onNavigateToBackup = { navController.navigate(Screen.BackupRestore.route) },
                             onNavigateToSupportedApps = { navController.navigate(Screen.SupportedApps.route) },
                             onNavigateToBackgroundProtection = { navController.navigate(Screen.BackgroundProtection.route) },
