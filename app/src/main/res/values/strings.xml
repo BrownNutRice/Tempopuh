@@ -1588,4 +1588,27 @@
     <string name="settings_backup_overview_last_success">Last successful Drive backup: %1$s</string>
     <string name="settings_backup_status_shared_destination">This status refers to Google Drive only; device-folder backups are separate.</string>
     <string name="settings_backup_overview_disabled">Drive backup is disabled</string>
+    <string name="appearance_title">Appearance</string>
+    <string name="appearance_settings_summary">Colors, visual styles and motion</string>
+    <string name="appearance_gallery_heading">Make Tempo yours</string>
+    <string name="appearance_gallery_description">Choose a look. Preview first, then apply it to the app.</string>
+    <string name="appearance_cancel">Cancel</string>
+    <string name="appearance_apply">Apply</string>
+    <string name="appearance_preview_pending">Preview only — tap Apply to save this look</string>
+    <string name="appearance_preview_saved">Your selected look is active</string>
+    <string name="appearance_accessibility_heading">Motion and comfort</string>
+    <string name="appearance_reduce_motion">Reduce animation</string>
+    <string name="appearance_reduce_motion_description">Minimize movement and respect system motion settings</string>
+    <string name="appearance_light_later">Light and system themes are being prepared while remaining screens are upgraded for contrast.</string>
+    <string name="appearance_restore">Restore Tempo default</string>
+    <string name="appearance_abyss">Abyss</string>
+    <string name="appearance_gold">Obsidian Gold</string>
+    <string name="appearance_aurora">Aurora</string>
+    <string name="appearance_glacier">Glacier Night</string>
+    <string name="appearance_abyss_desc">Signature dark teal</string>
+    <string name="appearance_gold_desc">Black and warm gold</string>
+    <string name="appearance_aurora_desc">Indigo and violet glow</string>
+    <string name="appearance_glacier_desc">Cool ice-blue after dark</string>
+    <string name="appearance_preview_song">Now listening</string>
+    <string name="appearance_preview_artist">Your music</string>
 </resources>

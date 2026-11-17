@@ -1130,4 +1130,27 @@
     <string name="settings_backup_overview_last_success">Letztes erfolgreiches Drive-Backup: %1$s</string>
     <string name="settings_backup_status_shared_destination">Dieser Status betrifft nur Google Drive; lokale Backups werden getrennt verwaltet.</string>
     <string name="settings_backup_overview_disabled">Drive-Backup ist deaktiviert</string>
+    <string name="appearance_title">Darstellung</string>
+    <string name="appearance_settings_summary">Farben, Stile und Animationen</string>
+    <string name="appearance_gallery_heading">Gestalte Tempo nach deinem Geschmack</string>
+    <string name="appearance_gallery_description">Wähle einen Stil. Zuerst ansehen, dann anwenden.</string>
+    <string name="appearance_cancel">Abbrechen</string>
+    <string name="appearance_apply">Anwenden</string>
+    <string name="appearance_preview_pending">Nur Vorschau – zum Speichern Anwenden wählen</string>
+    <string name="appearance_preview_saved">Dein gewählter Stil ist aktiv</string>
+    <string name="appearance_accessibility_heading">Bewegung und Komfort</string>
+    <string name="appearance_reduce_motion">Animationen reduzieren</string>
+    <string name="appearance_reduce_motion_description">Bewegung minimieren und Systemeinstellungen beachten</string>
+    <string name="appearance_light_later">Helles Design und Systemdesign folgen, sobald alle Ansichten ausreichenden Kontrast bieten.</string>
+    <string name="appearance_restore">Tempo-Standard wiederherstellen</string>
+    <string name="appearance_abyss">Abyss</string>
+    <string name="appearance_gold">Obsidian Gold</string>
+    <string name="appearance_aurora">Aurora</string>
+    <string name="appearance_glacier">Glacier Night</string>
+    <string name="appearance_abyss_desc">Dunkles Türkis</string>
+    <string name="appearance_gold_desc">Schwarz und warmes Gold</string>
+    <string name="appearance_aurora_desc">Indigo und violetter Schein</string>
+    <string name="appearance_glacier_desc">Kühles Eisblau bei Nacht</string>
+    <string name="appearance_preview_song">Aktuelle Wiedergabe</string>
+    <string name="appearance_preview_artist">Deine Musik</string>
 </resources>

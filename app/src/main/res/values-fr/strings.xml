@@ -1128,4 +1128,27 @@
     <string name="settings_backup_overview_last_success">Dernière sauvegarde Drive réussie : %1$s</string>
     <string name="settings_backup_status_shared_destination">Cet état concerne Google Drive uniquement ; les sauvegardes locales sont indépendantes.</string>
     <string name="settings_backup_overview_disabled">La sauvegarde Drive est désactivée</string>
+    <string name="appearance_title">Apparence</string>
+    <string name="appearance_settings_summary">Couleurs, styles et animations</string>
+    <string name="appearance_gallery_heading">Personnalisez Tempo</string>
+    <string name="appearance_gallery_description">Choisissez un style. Prévisualisez-le avant de l’appliquer.</string>
+    <string name="appearance_cancel">Annuler</string>
+    <string name="appearance_apply">Appliquer</string>
+    <string name="appearance_preview_pending">Aperçu uniquement — appuyez sur Appliquer pour enregistrer</string>
+    <string name="appearance_preview_saved">Le style choisi est actif</string>
+    <string name="appearance_accessibility_heading">Animation et confort</string>
+    <string name="appearance_reduce_motion">Réduire les animations</string>
+    <string name="appearance_reduce_motion_description">Limiter les mouvements et respecter les réglages du système</string>
+    <string name="appearance_light_later">Les thèmes clair et système seront disponibles lorsque toutes les pages auront un contraste adapté.</string>
+    <string name="appearance_restore">Rétablir le style Tempo</string>
+    <string name="appearance_abyss">Abyss</string>
+    <string name="appearance_gold">Obsidian Gold</string>
+    <string name="appearance_aurora">Aurora</string>
+    <string name="appearance_glacier">Glacier Night</string>
+    <string name="appearance_abyss_desc">Bleu-vert sombre signature</string>
+    <string name="appearance_gold_desc">Noir et or chaleureux</string>
+    <string name="appearance_aurora_desc">Indigo et éclat violet</string>
+    <string name="appearance_glacier_desc">Bleu glacier nocturne</string>
+    <string name="appearance_preview_song">En écoute</string>
+    <string name="appearance_preview_artist">Votre musique</string>
 </resources>
