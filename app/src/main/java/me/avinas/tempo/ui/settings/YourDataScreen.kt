@@ -114,7 +114,7 @@ fun YourDataScreen(
                 Text(
                     text = stringResource(R.string.your_data_intro),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.75f),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
                 )
 
                 CollapsibleCard(
@@ -141,7 +141,7 @@ fun YourDataScreen(
                             Text(
                                 text = entry.what,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.75f),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
@@ -156,7 +156,7 @@ fun YourDataScreen(
                     Text(
                         text = stringResource(R.string.what_we_collect_footer),
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.6f),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                         modifier = Modifier.padding(top = 4.dp),
                     )
                 }
@@ -181,7 +181,7 @@ fun YourDataScreen(
                             Text(
                                 text = stringResource(R.string.diagnostics_failed),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Color.White.copy(alpha = 0.7f),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                             )
                         }
 
@@ -191,7 +191,7 @@ fun YourDataScreen(
                                     text = report,
                                     style = MaterialTheme.typography.bodySmall,
                                     fontFamily = FontFamily.Monospace,
-                                    color = Color.White.copy(alpha = 0.85f),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
                                 )
                             }
 
@@ -228,7 +228,7 @@ fun YourDataScreen(
                                     colors =
                                         ButtonDefaults.buttonColors(
                                             containerColor = MaterialTheme.colorScheme.primary,
-                                            contentColor = Color.White,
+                                            contentColor = MaterialTheme.colorScheme.onPrimary,
                                         ),
                                 ) {
                                     Text(stringResource(R.string.diagnostics_share))
@@ -292,7 +292,7 @@ private fun CollapsibleCard(
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
             )
 
             if (expanded) {
