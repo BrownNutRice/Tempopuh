@@ -2,9 +2,7 @@ name: Build debug APK
 
 on:
   push:
-    branches:
-      - main
-      - fix/background-tracking-reliability-2026-11-16
+    branches: [main]
   workflow_dispatch:
 
 # Cancel obsolete builds when multiple commits are pushed to the same branch.
