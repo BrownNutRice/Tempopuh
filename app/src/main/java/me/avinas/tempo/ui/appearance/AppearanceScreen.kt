@@ -48,6 +48,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
+import me.avinas.tempo.ui.theme.AppFontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -151,6 +153,32 @@ fun AppearanceScreen(
                     color = muted,
                 )
 
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    stringResource(R.string.appearance_font_heading),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = foreground,
+                )
+                Text(
+                    stringResource(R.string.appearance_font_description),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = muted,
+                )
+                AppearanceFontStyle.entries.chunked(2).forEach { pair ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        pair.forEach { style ->
+                            FontStyleCard(
+                                style = style,
+                                selected = saved.fontStyle == style,
+                                onClick = { viewModel.setFontStyle(style) },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                }
                 Spacer(Modifier.height(6.dp))
                 Text(
                     stringResource(R.string.appearance_accessibility_heading),
@@ -300,5 +328,56 @@ private fun AppearancePresetCard(
         Text(description, color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodySmall, maxLines = 2,
             overflow = TextOverflow.Ellipsis)
+    }
+}
+ 
+@Composable
+private fun FontStyleCard(
+    style: AppearanceFontStyle,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(18.dp)
+    val scheme = MaterialTheme.colorScheme
+    val label = when (style) {
+        AppearanceFontStyle.TEMPO -> stringResource(R.string.appearance_font_tempo)
+        AppearanceFontStyle.NEO_SANS -> stringResource(R.string.appearance_font_neo)
+        AppearanceFontStyle.ARCHIVE_SERIF -> stringResource(R.string.appearance_font_archive)
+        AppearanceFontStyle.STUDIO_MONO -> stringResource(R.string.appearance_font_studio)
+    }
+    val family = when (style) {
+        AppearanceFontStyle.TEMPO -> AppFontFamily
+        AppearanceFontStyle.NEO_SANS -> FontFamily.SansSerif
+        AppearanceFontStyle.ARCHIVE_SERIF -> FontFamily.Serif
+        AppearanceFontStyle.STUDIO_MONO -> FontFamily.Monospace
+    }
+    Row(
+        modifier = modifier
+            .clip(shape)
+            .border(
+                if (selected) 2.dp else 1.dp,
+                if (selected) scheme.primary else scheme.outlineVariant,
+                shape,
+            )
+            .clickable(onClick = onClick)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text("Aa", fontFamily = family,
+            color = if (selected) scheme.primary else scheme.onSurface,
+            style = MaterialTheme.typography.titleLarge,
+            maxLines = 1)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(label, color = scheme.onSurface,
+                style = MaterialTheme.typography.labelMedium,
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (selected) Text(
+                stringResource(R.string.appearance_font_selected),
+                color = scheme.primary,
+                style = MaterialTheme.typography.labelSmall,
+            )
+        }
     }
 }
