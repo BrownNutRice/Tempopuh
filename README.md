@@ -53,7 +53,7 @@ See [Tracking and import accuracy](docs/TRACKING_AND_IMPORT_ACCURACY.md) and [Re
 
 ## Install or build
 
-**Beta APK:** [Tempo 4.8.16-fork.2 Beta 1](https://github.com/matchalattewithbanana/Tempo/releases/tag/v4.8.16-fork.2-beta.1) is a prerelease for appearance and usability testing. Back up your listening data before installing; Android requires the APK signer to match for in-place updates.
+**Latest beta APK:** [Tempo 4.9.0 Beta 1](https://github.com/matchalattewithbanana/Tempo/releases/tag/v4.9.0-beta.1) is a prerelease for reliability, accessibility and import testing. Back up your listening data before installing; Android requires the APK signer to match for in-place updates. Release and versioning policy: [docs/RELEASING.md](docs/RELEASING.md).
 
 **Requirements:** Android 8.0+ (API 26) for the app; JDK 21 and Android SDK 36 for source builds. Use a recent Android Studio version with compatible Android Gradle Plugin support.
 

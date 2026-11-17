@@ -2,6 +2,23 @@
 
 All notable changes to Tempo are documented in this file.
 
+## [4.9.0-beta.1] — 2026-11-17
+
+**Reliability and import beta.** Starts the SemVer release series; Android version code 4818.
+
+### Fixed
+- Preserved unsynced browser plays during pruning and durable queued plays during offline recovery; replay now retries bounded due batches without per-event sleeps.
+- Removed blocking Room reads from notification-listener startup and prevented routine maintenance from pruning listening history.
+- Made Spotify credentials fail closed on secure-store errors; made migration snapshots verify copies and analytics queue writes atomic.
+- Rejected unsigned, malformed and replayed WebSocket control frames, withheld pairing tokens from the WebSocket handshake, and removed the extension's global host grant.
+- Bounded backup/Spotify/Musicolet import memory and disk usage; Spotify history is staged to disk and replayed in small batches.
+- Corrected Home unique-track semantics, calendar invalidation and explicit session-start day attribution; gated decorative animation for reduced motion.
+
+### Validation
+- Browser extension typecheck and smoke checks passed locally.
+- Android unit/lint/build validation is pending the main-only GitHub beta workflow; local Gradle could not download Gradle 9.4.1 because the execution environment has no network route.
+- Physical-device visual, accessibility, playback and battery checks remain beta feedback items.
+
 ## [4.8.16-fork.2-beta.1] — 2026-11-17
 
 **Appearance Studio beta.** Six curated looks, experimental Light/System, OLED,

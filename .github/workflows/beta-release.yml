@@ -1,21 +1,26 @@
-name: Appearance beta validation / release
+name: Beta release (manual, main only)
 
-# One-off beta branch. No automatic builds occur on main or pull requests.
+# Pushes and PRs never build or publish. Dispatch explicitly from main; select
+# publish_beta only when the validated artifact should become a prerelease.
 on:
-  push:
-    branches:
-      - beta/appearance-2026-11-17
+  workflow_dispatch:
+    inputs:
+      publish_beta:
+        description: Publish the validated APK as Tempo 4.9.0 Beta 1
+        required: true
+        type: boolean
+        default: false
+
+concurrency:
+  group: beta-release-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
 
-concurrency:
-  group: appearance-beta-2026-11-17
-  cancel-in-progress: true
-
 jobs:
   validate:
-    name: Unit tests, lint, build
+    name: Unit tests, lint, APK and extension checks
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -38,43 +43,47 @@ jobs:
           if [[ -n "$TEMPO_DEBUG_KEYSTORE_BASE64" ]]; then
             printf '%s' "$TEMPO_DEBUG_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/tempo-debug.jks"
             echo "TEMPO_DEBUG_KEYSTORE_PATH=$RUNNER_TEMP/tempo-debug.jks" >> "$GITHUB_ENV"
-            echo "Persistent debug signer provided."
           else
-            echo "::warning::No persistent signing key: beta APK may not update earlier installations."
+            echo "::warning::No persistent debug signer configured; in-place APK updates may be blocked."
           fi
       - run: chmod +x gradlew
-      - name: Unit tests (retry transient toolchain registry errors)
-        shell: bash
-        run: |
-          set -o pipefail
-          for attempt in 1 2 3; do
-            if ./gradlew :app:testDebugUnitTest --stacktrace 2>&1 | tee "$RUNNER_TEMP/gradle-test.log"; then
-              exit 0
-            fi
-            # Only retry Gradle plugin registry/network failures; never hide compilation/test errors.
-            if ! grep -Fq "org.gradle.toolchains.foojay-resolver-convention" "$RUNNER_TEMP/gradle-test.log"; then
-              exit 1
-            fi
-            sleep $((15 * attempt))
-          done
-          exit 1
+      - name: Unit tests
+        run: ./gradlew :app:testDebugUnitTest --stacktrace
       - name: Android lint
         run: ./gradlew :app:lintDebug --stacktrace
-      - name: Assemble APK
+      - name: Assemble debug APK
         run: ./gradlew :app:assembleDebug --stacktrace
-      - name: Verify APK exists and print signer
+      - name: Verify APK and expected version
         shell: bash
         run: |
           set -euo pipefail
           apk="$(find app/build/outputs/apk/debug -maxdepth 1 -name '*.apk' | head -n1)"
           test -n "$apk"
-          "$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)/apksigner" verify --print-certs "$apk"
+          "$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n1)/apksigner" verify --print-certs "$apk"
+          grep -F 'val appVersionCode = 4818' app/build.gradle.kts
+          grep -F 'val appVersionName = "4.9.0-beta.1"' app/build.gradle.kts
       - uses: actions/upload-artifact@v4
         with:
-          name: appearance-beta-debug-apk
+          name: tempo-4.9.0-beta.1-apk
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: browser-extension/package-lock.json
+      - name: Install extension dependencies
+        working-directory: browser-extension
+        run: npm ci
+      - name: Extension typecheck
+        working-directory: browser-extension
+        run: npm run typecheck
+      - name: Extension smoke checks
+        working-directory: browser-extension
+        run: npm run smoke
 
   platform:
     name: Android emulator tests
@@ -105,40 +114,40 @@ jobs:
           script: ./gradlew :app:connectedDebugAndroidTest --stacktrace
 
   publish:
-    name: Publish beta prerelease
+    name: Publish immutable GitHub prerelease
     needs: [validate, platform]
-    if: contains(github.event.head_commit.message, '[publish-beta]')
+    if: ${{ inputs.publish_beta }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
     env:
       GH_TOKEN: ${{ github.token }}
-      TAG: v4.8.16-fork.2-beta.1
+      TAG: v4.9.0-beta.1
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: appearance-beta-debug-apk
+          name: tempo-4.9.0-beta.1-apk
           path: dist
-      - name: Stage APK and checksums
+      - name: Stage APK and checksum
         shell: bash
         run: |
           set -euo pipefail
           apk="$(find dist -type f -name '*.apk' | head -n1)"
           test -n "$apk"
-          cp "$apk" "dist/Tempo-4.8.16-fork.2-beta.1.apk"
+          cp "$apk" dist/Tempo-4.9.0-beta.1.apk
           rm "$apk"
-          (cd dist && sha256sum Tempo-4.8.16-fork.2-beta.1.apk > SHA256SUMS.txt)
-      - name: Publish verified prerelease
+          (cd dist && sha256sum Tempo-4.9.0-beta.1.apk > SHA256SUMS.txt)
+      - name: Publish prerelease
         shell: bash
         run: |
           set -euo pipefail
           if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "::error::Tag $TAG already exists; refusing to replace published assets."
+            echo "::error::Tag $TAG already exists; refusing to replace a published release."
             exit 1
           fi
-          gh release create "$TAG" dist/Tempo-4.8.16-fork.2-beta.1.apk dist/SHA256SUMS.txt \
+          gh release create "$TAG" dist/Tempo-4.9.0-beta.1.apk dist/SHA256SUMS.txt \
             --target "$GITHUB_SHA" \
-            --title "Tempo 4.8.16-fork.2 Beta 1 — Appearance Studio" \
-            --notes-file docs/releases/v4.8.16-fork.2-beta.1.md \
+            --title "Tempo 4.9.0 Beta 1 — Reliability and import hardening" \
+            --notes-file docs/releases/v4.9.0-beta.1.md \
             --prerelease
