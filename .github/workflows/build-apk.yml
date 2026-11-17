@@ -2,7 +2,9 @@ name: Build debug APK
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - fix/background-tracking-reliability-2026-11-16
   workflow_dispatch:
 
 # Cancel obsolete builds when multiple commits are pushed to the same branch.
@@ -62,7 +64,7 @@ jobs:
   publish-first-fork-preview:
     name: Publish first fork preview
     needs: apk
-    if: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[publish 4.8.16-fork.1]') }}
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[publish 4.8.16-fork.1]') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
