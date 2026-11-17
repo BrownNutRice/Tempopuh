@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.core.os.LocaleListCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -93,7 +94,19 @@ fun SettingsScreen(
     var historyBackupConfirmed by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    // Settings home is intentionally a small category navigator.
+    var settingsCategory by rememberSaveable { mutableStateOf("overview") }
+    val settingsScrollState = rememberScrollState()
+    BackHandler(enabled = settingsCategory != "overview") {
+        settingsCategory = "overview"
+    }
+    LaunchedEffect(settingsCategory) {
+        settingsScrollState.scrollTo(0)
+    }
     val scope = rememberCoroutineScope()
+    var notificationListenerGranted by remember {
+        mutableStateOf(NotificationManagerCompat.getEnabledListenerPackages(context).contains(context.packageName))
+    }
     var spotifyBroadcastEnabled by remember { mutableStateOf(SpotifyBroadcastPresence.enabled(context)) }
     var spotifyConnected by remember { mutableStateOf(false) }
     var spotifyClientId by remember { mutableStateOf("") }
@@ -174,13 +187,20 @@ fun SettingsScreen(
     var isBatteryCritical by remember { mutableStateOf(BatteryUtils.isCriticalBattery(context)) }
     var isLowBattery by remember { mutableStateOf(BatteryUtils.isLowBattery(context)) }
 
-    // Refresh battery level every 30 seconds
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(30 * 1000L)
+    // Battery percentage is only shown in tracking/desktop settings.
+    // Don't poll every 30 seconds while browsing language, privacy or the
+    // settings overview.
+    LaunchedEffect(settingsCategory) {
+        if (settingsCategory == "tracking" || settingsCategory == "connections") {
             batteryLevel = BatteryUtils.getBatteryLevel(context)
             isBatteryCritical = BatteryUtils.isCriticalBattery(context)
             isLowBattery = BatteryUtils.isLowBattery(context)
+            while (true) {
+                delay(30_000L)
+                batteryLevel = BatteryUtils.getBatteryLevel(context)
+                isBatteryCritical = BatteryUtils.isCriticalBattery(context)
+                isLowBattery = BatteryUtils.isLowBattery(context)
+            }
         }
     }
 
@@ -190,6 +210,9 @@ fun SettingsScreen(
             androidx.lifecycle.LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_RESUME) {
                     autostartState = OemBackgroundHelper.getAutostartState(context)
+                    notificationListenerGranted =
+                        NotificationManagerCompat.getEnabledListenerPackages(context)
+                            .contains(context.packageName)
                 }
             }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -261,17 +284,6 @@ fun SettingsScreen(
         }
     }
 
-    // Settings overview first; the long controls list is divided into focused
-    // destinations, without changing any underlying settings or their storage.
-    var settingsCategory by rememberSaveable { mutableStateOf("overview") }
-    val settingsScrollState = rememberScrollState()
-    BackHandler(enabled = settingsCategory != "overview") {
-        settingsCategory = "overview"
-    }
-    LaunchedEffect(settingsCategory) {
-        settingsScrollState.scrollTo(0)
-    }
-
     // Name Dialog State
     var showNameDialog by remember { mutableStateOf(false) }
     var tempName by remember { mutableStateOf("") }
@@ -325,6 +337,31 @@ fun SettingsScreen(
                         .padding(16.dp),
             ) {
                 if (settingsCategory == "overview") {
+                    SettingsSectionHeader(stringResource(R.string.settings_tracking_access_status))
+                    GlassCard(
+                        contentPadding = PaddingValues(0.dp),
+                        variant = me.avinas.tempo.ui.components.GlassCardVariant.LowProminence,
+                    ) {
+                        SettingsOption(
+                            title = stringResource(R.string.settings_tracking_access_title),
+                            subtitle = stringResource(
+                                if (notificationListenerGranted) R.string.settings_tracking_access_granted
+                                else R.string.settings_tracking_access_missing
+                            ),
+                            onClick = {
+                                try {
+                                    context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                                } catch (_: ActivityNotFoundException) {
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.settings_notification_settings_error),
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                }
+                            },
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(20.dp))
                     SettingsSectionHeader(stringResource(R.string.settings_category_browse))
                     GlassCard(
                         contentPadding = PaddingValues(0.dp),

@@ -1567,4 +1567,8 @@
     <string name="settings_category_data_desc">Backups, history accuracy and metadata</string>
     <string name="settings_category_about">About &amp; community</string>
     <string name="settings_category_about_desc">Version, support and privacy</string>
+    <string name="settings_tracking_access_status">Tracking access</string>
+    <string name="settings_tracking_access_title">Notification permission</string>
+    <string name="settings_tracking_access_granted">Granted — tap to review access</string>
+    <string name="settings_tracking_access_missing">Not granted — tap to enable music tracking</string>
 </resources>
