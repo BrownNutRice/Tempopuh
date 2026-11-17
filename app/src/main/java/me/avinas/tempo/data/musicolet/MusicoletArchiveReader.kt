@@ -210,11 +210,12 @@ internal object MusicoletArchiveReader {
             Cipher.getInstance("Blowfish/ECB/NoPadding").apply {
                 init(Cipher.DECRYPT_MODE, SecretKeySpec(MusicoletCrypto.KEY.toByteArray(Charsets.UTF_8), "Blowfish"))
             }
-        }.getOrNull() ?: return null
+        }.getOrNull()
+        if (!rawSqlite && cipher == null) return null
 
         var total = 0L
         val buffer = ByteArray(64 * 1024)
-        try {
+        return try {
             target.outputStream().buffered().use { out ->
                 while (true) {
                     val count = input.read(buffer)

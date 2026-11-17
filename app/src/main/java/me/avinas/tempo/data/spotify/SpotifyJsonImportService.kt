@@ -25,6 +25,7 @@ import okio.BufferedSink
 import okio.Buffer
 import okio.sink
 import okio.source
+import java.io.File
 import java.io.FilterInputStream
 import java.io.IOException
 import java.io.InputStream

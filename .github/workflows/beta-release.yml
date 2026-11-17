@@ -153,3 +153,5 @@ jobs:
             --title "Tempo 4.9.0 Beta 1 — Reliability and import hardening" \
             --notes-file docs/releases/v4.9.0-beta.1.md \
             --prerelease
+
+# Retry after importer compilation fixes.
