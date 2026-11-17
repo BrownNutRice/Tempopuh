@@ -1205,4 +1205,21 @@
     <string name="settings_cover_source_title">Fonte preferida das capas</string>
     <string name="settings_cover_source_description">Escolha qual serviço consultar primeiro para capas de álbuns. Se nenhuma capa for encontrada, o Tempo usa outros serviços automaticamente.</string>
     <string name="settings_cover_source_automatic">Automático (predefinido)</string>
+    <string name="home_show_more_insights">Explorar mais estatísticas</string>
+    <string name="home_hide_more_insights">Mostrar menos estatísticas</string>
+    <string name="settings_category_browse">Escolher uma área</string>
+    <string name="settings_category_general">Geral</string>
+    <string name="settings_category_general_desc">Perfil, idioma e notificações</string>
+    <string name="settings_category_tracking">Monitorização de música</string>
+    <string name="settings_category_tracking_desc">Acesso aos leitores, filtros e proteção da bateria</string>
+    <string name="settings_category_connections">Ligações e importações</string>
+    <string name="settings_category_connections_desc">Spotify, Last.fm, computador e importação do histórico</string>
+    <string name="settings_category_data">Biblioteca e dados</string>
+    <string name="settings_category_data_desc">Cópias de segurança, precisão do histórico e metadados</string>
+    <string name="settings_category_about">Sobre e comunidade</string>
+    <string name="settings_category_about_desc">Versão, suporte e privacidade</string>
+    <string name="settings_tracking_access_status">Acesso ao rastreio</string>
+    <string name="settings_tracking_access_title">Acesso às notificações</string>
+    <string name="settings_tracking_access_granted">Permitido – tocar para verificar o acesso</string>
+    <string name="settings_tracking_access_missing">Não permitido – tocar para ativar o rastreio</string>
 </resources>

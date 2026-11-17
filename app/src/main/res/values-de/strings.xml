@@ -1096,4 +1096,21 @@
     <string name="settings_cover_source_title">Bevorzugte Coverquelle</string>
     <string name="settings_cover_source_description">Wählen Sie, welcher Dienst zuerst für Album-Cover versucht wird. Wird kein Cover gefunden, nutzt Tempo automatisch andere Dienste.</string>
     <string name="settings_cover_source_automatic">Automatisch (Standard)</string>
+    <string name="home_show_more_insights">Weitere Einblicke entdecken</string>
+    <string name="home_hide_more_insights">Weniger Einblicke anzeigen</string>
+    <string name="settings_category_browse">Bereich auswählen</string>
+    <string name="settings_category_general">Allgemein</string>
+    <string name="settings_category_general_desc">Profil, Sprache und Benachrichtigungen</string>
+    <string name="settings_category_tracking">Musikerfassung</string>
+    <string name="settings_category_tracking_desc">Player-Zugriff, Filter und Akkuschutz</string>
+    <string name="settings_category_connections">Verbindungen und Importe</string>
+    <string name="settings_category_connections_desc">Spotify, Last.fm, Desktop und Verlaufsimporte</string>
+    <string name="settings_category_data">Mediathek und Daten</string>
+    <string name="settings_category_data_desc">Backups, Verlaufsgenauigkeit und Metadaten</string>
+    <string name="settings_category_about">Über die App und Community</string>
+    <string name="settings_category_about_desc">Version, Support und Datenschutz</string>
+    <string name="settings_tracking_access_status">Tracking-Zugriff</string>
+    <string name="settings_tracking_access_title">Benachrichtigungszugriff</string>
+    <string name="settings_tracking_access_granted">Erlaubt – tippen, um den Zugriff zu prüfen</string>
+    <string name="settings_tracking_access_missing">Nicht erlaubt – tippen, um die Musikerfassung zu aktivieren</string>
 </resources>

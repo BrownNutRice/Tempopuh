@@ -1094,4 +1094,21 @@
     <string name="settings_cover_source_title">Fournisseur de pochettes</string>
     <string name="settings_cover_source_description">Choisissez le service utilisé en priorité pour les pochettes d\'album. Si aucune pochette n\'est trouvée, Tempo utilise automatiquement les autres services.</string>
     <string name="settings_cover_source_automatic">Automatique (par défaut)</string>
+    <string name="home_show_more_insights">Découvrir plus de statistiques</string>
+    <string name="home_hide_more_insights">Afficher moins de statistiques</string>
+    <string name="settings_category_browse">Choisir une rubrique</string>
+    <string name="settings_category_general">Général</string>
+    <string name="settings_category_general_desc">Profil, langue et notifications</string>
+    <string name="settings_category_tracking">Suivi musical</string>
+    <string name="settings_category_tracking_desc">Accès aux lecteurs, filtres et protection de la batterie</string>
+    <string name="settings_category_connections">Connexions et importations</string>
+    <string name="settings_category_connections_desc">Spotify, Last.fm, ordinateur et importation de contenus</string>
+    <string name="settings_category_data">Bibliothèque et données</string>
+    <string name="settings_category_data_desc">Sauvegardes, exactitude de l’historique et métadonnées</string>
+    <string name="settings_category_about">À propos et communauté</string>
+    <string name="settings_category_about_desc">Version, assistance et confidentialité</string>
+    <string name="settings_tracking_access_status">Accès au suivi</string>
+    <string name="settings_tracking_access_title">Accès aux notifications</string>
+    <string name="settings_tracking_access_granted">Autorisé – toucher pour vérifier</string>
+    <string name="settings_tracking_access_missing">Non autorisé – toucher pour activer le suivi</string>
 </resources>

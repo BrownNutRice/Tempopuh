@@ -730,4 +730,21 @@
     <string name="settings_cover_source_title">Előnyben részesített borítóforrás</string>
     <string name="settings_cover_source_description">Válassza ki, melyik szolgáltatásból próbáljon először borítót betölteni. Ha nem található borító, a Tempo automatikusan más szolgáltatásokat használ.</string>
     <string name="settings_cover_source_automatic">Automatikus (alapértelmezett)</string>
+    <string name="home_show_more_insights">További elemzések</string>
+    <string name="home_hide_more_insights">Kevesebb elemzés</string>
+    <string name="settings_category_browse">Válassz kategóriát</string>
+    <string name="settings_category_general">Általános</string>
+    <string name="settings_category_general_desc">Profil, nyelv és értesítések</string>
+    <string name="settings_category_tracking">Zenehallgatás követése</string>
+    <string name="settings_category_tracking_desc">Lejátszó-hozzáférés, szűrés és akkumulátorvédelem</string>
+    <string name="settings_category_connections">Kapcsolatok és importálás</string>
+    <string name="settings_category_connections_desc">Spotify, Last.fm, asztali gép és előzmények</string>
+    <string name="settings_category_data">Könyvtár és adatok</string>
+    <string name="settings_category_data_desc">Biztonsági mentések, előzmények pontossága és metaadatok</string>
+    <string name="settings_category_about">Névjegy és közösség</string>
+    <string name="settings_category_about_desc">Verzió, támogatás és adatvédelem</string>
+    <string name="settings_tracking_access_status">Követési hozzáférés</string>
+    <string name="settings_tracking_access_title">Értesítési hozzáférés</string>
+    <string name="settings_tracking_access_granted">Engedélyezve – érintsd meg az ellenőrzéshez</string>
+    <string name="settings_tracking_access_missing">Nincs engedély – érintsd meg a zene követésének engedélyezéséhez</string>
 </resources>

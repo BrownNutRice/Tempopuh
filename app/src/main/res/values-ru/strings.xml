@@ -1322,4 +1322,21 @@
     <string name="settings_cover_source_title">Предпочитаемый источник обложек</string>
     <string name="settings_cover_source_description">Выберите сервис, который будет опрашиваться первым для обложек альбомов. Если обложка не найдена, Tempo автоматически использует другие сервисы.</string>
     <string name="settings_cover_source_automatic">Автоматически (по умолчанию)</string>
+    <string name="home_show_more_insights">Больше аналитики</string>
+    <string name="home_hide_more_insights">Скрыть дополнительные сведения</string>
+    <string name="settings_category_browse">Выберите раздел</string>
+    <string name="settings_category_general">Основные</string>
+    <string name="settings_category_general_desc">Профиль, язык и уведомления</string>
+    <string name="settings_category_tracking">Отслеживание музыки</string>
+    <string name="settings_category_tracking_desc">Доступ к плеерам, фильтры и защита батареи</string>
+    <string name="settings_category_connections">Подключения и импорт</string>
+    <string name="settings_category_connections_desc">Spotify, Last.fm, ПК и импорт истории</string>
+    <string name="settings_category_data">Медиатека и данные</string>
+    <string name="settings_category_data_desc">Резервные копии, точность истории и метаданные</string>
+    <string name="settings_category_about">О приложении и сообщество</string>
+    <string name="settings_category_about_desc">Версия, поддержка и конфиденциальность</string>
+    <string name="settings_tracking_access_status">Доступ к отслеживанию</string>
+    <string name="settings_tracking_access_title">Доступ к уведомлениям</string>
+    <string name="settings_tracking_access_granted">Разрешён – нажмите для проверки</string>
+    <string name="settings_tracking_access_missing">Нет доступа – нажмите, чтобы включить отслеживание</string>
 </resources>
