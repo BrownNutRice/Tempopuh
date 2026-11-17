@@ -47,6 +47,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontFamily
 import me.avinas.tempo.ui.theme.AppFontFamily
@@ -255,6 +259,10 @@ private fun AppearancePresetCard(
                 shape,
             )
             .clickable(onClick = onClick)
+            .semantics {
+                role = Role.RadioButton
+                this.selected = selected
+            }
             .padding(7.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -361,6 +369,10 @@ private fun FontStyleCard(
                 shape,
             )
             .clickable(onClick = onClick)
+            .semantics {
+                role = Role.RadioButton
+                this.selected = selected
+            }
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
