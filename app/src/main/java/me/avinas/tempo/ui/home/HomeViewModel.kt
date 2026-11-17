@@ -233,8 +233,10 @@ class HomeViewModel @Inject constructor(
                 val peakDayMsDeferred = async { dbSemaphore.withPermit { statsRepository.getPeakDayListeningMs(timeRange, withLeeway = false) } }
                 val topTracksDeferred = if (loadExtended) async { dbSemaphore.withPermit { statsRepository.getTopTracks(timeRange, sortBy = me.avinas.tempo.data.repository.SortBy.COMBINED_SCORE, pageSize = 1, withLeeway = false) } } else null
                 val topArtistsDeferred = if (loadExtended) async { dbSemaphore.withPermit { statsRepository.getTopArtists(timeRange, sortBy = me.avinas.tempo.data.repository.SortBy.COMBINED_SCORE, pageSize = 1, withLeeway = false) } } else null
-                val discoveryStatsDeferred = async { dbSemaphore.withPermit { statsRepository.getDiscoveryStats(timeRange, withLeeway = false) } }
-                val mostActiveHourDeferred = async { dbSemaphore.withPermit { statsRepository.getMostActiveHour(timeRange, withLeeway = false) } }
+                // Both are secondary discovery metrics; Home's compact cards do
+                // not display them and should not incur these queries.
+                val discoveryStatsDeferred = if (loadExtended) async { dbSemaphore.withPermit { statsRepository.getDiscoveryStats(timeRange, withLeeway = false) } } else null
+                val mostActiveHourDeferred = if (loadExtended) async { dbSemaphore.withPermit { statsRepository.getMostActiveHour(timeRange, withLeeway = false) } } else null
                 val audioFeaturesDeferred = async { dbSemaphore.withPermit { statsRepository.getAudioFeaturesStats(timeRange, withLeeway = false) } }
                 val insightsDeferred = if (loadExtended) async { dbSemaphore.withPermit { statsRepository.getInsights(timeRange, withLeeway = false) } } else null
                 val profileIdentityDeferred = async { profileIdentityManager.getProfileIdentity() }
@@ -275,8 +277,8 @@ class HomeViewModel @Inject constructor(
                 val rawDailyListening = rawDailyListeningDeferred.await()
                 val topTracks = topTracksDeferred?.await()
                 val topArtists = topArtistsDeferred?.await()
-                val discoveryStats = discoveryStatsDeferred.await()
-                val mostActiveHour = mostActiveHourDeferred.await()
+                val discoveryStats = discoveryStatsDeferred?.await()
+                val mostActiveHour = mostActiveHourDeferred?.await()
                 val audioFeatures = audioFeaturesDeferred.await()
                 val profileIdentity = profileIdentityDeferred.await()
                 val spotlightTopTrack = spotlightTopTrackDeferred?.await()?.items?.firstOrNull()
