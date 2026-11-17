@@ -1120,11 +1120,12 @@
     <string name="settings_health_just_now">À l’instant</string>
     <string name="settings_health_minutes_ago">Il y a %1$d minutes</string>
     <string name="settings_health_no_signal">Aucun signal du lecteur enregistré</string>
-    <string name="settings_backup_overview_header">État des sauvegardes</string>
-    <string name="settings_backup_overview_never">Aucune tentative de sauvegarde enregistrée</string>
-    <string name="settings_backup_overview_success">Dernière sauvegarde réussie</string>
-    <string name="settings_backup_overview_failed">Dernière sauvegarde échouée — vérifier les paramètres</string>
-    <string name="settings_backup_overview_running">Sauvegarde en cours</string>
-    <string name="settings_backup_overview_last_success">Dernière sauvegarde réussie : %1$s</string>
-    <string name="settings_backup_status_shared_destination">Cet état concerne les sauvegardes locales et Google Drive.</string>
+    <string name="settings_backup_overview_header">État des sauvegardes Google Drive</string>
+    <string name="settings_backup_overview_never">Aucune tentative de sauvegarde Drive enregistrée</string>
+    <string name="settings_backup_overview_success">Dernière sauvegarde Drive réussie</string>
+    <string name="settings_backup_overview_failed">Dernière sauvegarde Drive échouée — vérifier la connexion</string>
+    <string name="settings_backup_overview_running">Sauvegarde Drive indiquée comme en cours</string>
+    <string name="settings_backup_overview_last_success">Dernière sauvegarde Drive réussie : %1$s</string>
+    <string name="settings_backup_status_shared_destination">Cet état concerne Google Drive uniquement ; les sauvegardes locales sont indépendantes.</string>
+    <string name="settings_backup_overview_disabled">La sauvegarde Drive est désactivée</string>
 </resources>

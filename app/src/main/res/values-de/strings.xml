@@ -1122,11 +1122,12 @@
     <string name="settings_health_just_now">Gerade eben</string>
     <string name="settings_health_minutes_ago">Vor %1$d Minuten</string>
     <string name="settings_health_no_signal">Noch kein Player-Rückruf erfasst</string>
-    <string name="settings_backup_overview_header">Backupstatus</string>
-    <string name="settings_backup_overview_never">Noch kein Backup-Versuch erfasst</string>
-    <string name="settings_backup_overview_success">Letztes Backup erfolgreich</string>
-    <string name="settings_backup_overview_failed">Letztes Backup fehlgeschlagen – Einstellungen prüfen</string>
-    <string name="settings_backup_overview_running">Backup läuft</string>
-    <string name="settings_backup_overview_last_success">Letztes erfolgreiches Backup: %1$s</string>
-    <string name="settings_backup_status_shared_destination">Dieser Status umfasst lokale und Google-Drive-Backups.</string>
+    <string name="settings_backup_overview_header">Google-Drive-Backupstatus</string>
+    <string name="settings_backup_overview_never">Noch kein Drive-Backup-Versuch erfasst</string>
+    <string name="settings_backup_overview_success">Letztes Drive-Backup erfolgreich</string>
+    <string name="settings_backup_overview_failed">Letztes Drive-Backup fehlgeschlagen – Verbindung prüfen</string>
+    <string name="settings_backup_overview_running">Drive-Backup als laufend markiert</string>
+    <string name="settings_backup_overview_last_success">Letztes erfolgreiches Drive-Backup: %1$s</string>
+    <string name="settings_backup_status_shared_destination">Dieser Status betrifft nur Google Drive; lokale Backups werden getrennt verwaltet.</string>
+    <string name="settings_backup_overview_disabled">Drive-Backup ist deaktiviert</string>
 </resources>
