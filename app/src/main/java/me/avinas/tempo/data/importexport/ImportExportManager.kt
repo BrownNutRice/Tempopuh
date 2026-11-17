@@ -356,13 +356,13 @@ class ImportExportManager @Inject constructor(
         val stagedArchiveFile = File(context.cacheDir, "import_archive.jsonl")
         stagedEventsFile.delete()
         stagedArchiveFile.delete()
+        val artworkStaging = RestoreArtworkStaging(context.cacheDir, File(context.filesDir, ALBUM_ART_DIR))
 
         try {
             _progress.value = ImportExportProgress("Reading backup file...", 0, 100, true)
             
             // First pass: read data.json to get manifest
             var exportData: TempoExportData? = null
-            val extractedImages = mutableMapOf<String, String>() // bundledName -> newPath
             var totalExtractedImageBytes = 0L
             var stagedEventCount = 0
             var stagedArchiveCount = 0
@@ -409,18 +409,17 @@ class ImportExportManager @Inject constructor(
                                 }
                             }
                             entry.name.startsWith(IMAGES_DIR) && !entry.isDirectory -> {
-                                // Extract image to local storage
+                                // Extract only into this operation's private staging directory.
                                 val bundledName = entry.name.removePrefix(IMAGES_DIR)
                                 val safeBundledName = sanitizeBundledImageName(bundledName)
                                 if (safeBundledName == null) {
                                     Log.w(TAG, "Skipping unsafe bundled image name in import")
                                 } else {
                                     val remainingBudget = MAX_TOTAL_IMAGE_BYTES - totalExtractedImageBytes
-                                    val extracted = extractImage(zipIn, safeBundledName, remainingBudget)
-                                    if (extracted != null) {
-                                        extractedImages[safeBundledName] = extracted.path
-                                        totalExtractedImageBytes += extracted.bytesWritten
-                                    }
+                                    totalExtractedImageBytes += artworkStaging.stage(
+                                        safeBundledName, zipIn,
+                                        minOf(MAX_BUNDLED_IMAGE_BYTES, remainingBudget)
+                                    )
                                 }
                             }
                         }
@@ -439,6 +438,9 @@ class ImportExportManager @Inject constructor(
                 )
             }
             
+            // Archive parsing, limits and version validation have succeeded. Promote to a
+            // unique namespace before DB references are written; rollback removes only our files.
+            val extractedImages = artworkStaging.promote()
             Log.i(TAG, "Extracted ${extractedImages.size} images, staged $stagedEventCount events and $stagedArchiveCount archive rows")
             
             // Build path mapping: old file:// path -> new file:// path
@@ -806,6 +808,9 @@ class ImportExportManager @Inject constructor(
                 Log.i(TAG, "Imported ${data.lastFmImportMetadata.size} Last.fm import metadata records")
             }
             
+            // Keep files before commit can expose their paths. If Room's return is cancelled
+            // after commit, cleanup must not remove artwork referenced by committed rows.
+            artworkStaging.retainForCommit()
             } // end database.withTransaction
             
             // v7+: Restore profile identity to DataStore (outside transaction — independent system)
@@ -855,6 +860,8 @@ class ImportExportManager @Inject constructor(
         } finally {
             stagedEventsFile.delete()
             stagedArchiveFile.delete()
+            runCatching { artworkStaging.close() }
+                .onFailure { Log.w(TAG, "Unable to clean restore artwork staging", it) }
             _progress.value = null
             operationLease.release()
         }
@@ -1002,60 +1009,6 @@ class ImportExportManager @Inject constructor(
         return localPaths.toList() to hotlinkUrls.toList()
     }
     
-    private fun extractImage(
-        zipIn: ZipInputStream,
-        bundledName: String,
-        remainingTotalBudgetBytes: Long
-    ): ExtractedImage? {
-        return try {
-            if (remainingTotalBudgetBytes <= 0L) {
-                Log.w(TAG, "Skipping image extraction: total image budget exhausted")
-                return null
-            }
-
-            val albumArtDir = File(context.filesDir, ALBUM_ART_DIR)
-            if (!albumArtDir.exists()) albumArtDir.mkdirs()
-            
-            val newFile = File(albumArtDir, bundledName)
-            val bytesWritten = copyLimited(
-                input = zipIn,
-                outputFile = newFile,
-                byteLimit = minOf(MAX_BUNDLED_IMAGE_BYTES, remainingTotalBudgetBytes)
-            )
-
-            ExtractedImage(
-                path = "file://${newFile.absolutePath}",
-                bytesWritten = bytesWritten
-            )
-        } catch (e: Exception) {
-            if (e is SecurityException) throw e
-            Log.w(TAG, "Failed to extract image: $bundledName", e)
-            null
-        }
-    }
-
-    private fun copyLimited(
-        input: InputStream,
-        outputFile: File,
-        byteLimit: Long
-    ): Long {
-        var total = 0L
-        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
-        outputFile.outputStream().use { output ->
-            while (true) {
-                val read = input.read(buffer)
-                if (read == -1) break
-                total += read
-                if (total > byteLimit) {
-                    outputFile.delete()
-                    throw SecurityException("Image entry exceeds import size limit")
-                }
-                output.write(buffer, 0, read)
-            }
-        }
-        return total
-    }
-
     private fun sanitizeBundledImageName(bundledName: String): String? {
         val candidate = bundledName.trim()
         if (candidate.isBlank() || candidate.length > 128) return null
@@ -1175,11 +1128,6 @@ private class LimitedEntryInputStream(
 
     override fun close() = Unit
 }
-
-private data class ExtractedImage(
-    val path: String,
-    val bytesWritten: Long
-)
 
 internal fun remapRestoredImageUrl(
     exportedUrl: String?,

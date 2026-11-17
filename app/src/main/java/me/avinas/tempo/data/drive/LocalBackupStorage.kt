@@ -174,7 +174,7 @@ object LocalBackupStorage {
                             Log.w(TAG, "Unable to remove a duplicate automatic backup", error)
                         }
                 }
-            cleanupOldBackups(context, treeUri, treeDocumentId)
+            cleanupOldBackups(context, treeUri, treeDocumentId, completedExisting.first)
             Log.i(TAG, "Reusing already-saved automatic local backup: ${completedExisting.first}")
             return completedExisting.first.toString()
         }
@@ -216,7 +216,7 @@ object LocalBackupStorage {
                 throw IOException("The automatic backup copy failed its integrity check")
             }
 
-            cleanupOldBackups(context, treeUri, treeDocumentId)
+            cleanupOldBackups(context, treeUri, treeDocumentId, outputUri)
             Log.i(TAG, "Saved automatic local backup: $outputUri")
             return outputUri.toString()
         } catch (e: Exception) {
@@ -265,46 +265,72 @@ object LocalBackupStorage {
         }
     }
 
-    private fun cleanupOldBackups(context: Context, treeUri: Uri, treeDocumentId: String) {
-        val resolver = context.contentResolver
-        val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, treeDocumentId)
-        val projection = arrayOf(
-            DocumentsContract.Document.COLUMN_DOCUMENT_ID,
-            DocumentsContract.Document.COLUMN_DISPLAY_NAME
-        )
-
-        val backups = mutableListOf<Pair<String, String>>()
+    private fun cleanupOldBackups(
+        context: Context,
+        treeUri: Uri,
+        treeDocumentId: String,
+        protectedUri: Uri
+    ) {
+        // Retention must never turn a verified copy into a failed/deleted backup.
         try {
+            val resolver = context.contentResolver
+            val creationOrder = context.getSharedPreferences("${PREFS_NAME}_creation_order", Context.MODE_PRIVATE)
+            val protectedKey = protectedUri.toString()
+            // First successful verification establishes a durable per-document order. Do not
+            // refresh this timestamp on retries. URI keys remain valid if the provider renames.
+            if (!creationOrder.contains(protectedKey) && !creationOrder.edit()
+                    .putLong(protectedKey, System.currentTimeMillis()).commit()) {
+                Log.w(TAG, "Skipping retention: unable to persist backup creation order")
+                return
+            }
+            val protectedId = DocumentsContract.getDocumentId(protectedUri)
+            val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, treeDocumentId)
+            val projection = arrayOf(
+                DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                DocumentsContract.Document.COLUMN_LAST_MODIFIED,
+                DocumentsContract.Document.COLUMN_MIME_TYPE
+            )
+            val backups = mutableListOf<LocalBackupRetention.Backup>()
             resolver.query(childrenUri, projection, null, null, null)?.use { cursor ->
                 val idColumn = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
                 val nameColumn = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
-
+                val modifiedColumn = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_LAST_MODIFIED)
+                val mimeColumn = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_MIME_TYPE)
                 while (cursor.moveToNext()) {
-                    val documentId = cursor.getString(idColumn)
-                    val displayName = cursor.getString(nameColumn) ?: continue
-                    if (displayName.startsWith(FILE_PREFIX)) {
-                        backups += documentId to displayName
+                    if (mimeColumn >= 0 && cursor.getString(mimeColumn) == DocumentsContract.Document.MIME_TYPE_DIR) continue
+                    val id = cursor.getString(idColumn)
+                    val name = cursor.getString(nameColumn).orEmpty()
+                    val uri = DocumentsContract.buildDocumentUriUsingTree(treeUri, id)
+                    val key = uri.toString()
+                    if (!name.startsWith(FILE_PREFIX) && !creationOrder.contains(key)) continue
+                    // Legacy fallback: positive provider modification time, then the strict
+                    // timestamp filename (interpreted in the current local timezone).
+                    // UUID names without either date are deliberately retained.
+                    val modified = if (modifiedColumn >= 0 && !cursor.isNull(modifiedColumn)) {
+                        cursor.getLong(modifiedColumn).takeIf { it > 0L }
+                    } else null
+                    val createdAt = creationOrder.getLong(key, 0L).takeIf { it > 0L }
+                        ?: modified ?: LocalBackupRetention.legacyTimestamp(name)
+                    backups += LocalBackupRetention.Backup(id, createdAt)
+                }
+            } ?: return
+
+            LocalBackupRetention.deletions(backups, protectedId, MAX_BACKUPS).forEach { id ->
+                val uri = DocumentsContract.buildDocumentUriUsingTree(treeUri, id)
+                runCatching {
+                    if (DocumentsContract.deleteDocument(resolver, uri)) {
+                        creationOrder.edit().remove(uri.toString()).apply()
+                    } else {
+                        Log.w(TAG, "Provider refused automatic backup retention deletion")
                     }
+                }.onFailure { error ->
+                    Log.w(TAG, "Unable to remove an old automatic backup", error)
                 }
             }
         } catch (e: Exception) {
-            // Retention cleanup is best effort. Never fail a valid backup because
-            // a document provider refused to enumerate the selected directory.
-            Log.w(TAG, "Unable to enumerate automatic local backups for cleanup", e)
-            return
+            Log.w(TAG, "Skipping automatic backup retention cleanup", e)
         }
-
-        // The filename starts with an ISO-like timestamp, so lexical descending
-        // order is also newest-first even when a provider omits modified dates.
-        backups.sortedByDescending { it.second }
-            .drop(MAX_BACKUPS)
-            .forEach { (documentId, _) ->
-                val documentUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, documentId)
-                runCatching { DocumentsContract.deleteDocument(resolver, documentUri) }
-                    .onFailure { error ->
-                        Log.w(TAG, "Failed to delete old automatic local backup $documentId", error)
-                    }
-            }
     }
 
     private fun sha256Hex(input: InputStream): String {
