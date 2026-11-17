@@ -75,6 +75,9 @@ fun AppearanceScreen(
     val saved = loaded ?: run {
         androidx.compose.foundation.layout.Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             androidx.compose.material3.CircularProgressIndicator()
+            IconButton(onClick = onNavigateBack, modifier = Modifier.align(Alignment.TopStart)) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.settings_back))
+            }
         }
         return
     }

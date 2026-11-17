@@ -239,7 +239,7 @@ private fun BackgroundThumbnail(
                         Icon(
                             imageVector = Icons.Default.Check,
                             contentDescription = "Selected",
-                            tint = Color.White,
+                            tint = LocalTempoPalette.current.onAccent,
                             modifier = Modifier.size(14.dp)
                         )
                     }

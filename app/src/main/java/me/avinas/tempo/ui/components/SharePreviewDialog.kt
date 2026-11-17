@@ -1,5 +1,6 @@
 package me.avinas.tempo.ui.components
 
+import me.avinas.tempo.ui.theme.LocalTempoPalette
 import android.graphics.Bitmap
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -44,6 +45,7 @@ fun SharePreviewDialog(
     onDismiss: () -> Unit,
     contentToShare: @Composable (theme: ShareTheme) -> Unit
 ) {
+    val palette = LocalTempoPalette.current
     val context = LocalContext.current
     val captureController = rememberCaptureController()
     val coroutineScope = rememberCoroutineScope()
@@ -100,7 +102,7 @@ fun SharePreviewDialog(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.9f))
+                    .background(palette.background.copy(alpha = 0.97f))
             )
 
             // 3. Visible UI (Preview + Controls)
@@ -124,7 +126,7 @@ fun SharePreviewDialog(
                         text = stringResource(R.string.details_share_preview),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = palette.onSurface
                     )
 
                     IconButton(
@@ -132,14 +134,14 @@ fun SharePreviewDialog(
                         modifier = Modifier
                             .size(36.dp)
                             .background(
-                                Color.White.copy(alpha = 0.12f),
+                                palette.elevatedSurface,
                                 androidx.compose.foundation.shape.CircleShape
                             )
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = stringResource(R.string.share_close),
-                            tint = Color.White,
+                            tint = palette.onSurface,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -168,7 +170,7 @@ fun SharePreviewDialog(
                             .size(scaledWidth, scaledHeight)
                             .shadow(24.dp, cardShape, spotColor = Color.Black.copy(alpha = 0.7f), ambientColor = Color.Black.copy(alpha = 0.4f))
                             .clip(cardShape)
-                            .border(1.dp, Color.White.copy(alpha = 0.18f), cardShape),
+                            .border(1.dp, palette.border, cardShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Box(
@@ -196,7 +198,7 @@ fun SharePreviewDialog(
                     Text(
                         text = "${stringResource(R.string.share_theme_label).uppercase()} • ${theme.name}",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color.White.copy(alpha = 0.65f),
+                        color = palette.mutedText,
                         letterSpacing = 1.2.sp,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(end = 12.dp)
@@ -224,15 +226,15 @@ fun SharePreviewDialog(
                         .padding(horizontal = 16.dp)
                         .height(52.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.White,
-                        contentColor = Color.Black
+                        containerColor = palette.accent,
+                        contentColor = palette.onAccent
                     ),
                     shape = RoundedCornerShape(26.dp)
                 ) {
                     if (isSharing) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(22.dp),
-                            color = Color.Black,
+                            color = palette.onAccent,
                             strokeWidth = 2.dp
                         )
                     } else {

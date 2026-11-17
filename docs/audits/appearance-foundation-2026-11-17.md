@@ -84,3 +84,9 @@ Validation: source diff review and `git diff --check` only; no builds, tests, wo
 Validation: source review, balanced-delimiter checks and `git diff --check`. No compilation, tests, CI, build or release. Concurrent reference-image changes on main were preserved.
 
 The migration is still not a guarantee of whole-app light compatibility: remaining bespoke surfaces and fixed white/black overlays require contrast review across the app. Do not expose light/system modes until that audit and authorized Android validation are complete. The next larger milestone remains true Glacier Light and system-bar contrast, followed by Ember/Solstice and layout controls.
+
+## Continuation checkpoint — recovery and share preview review
+
+Transient preference I/O retries now retain the last real settings instead of emitting defaults that could reset an active draft. Initial loading provides a Back action. Save state is exposed read-only. Share-preview chrome now uses palette surfaces/text/accent pairs, and background-picker checkmarks use onAccent for contrast. Exported share designs remain unchanged.
+
+Validation: source review and `git diff --check`; no Android compile, tests, CI or release. Runtime failure recovery and visual contrast still require authorized device validation.

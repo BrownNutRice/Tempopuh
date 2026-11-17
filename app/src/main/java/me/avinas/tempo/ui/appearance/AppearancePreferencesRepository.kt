@@ -41,7 +41,7 @@ class AppearancePreferencesRepository @Inject constructor(
 
     val settings: Flow<AppearanceSettings> = context.appearanceDataStore.data.retryWhen { cause, _ ->
         if (cause is IOException) {
-            emit(emptyPreferences())
+            // Retain the last real value. Emitting defaults here would reset an open draft.
             delay(1_000)
             true
         } else false

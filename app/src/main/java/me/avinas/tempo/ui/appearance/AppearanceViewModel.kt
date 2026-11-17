@@ -15,22 +15,24 @@ class AppearanceViewModel @Inject constructor(
     val settings = preferences.settings.stateIn(
         viewModelScope, SharingStarted.WhileSubscribed(5_000L), null,
     )
-    val saving = kotlinx.coroutines.flow.MutableStateFlow(false)
-    val saveFailed = kotlinx.coroutines.flow.MutableStateFlow(false)
+    private val _saving = kotlinx.coroutines.flow.MutableStateFlow(false)
+    val saving: kotlinx.coroutines.flow.StateFlow<Boolean> = _saving
+    private val _saveFailed = kotlinx.coroutines.flow.MutableStateFlow(false)
+    val saveFailed: kotlinx.coroutines.flow.StateFlow<Boolean> = _saveFailed
 
     fun apply(settings: AppearanceSettings) {
         if (saving.value) return
-        saving.value = true
-        saveFailed.value = false
+        _saving.value = true
+        _saveFailed.value = false
         viewModelScope.launch {
             try {
                 preferences.apply(settings)
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
-                saveFailed.value = true
+                _saveFailed.value = true
             } finally {
-                saving.value = false
+                _saving.value = false
             }
         }
     }
