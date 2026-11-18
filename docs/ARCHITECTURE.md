@@ -56,4 +56,4 @@ playback duration, live accounting and duplicate-save tests exercise that model.
 
 Large tracking, statistics, import and Profile files should be split by responsibility through focused follow-ups with migration/API and behavior tests. This maintenance pass establishes the map and contributor boundaries; it does not claim those runtime refactors are complete.
 
-Generated `build/`, `.gradle/`, `node_modules/` and extension `dist/` output remain outside version control. Historical audits describe their original revision and are not current acceptance evidence.
+Generated `build/`, `.gradle/` and `node_modules/` output stays outside version control. The extension keeps selected generated Chrome and Firefox files under `browser-extension/dist/`. Rebuilding those packages in the checkout can update the committed copies. Historical audits describe their original revision.

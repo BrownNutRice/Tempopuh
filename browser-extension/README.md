@@ -13,7 +13,7 @@ npm run smoke
 npm run build:all
 ```
 
-Load `dist/chrome/` through the Chromium extension developer page. For Firefox, load/test the built `dist/firefox/manifest.json` using the browser's temporary-extension tooling; the generated Firefox manifest targets Firefox 140+. Build output and archives are generated artifacts, not tracked source. Individual builds use `build:chrome` and `build:firefox`.
+Load `dist/chrome/` through the Chromium extension developer page. For Firefox, load/test the built `dist/firefox/manifest.json` using the browser's temporary-extension tooling. The generated Firefox manifest targets Firefox 140+. This repository tracks selected generated package files under `dist/`. Make source edits under `src/` and use `build:chrome` or `build:firefox` to regenerate the corresponding package.
 
 ## Pairing and use
 
