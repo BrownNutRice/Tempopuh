@@ -1247,4 +1247,10 @@
     <string name="appearance_exit_title">Darstellung verlassen?</string>
     <string name="appearance_exit_body">Übernimm deine Änderungen vor dem Verlassen, verwirf sie oder bearbeite sie weiter.</string>
     <string name="import_report_with_warnings">Import mit Warnungen abgeschlossen</string>
+    <string name="spotlight_pause">Story pausieren</string>
+    <string name="spotlight_resume">Story fortsetzen</string>
+    <string name="spotlight_mute">Vorschau stummschalten</string>
+    <string name="spotlight_unmute">Ton der Vorschau einschalten</string>
+    <string name="spotlight_story_position">Seite %1$d von %2$d</string>
+    <string name="spotlight_share_failed">Story konnte nicht geteilt werden</string>
 </resources>

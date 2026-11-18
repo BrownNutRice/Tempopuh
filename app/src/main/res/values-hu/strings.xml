@@ -881,4 +881,10 @@
     <string name="appearance_exit_title">Kilépsz a megjelenés beállításaiból?</string>
     <string name="appearance_exit_body">Kilépés előtt alkalmazd vagy vesd el a módosításokat, vagy folytasd a szerkesztést.</string>
     <string name="import_report_with_warnings">Az importálás figyelmeztetésekkel befejeződött</string>
+    <string name="spotlight_pause">Történet szüneteltetése</string>
+    <string name="spotlight_resume">Történet folytatása</string>
+    <string name="spotlight_mute">Előnézet némítása</string>
+    <string name="spotlight_unmute">Előnézet hangjának visszaállítása</string>
+    <string name="spotlight_story_position">%1$d. oldal, összesen %2$d</string>
+    <string name="spotlight_share_failed">A történetet nem sikerült megosztani</string>
 </resources>

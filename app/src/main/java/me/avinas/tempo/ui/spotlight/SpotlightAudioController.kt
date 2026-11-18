@@ -2,10 +2,13 @@ package me.avinas.tempo.ui.spotlight
 
 import android.content.Context
 import androidx.annotation.OptIn
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -34,9 +37,9 @@ class SpotlightAudioController(
     // Current track being played
     private var currentUrl: String? = null
     
-    // Last URL that successfully played (fallback for expired URLs)
-    private var lastWorkingUrl: String? = null
-    
+    private var paused = true
+    private var targetVolume = 0.3f
+
     // State to track if we should be playing (independent of mute)
     private var isPlayingState = false
     
@@ -50,6 +53,10 @@ class SpotlightAudioController(
     private fun initializePlayer() {
         if (player == null) {
             player = ExoPlayer.Builder(context).build().apply {
+                setAudioAttributes(
+                    AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(),
+                    true
+                )
                 repeatMode = Player.REPEAT_MODE_OFF
                 volume = if (_isMuted.value) 0f else 0.3f // Start low for fade-in
                 addListener(object : Player.Listener {
@@ -58,8 +65,6 @@ class SpotlightAudioController(
                             Player.STATE_BUFFERING -> android.util.Log.d("SpotlightAudio", "Player: BUFFERING")
                             Player.STATE_READY -> {
                                 android.util.Log.d("SpotlightAudio", "Player: READY (PlayWhenReady=${player?.playWhenReady})")
-                                // Mark this URL as working
-                                currentUrl?.let { lastWorkingUrl = it }
                             }
                             Player.STATE_ENDED -> {
                                 android.util.Log.d("SpotlightAudio", "Player: ENDED")
@@ -72,12 +77,8 @@ class SpotlightAudioController(
                     override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                         android.util.Log.e("SpotlightAudio", "Player Error: ${error.message}", error)
                         onPlaybackError?.invoke(error)
-                        // If this URL failed, try falling back to last working URL
-                        val failedUrl = currentUrl
-                        if (failedUrl != null && lastWorkingUrl != null && lastWorkingUrl != failedUrl) {
-                            android.util.Log.d("SpotlightAudio", "Falling back to last working URL")
-                            playUrl(lastWorkingUrl!!, startVolume = 0.1f, targetVolume = 0.7f, fadeDurationMs = 500)
-                        }
+                        // Keep a failed preview silent instead of playing a different page's track.
+                        stop()
                     }
                 })
             }
@@ -100,11 +101,11 @@ class SpotlightAudioController(
      */
     fun playHighlight(url: String) {
         if (currentUrl != url || !isPlayingState) {
-            // New track OR preloaded but not playing -> Start from scratch
+            // Start a new or finished preview from the beginning.
             playUrl(url, startVolume = 0.1f, targetVolume = 0.7f, fadeDurationMs = 500)
         } else {
-            // Check if user is muted
-            if (_isMuted.value) return 
+            targetVolume = 0.7f
+            if (paused || _isMuted.value) return
             
             // Already playing, just ramp up volume
             rampVolume(currentVolume = player?.volume ?: 0f, targetVolume = 0.7f, durationMs = 1000)
@@ -128,7 +129,7 @@ class SpotlightAudioController(
         isPlayingState = false
         volumeRampJob?.cancel()
         
-        if (_isMuted.value || player == null) {
+        if (paused || _isMuted.value || player == null) {
             stop()
             return
         }
@@ -156,31 +157,32 @@ class SpotlightAudioController(
             player?.volume = 0f
         } else {
             // Unmute - restore volume
-            if (isPlayingState) {
-                player?.volume = 0.5f // Safe middle ground, or ramp up
-                rampVolume(0f, 0.7f, 500)
+            if (isPlayingState && !paused) {
+                rampVolume(0f, targetVolume, 500)
             }
         }
     }
 
-    /**
-     * Preload a track so it's ready to play immediately.
-     */
-    fun prepare(url: String) {
-        if (currentUrl == url) return // Already prepared/playing this one
-        
-        currentUrl = url
-        val mediaItem = MediaItem.fromUri(url)
-        player?.setMediaItem(mediaItem)
-        player?.prepare() // Starts buffering
-        // playWhenReady is false by default, so it won't start playing yet
+    fun setPaused(value: Boolean) {
+        if (paused == value) return
+        paused = value
+        if (paused) {
+            volumeRampJob?.cancel()
+            player?.pause()
+            if (!isPlayingState) stop()
+        } else if (isPlayingState) {
+            player?.play()
+            rampVolume(player?.volume ?: 0f, targetVolume, 500)
+        }
     }
 
     private fun playUrl(url: String, startVolume: Float, targetVolume: Float, fadeDurationMs: Long) {
         // If we are already prepared for this URL, don't reset the player
         val needsPrepare = currentUrl != url
         
+        volumeRampJob?.cancel()
         currentUrl = url
+        this.targetVolume = targetVolume
         isPlayingState = true
         
         if (needsPrepare) {
@@ -201,11 +203,11 @@ class SpotlightAudioController(
             rampVolume(startVolume, targetVolume, fadeDurationMs)
         }
         
-        player?.play()
+        if (!paused) player?.play()
     }
 
     private fun rampVolume(currentVolume: Float, targetVolume: Float, durationMs: Long) {
-        if (_isMuted.value) return
+        if (paused || _isMuted.value) return
         volumeRampJob?.cancel()
         
         volumeRampJob = scope.launch {
@@ -230,6 +232,8 @@ class SpotlightAudioController(
                     player?.volume = targetVolume
                     android.util.Log.d("SpotlightAudio", "Volume ramp complete: $targetVolume")
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                  android.util.Log.e("SpotlightAudio", "Volume ramp failed", e)
                  // Safety fallback

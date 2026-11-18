@@ -1245,4 +1245,10 @@
     <string name="appearance_exit_title">Quitter l’apparence ?</string>
     <string name="appearance_exit_body">Appliquez vos modifications avant de quitter, abandonnez-les ou continuez la modification.</string>
     <string name="import_report_with_warnings">Importation terminée avec des avertissements</string>
+    <string name="spotlight_pause">Mettre la story en pause</string>
+    <string name="spotlight_resume">Reprendre la story</string>
+    <string name="spotlight_mute">Couper le son de l’extrait</string>
+    <string name="spotlight_unmute">Rétablir le son de l’extrait</string>
+    <string name="spotlight_story_position">Page %1$d sur %2$d</string>
+    <string name="spotlight_share_failed">Impossible de partager la story</string>
 </resources>

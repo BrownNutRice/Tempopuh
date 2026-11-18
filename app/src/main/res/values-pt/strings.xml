@@ -1356,4 +1356,10 @@
     <string name="appearance_exit_title">Sair da aparência?</string>
     <string name="appearance_exit_body">Aplique as alterações antes de sair, descarte-as ou continue editando.</string>
     <string name="import_report_with_warnings">Importação concluída com avisos</string>
+    <string name="spotlight_pause">Pausar história</string>
+    <string name="spotlight_resume">Continuar história</string>
+    <string name="spotlight_mute">Silenciar prévia</string>
+    <string name="spotlight_unmute">Ativar som da prévia</string>
+    <string name="spotlight_story_position">Página %1$d de %2$d</string>
+    <string name="spotlight_share_failed">Não foi possível compartilhar a história</string>
 </resources>

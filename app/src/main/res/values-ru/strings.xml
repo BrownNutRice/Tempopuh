@@ -1473,4 +1473,10 @@
     <string name="appearance_exit_title">Закрыть настройки оформления?</string>
     <string name="appearance_exit_body">Примените изменения перед выходом, отмените их или продолжите редактирование.</string>
     <string name="import_report_with_warnings">Импорт завершён с предупреждениями</string>
+    <string name="spotlight_pause">Приостановить историю</string>
+    <string name="spotlight_resume">Продолжить историю</string>
+    <string name="spotlight_mute">Выключить звук отрывка</string>
+    <string name="spotlight_unmute">Включить звук отрывка</string>
+    <string name="spotlight_story_position">Страница %1$d из %2$d</string>
+    <string name="spotlight_share_failed">Не удалось поделиться историей</string>
 </resources>

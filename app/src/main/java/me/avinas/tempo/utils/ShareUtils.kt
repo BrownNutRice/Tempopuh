@@ -17,6 +17,7 @@ import me.avinas.tempo.di.AnalyticsEntryPoint
 import java.io.File
 import java.io.FileOutputStream
 import java.io.BufferedOutputStream
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -45,7 +46,8 @@ object ShareUtils {
     suspend fun shareBitmap(
         context: Context,
         bitmap: Bitmap,
-        feature: TempoFeature = TempoFeature.SHARE_CARD
+        feature: TempoFeature = TempoFeature.SHARE_CARD,
+        launchChooser: ((Intent) -> Unit)? = null
     ): Boolean = withContext(Dispatchers.IO) {
         try {
             android.util.Log.d("ShareUtils", "Starting share process. Bitmap: ${bitmap.width}x${bitmap.height}")
@@ -66,14 +68,20 @@ object ShareUtils {
                 
                 // Create chooser to avoid direct app launch issues
                 val chooser = Intent.createChooser(intent, "Share Spotlight")
-                chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 withContext(Dispatchers.Main) {
-                    context.startActivity(chooser)
+                    if (launchChooser != null) {
+                        launchChooser(chooser)
+                    } else {
+                        chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(chooser)
+                    }
                 }
                 return@withContext true
             } else {
                 android.util.Log.e("ShareUtils", "Failed to save bitmap to cache.")
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             android.util.Log.e("ShareUtils", "Exception during share", e)
             e.printStackTrace()

@@ -1704,4 +1704,10 @@
     <string name="appearance_exit_title">Leave Appearance?</string>
     <string name="appearance_exit_body">Apply your changes before leaving, discard them, or keep editing.</string>
     <string name="import_report_with_warnings">Import completed with warnings</string>
+    <string name="spotlight_pause">Pause story</string>
+    <string name="spotlight_resume">Resume story</string>
+    <string name="spotlight_mute">Mute preview</string>
+    <string name="spotlight_unmute">Unmute preview</string>
+    <string name="spotlight_story_position">Page %1$d of %2$d</string>
+    <string name="spotlight_share_failed">Could not share the story</string>
 </resources>

@@ -4,7 +4,24 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -29,8 +46,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
@@ -72,9 +87,17 @@ fun SpotlightStoryScreen(
     val coroutineScope = rememberCoroutineScope()
     val reducedMotion = rememberReducedMotion()
     val currentProgress = remember { Animatable(0f) }
-    var isPaused by remember { mutableStateOf(false) }
+    var userPaused by rememberSaveable { mutableStateOf(false) }
+    var holding by remember { mutableStateOf(false) }
+    var sharing by rememberSaveable { mutableStateOf(false) }
+    val captureRequested = remember { mutableStateOf(false) }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    var resumed by remember(lifecycle) { mutableStateOf(lifecycle.currentState == Lifecycle.State.RESUMED) }
+    fun playbackAllowed() = resumed && !userPaused && !holding && !sharing && !captureRequested.value
+    val canPlay = playbackAllowed()
     
     fun moveStoryPage(forward: Boolean) {
+        if (sharing || captureRequested.value) return
         val target = pagerState.currentPage + (if (forward) 1 else -1)
         if (target in storyPages.indices) {
             coroutineScope.launch {
@@ -91,42 +114,35 @@ fun SpotlightStoryScreen(
     val audioController = remember { SpotlightAudioController(context = context, scope = coroutineScope) }
     val isMuted by audioController.isMuted.collectAsState()
     
-    DisposableEffect(Unit) {
+    DisposableEffect(audioController) {
         onDispose { audioController.release() }
     }
-    
-    // Manage Audio Playback
-    
-    // Preload the first track immediately to reduce latency
-    LaunchedEffect(Unit) {
-        // Find the first page that has a preview URL (usually the Intro)
-        val firstAudioPage = storyPages.firstOrNull { it.previewUrl != null }
-        val preloadUrl = firstAudioPage?.previewUrl
-        
-        if (preloadUrl != null) {
-            Log.d("SpotlightStoryScreen", "Preloading audio: $preloadUrl")
-            audioController.prepare(preloadUrl)
+    DisposableEffect(lifecycle, audioController) {
+        val observer = LifecycleEventObserver { _, _ ->
+            resumed = lifecycle.currentState == Lifecycle.State.RESUMED
+            if (!resumed) audioController.setPaused(true)
         }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
     }
-    
-    LaunchedEffect(pagerState.currentPage) {
-            val page = storyPages.getOrNull(pagerState.currentPage)
-            val previewUrl = page?.previewUrl
-            
-            Log.d("SpotlightStoryScreen", "Page: ${page?.id}, PreviewUrl: $previewUrl")
-            
-            if (previewUrl != null) {
-                if (page is SpotlightStoryPage.TopTrackSetup) {
-                    // Lower volume build-up for the top track reveal
-                    audioController.playSetup(previewUrl)
-                } else {
-                    // Standard/High volume for all other pages (Intro, Highlight, Genres, etc.)
-                    audioController.playHighlight(previewUrl)
-                }
-            } else {
-                Log.d("SpotlightStoryScreen", "Page has NULL previewUrl, stopping audio")
-                audioController.fadeOutAndStop()
+
+    var previewPage by remember { mutableIntStateOf(-1) }
+    LaunchedEffect(pagerState.currentPage, canPlay) {
+        if (!playbackAllowed() || lifecycle.currentState != Lifecycle.State.RESUMED) {
+            audioController.setPaused(true)
+            return@LaunchedEffect
+        }
+        if (previewPage != pagerState.currentPage) {
+            previewPage = pagerState.currentPage
+            val page = storyPages.getOrNull(previewPage)
+            val url = page?.previewUrl
+            when {
+                url == null -> audioController.fadeOutAndStop()
+                page is SpotlightStoryPage.TopTrackSetup -> audioController.playSetup(url)
+                else -> audioController.playHighlight(url)
             }
+        }
+        audioController.setPaused(false)
     }
 
     // Determine colors based on current page - Narrative Arc Color Story
@@ -237,26 +253,30 @@ fun SpotlightStoryScreen(
     }
 
     val captureController = rememberCaptureController()
-    val captureRequested = remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        captureController.capturedBitmap.collect { bitmap ->
-            val success = ShareUtils.shareBitmap(context, bitmap)
-            if (!success) {
-                android.widget.Toast.makeText(context, "Failed to share story", android.widget.Toast.LENGTH_SHORT).show()
-            }
-            captureRequested.value = false
-        }
+    val shareLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        sharing = false
     }
-
-    // When capture is requested, wait for the ShadowStoryRenderer's AndroidView to be
-    // composed + laid out, then trigger the actual bitmap capture.
+    val shareFailed = stringResource(R.string.spotlight_share_failed)
     LaunchedEffect(captureRequested.value) {
-        if (captureRequested.value) {
+        if (!captureRequested.value) return@LaunchedEffect
+        val bitmap = withTimeoutOrNull(5_000) {
+            val captured = async(start = CoroutineStart.UNDISPATCHED) {
+                captureController.capturedBitmap.first()
+            }
             withFrameNanos { }
             withFrameNanos { }
             captureController.capture()
+            captured.await()
         }
+        val success = bitmap != null && ShareUtils.shareBitmap(context, bitmap, launchChooser = { chooser ->
+            sharing = true
+            shareLauncher.launch(chooser)
+        })
+        if (!success) {
+            sharing = false
+            android.widget.Toast.makeText(context, shareFailed, android.widget.Toast.LENGTH_SHORT).show()
+        }
+        captureRequested.value = false
     }
 
     // Tracks which page the current progress bar value belongs to. Progress must be
@@ -276,28 +296,20 @@ fun SpotlightStoryScreen(
         }
     }
 
-    // Auto-advance logic with pause support
-    LaunchedEffect(pagerState.currentPage, isPaused, reducedMotion) {
-        if (!isPaused && !reducedMotion) {
-             if (timerPageIndex.value != pagerState.currentPage) {
-                 currentProgress.snapTo(0f)
-                 timerPageIndex.value = pagerState.currentPage
-             }
-             val remainingTime = (1f - currentProgress.value) * 15000
-             if (remainingTime > 0) {
-                 currentProgress.animateTo(
-                     targetValue = 1f,
-                     animationSpec = tween(durationMillis = remainingTime.toInt(), easing = LinearEasing)
-                 )
-                 if (pagerState.currentPage < storyPages.size - 1) {
-                     // Launch in outer coroutineScope so scroll animation survives currentPage change
-                     coroutineScope.launch {
-                         pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                     }
-                 } else {
-                     onClose()
-                 }
-             }
+    LaunchedEffect(pagerState.currentPage, canPlay, reducedMotion) {
+        val page = pagerState.currentPage
+        if (timerPageIndex.value != page) {
+            currentProgress.snapTo(0f)
+            timerPageIndex.value = page
+        }
+        if (canPlay && !reducedMotion && storyPages.isNotEmpty()) {
+            val remainingMs = ((1f - currentProgress.value) * 15_000).toInt()
+            currentProgress.animateTo(1f, tween(durationMillis = remainingMs, easing = LinearEasing))
+            if (pagerState.currentPage == page && playbackAllowed() &&
+                lifecycle.currentState == Lifecycle.State.RESUMED
+            ) {
+                moveStoryPage(forward = true)
+            }
         }
     }
 
@@ -394,13 +406,11 @@ fun SpotlightStoryScreen(
                 .pointerInput(reducedMotion) {
                     detectTapGestures(
                         onPress = {
-                            if (!reducedMotion) {
-                                isPaused = true
-                                try {
-                                    tryAwaitRelease()
-                                } finally {
-                                    isPaused = false
-                                }
+                            holding = true
+                            try {
+                                tryAwaitRelease()
+                            } finally {
+                                holding = false
                             }
                         },
                         onTap = { offset ->
@@ -414,7 +424,7 @@ fun SpotlightStoryScreen(
 
         // Visual indicator shown during hold-to-pause
         AnimatedVisibility(
-            visible = isPaused && !reducedMotion,
+            visible = holding && !reducedMotion,
             enter = fadeIn(tween(150)),
             exit = fadeOut(tween(200)),
             modifier = Modifier
@@ -447,12 +457,20 @@ fun SpotlightStoryScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 32.dp, start = 16.dp, end = 16.dp)
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
+                .padding(top = 12.dp, start = 16.dp, end = 16.dp)
                 .align(Alignment.TopCenter)
         ) {
-            // Progress Indicators
+            val position = if (storyPages.isEmpty()) "" else stringResource(
+                R.string.spotlight_story_position, pagerState.currentPage + 1, storyPages.size
+            )
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().semantics {
+                    if (position.isNotEmpty()) {
+                        contentDescription = position
+                        liveRegion = LiveRegionMode.Polite
+                    }
+                },
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 storyPages.forEachIndexed { index, _ ->
@@ -486,84 +504,57 @@ fun SpotlightStoryScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            // Top Controls Row
+            Spacer(modifier = Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Mute Button
-                IconButton(
-                    onClick = { audioController.toggleMute() },
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(Color.Black.copy(alpha = 0.3f), CircleShape)
-                        .border(1.dp, Color.White.copy(alpha = 0.2f), CircleShape)
-                ) {
-                    Icon(
-                        imageVector = if (isMuted) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp,
-                        contentDescription = if (isMuted) "Unmute" else "Mute",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-                
-                Spacer(modifier = Modifier.width(12.dp))
-
-                // Close Button
-                IconButton(
-                    onClick = onClose,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(Color.Black.copy(alpha = 0.3f), CircleShape)
-                        .border(1.dp, Color.White.copy(alpha = 0.2f), CircleShape)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Close",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-            if (reducedMotion) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    TextButton(
-                        enabled = pagerState.currentPage > 0,
-                        onClick = { moveStoryPage(forward = false) },
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = Color.White,
-                            disabledContentColor = Color.White.copy(alpha = 0.4f)
-                        )
-                    ) {
-                        Text(stringResource(R.string.settings_back))
-                    }
-                    TextButton(onClick = { moveStoryPage(forward = true) }) {
-                        val label = if (pagerState.currentPage < storyPages.lastIndex) {
-                            R.string.how_it_works_next
-                        } else {
-                            R.string.common_done
-                        }
-                        Text(stringResource(label), color = Color.White)
-                    }
-                }
+                val controlsEnabled = resumed && !sharing && !captureRequested.value
+                StoryControl(
+                    icon = Icons.AutoMirrored.Filled.ArrowBack,
+                    label = stringResource(R.string.home_trend_previous),
+                    enabled = controlsEnabled && pagerState.currentPage > 0,
+                    onClick = { moveStoryPage(forward = false) }
+                )
+                StoryControl(
+                    icon = if (userPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
+                    label = stringResource(if (userPaused) R.string.spotlight_resume else R.string.spotlight_pause),
+                    enabled = controlsEnabled,
+                    onClick = { userPaused = !userPaused }
+                )
+                val lastPage = pagerState.currentPage >= storyPages.lastIndex
+                StoryControl(
+                    icon = if (lastPage) Icons.Default.Close else Icons.AutoMirrored.Filled.ArrowForward,
+                    label = stringResource(if (lastPage) R.string.common_done else R.string.how_it_works_next),
+                    enabled = controlsEnabled,
+                    onClick = { moveStoryPage(forward = true) }
+                )
+                StoryControl(
+                    icon = if (isMuted) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp,
+                    label = stringResource(if (isMuted) R.string.spotlight_unmute else R.string.spotlight_mute),
+                    enabled = controlsEnabled,
+                    onClick = { audioController.toggleMute() }
+                )
+                StoryControl(
+                    icon = Icons.Default.Close,
+                    label = stringResource(R.string.share_close),
+                    enabled = controlsEnabled,
+                    onClick = onClose
+                )
             }
         }
-        
+
         // Share Button (Bottom)
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 64.dp) // Moved up slightly to avoid overlapping watermark if visible
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))
+                .padding(bottom = 48.dp)
         ) {
              Button(
-                onClick = { if (!captureRequested.value) captureRequested.value = true },
-                enabled = !captureRequested.value,
+                onClick = { captureRequested.value = true },
+                enabled = resumed && !sharing && !captureRequested.value,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.White.copy(alpha = 0.2f),
                     contentColor = Color.White
@@ -605,6 +596,21 @@ fun SpotlightStoryScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun StoryControl(icon: ImageVector, label: String, enabled: Boolean, onClick: () -> Unit) {
+    IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(48.dp)) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = Color.White.copy(alpha = if (enabled) 1f else 0.45f),
+            modifier = Modifier
+                .background(Color.Black.copy(alpha = 0.6f), CircleShape)
+                .padding(8.dp)
+                .size(22.dp)
+        )
     }
 }
 
