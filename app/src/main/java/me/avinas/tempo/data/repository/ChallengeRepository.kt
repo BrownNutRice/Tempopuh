@@ -2,6 +2,7 @@ package me.avinas.tempo.data.repository
 
 import android.util.Log
 import androidx.room.withTransaction
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import me.avinas.tempo.data.local.AppDatabase
@@ -11,8 +12,6 @@ import me.avinas.tempo.data.local.dao.StatsDao
 import me.avinas.tempo.data.local.entities.DailyChallenge
 import me.avinas.tempo.data.stats.ChallengeEngine
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -29,9 +28,8 @@ class ChallengeRepository
             private const val TAG = "ChallengeRepo"
         }
 
-        fun observeTodayChallenges(): Flow<List<DailyChallenge>> {
-            val todayStr = LocalDate.now().toString()
-            return gamificationDao.observeChallengesForDate(todayStr).map { challenges ->
+        fun observeChallenges(date: LocalDate): Flow<List<DailyChallenge>> {
+            return gamificationDao.observeChallengesForDate(date.toString()).map { challenges ->
                 // Sort by isCompleted (false first), then difficulty (EASY, MEDIUM, HARD)
                 challenges.sortedWith(
                     compareBy<DailyChallenge> { it.isCompleted }
@@ -47,9 +45,10 @@ class ChallengeRepository
             }
         }
 
-        suspend fun generateDailyChallengesIfNeeded() {
-            val today = LocalDate.now()
+        suspend fun generateDailyChallengesIfNeeded(today: LocalDate = ChallengeDay.now().date) {
             val todayStr = today.toString()
+
+            if (gamificationDao.getChallengesForDate(todayStr).isNotEmpty()) return
 
             // Gather metrics OUTSIDE the transaction (read-only, no lock needed).
             val endMs = System.currentTimeMillis()
@@ -76,6 +75,8 @@ class ChallengeRepository
                     statsDao
                         .getTypicalStartHour(endMs - (28L * 24 * 60 * 60 * 1000L), endMs)
                         ?.hour
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
                 } catch (e: Exception) {
                     Log.w(TAG, "Could not query typical start hour for challenges", e)
                     null
@@ -117,24 +118,17 @@ class ChallengeRepository
             }
         }
 
-        suspend fun refreshChallengeProgress() {
-            val todayStr = LocalDate.now().toString()
-            val challenges = gamificationDao.getChallengesForDate(todayStr)
+        suspend fun refreshChallengeProgress() = refreshChallengeProgress(ChallengeDay.now())
 
-            if (challenges.isEmpty()) return
-
-            val startOfDayMs =
-                LocalDate
-                    .now()
-                    .atStartOfDay(ZoneId.systemDefault())
-                    .toInstant()
-                    .toEpochMilli()
+        internal suspend fun refreshChallengeProgress(day: ChallengeDay) {
+            val startOfDayMs = day.date.atStartOfDay(day.zone).toInstant().toEpochMilli()
+            val endOfDayMs = day.date.plusDays(1).atStartOfDay(day.zone).toInstant().toEpochMilli()
             var madeChanges = false
 
             // Wrap the whole refresh in a transaction so per-challenge updates are atomic
             // and a mid-loop failure can't leave a half-updated set.
             appDatabase.withTransaction {
-                for (challenge in challenges) {
+                for (challenge in gamificationDao.getChallengesForDate(day.date.toString())) {
                     if (challenge.isCompleted) continue
 
                     // Determine current progress
@@ -142,9 +136,9 @@ class ChallengeRepository
                         when (challenge.category) {
                             ChallengeEngine.Category.VOLUME -> {
                                 if (challenge.challengeId.startsWith("volume_songs")) {
-                                    gamificationDao.getTodayPlayCount(startOfDayMs)
+                                    gamificationDao.getTodayPlayCount(startOfDayMs, endOfDayMs)
                                 } else if (challenge.challengeId.startsWith("volume_mins")) {
-                                    (gamificationDao.getTodayListeningTimeMs(startOfDayMs) / 1000 / 60).toInt()
+                                    (gamificationDao.getTodayListeningTimeMs(startOfDayMs, endOfDayMs) / 1000 / 60).toInt()
                                 } else {
                                     0
                                 }
@@ -152,7 +146,7 @@ class ChallengeRepository
 
                             ChallengeEngine.Category.VARIETY -> {
                                 if (challenge.challengeId.startsWith("variety_artists")) {
-                                    gamificationDao.getTodayUniqueArtists(startOfDayMs)
+                                    gamificationDao.getTodayUniqueArtists(startOfDayMs, endOfDayMs)
                                 } else {
                                     0
                                 }
@@ -161,9 +155,9 @@ class ChallengeRepository
                             ChallengeEngine.Category.EXPLORATION -> {
                                 val metadata = challenge.targetMetadata ?: ""
                                 if (challenge.challengeId.startsWith("explore_artist")) {
-                                    gamificationDao.getTodayPlayCountForArtist(startOfDayMs, metadata)
+                                    gamificationDao.getTodayPlayCountForArtist(startOfDayMs, endOfDayMs, metadata)
                                 } else if (challenge.challengeId.startsWith("explore_genre")) {
-                                    gamificationDao.getTodayPlayCountForGenre(startOfDayMs, metadata)
+                                    gamificationDao.getTodayPlayCountForGenre(startOfDayMs, endOfDayMs, metadata)
                                 } else {
                                     0
                                 }
@@ -174,16 +168,16 @@ class ChallengeRepository
                                 // personalized challenge is queried with its own window. Legacy
                                 // rows without metadata default to the classic 5-9 AM window.
                                 val (winStart, winEnd) = parseTimeWindow(challenge.targetMetadata)
-                                gamificationDao.getTodayPlayCountBetweenHours(startOfDayMs, winStart, winEnd)
+                                gamificationDao.getTodayPlayCountBetweenHours(startOfDayMs, endOfDayMs, winStart, winEnd)
                             }
 
                             ChallengeEngine.Category.DISCOVERY -> {
                                 // Discovery requires artists/genres the user has NEVER heard before today
                                 if (challenge.challengeId.startsWith("discovery_genres")) {
-                                    gamificationDao.getTodayNewGenres(startOfDayMs)
+                                    gamificationDao.getTodayNewGenres(startOfDayMs, endOfDayMs)
                                 } else {
                                     // discovery_artists: count only artists heard for the first time ever today
-                                    gamificationDao.getTodayNewArtists(startOfDayMs)
+                                    gamificationDao.getTodayNewArtists(startOfDayMs, endOfDayMs)
                                 }
                             }
 

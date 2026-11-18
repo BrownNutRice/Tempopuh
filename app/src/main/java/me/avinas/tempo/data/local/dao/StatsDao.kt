@@ -7,6 +7,22 @@ import androidx.room.Query
 import me.avinas.tempo.data.local.LocalTimeSql
 import me.avinas.tempo.data.stats.*
 
+// Album identity is the stored (title, artist) pair. The selected period and content
+// filters must contain at least two distinct non-single tracks for that pair.
+private const val RANKED_ALBUM_GROUPS = """
+    FROM listening_events le
+    INNER JOIN tracks t ON le.track_id = t.id
+    LEFT JOIN enriched_metadata em ON t.id = em.track_id
+    WHERE le.timestamp >= :startTime AND le.timestamp <= :endTime
+      AND t.album IS NOT NULL AND TRIM(t.album) != ''
+      AND (em.release_type IS NULL OR LOWER(em.release_type) != 'single')
+      AND (:filterPodcasts = 0 OR t.content_type IS NULL OR t.content_type != 'PODCAST')
+      AND (:filterAudiobooks = 0 OR t.content_type IS NULL OR t.content_type != 'AUDIOBOOK')
+    GROUP BY t.album, t.artist
+    HAVING COUNT(DISTINCT t.id) > 1
+"""
+private const val RANKED_ALBUM_COUNT = "SELECT COUNT(*) FROM (SELECT 1 $RANKED_ALBUM_GROUPS)"
+
 /** Listening statistics, aggregated in SQL rather than in Kotlin. */
 @Dao
 interface StatsDao {
@@ -2347,17 +2363,8 @@ interface StatsDao {
             COUNT(le.id) as play_count,
             SUM(le.playDuration) as total_time_ms,
             COUNT(DISTINCT t.id) as unique_tracks
-        FROM listening_events le
-        INNER JOIN tracks t ON le.track_id = t.id
-        LEFT JOIN enriched_metadata em ON t.id = em.track_id
-        WHERE le.timestamp >= :startTime AND le.timestamp <= :endTime
-        AND t.album IS NOT NULL AND t.album != ''
-        AND (em.release_type IS NULL OR em.release_type NOT IN ('Single', 'single'))
-        AND (:filterPodcasts = 0 OR t.content_type IS NULL OR t.content_type != 'PODCAST')
-        AND (:filterAudiobooks = 0 OR t.content_type IS NULL OR t.content_type != 'AUDIOBOOK')
-        GROUP BY t.album, t.artist
-        HAVING COUNT(DISTINCT t.id) > 1
-        ORDER BY play_count DESC, total_time_ms DESC
+        $RANKED_ALBUM_GROUPS
+        ORDER BY play_count DESC, total_time_ms DESC, t.album ASC, t.artist ASC
         LIMIT :limit OFFSET :offset
     """,
     )
@@ -2379,17 +2386,8 @@ interface StatsDao {
             COUNT(le.id) as play_count,
             SUM(le.playDuration) as total_time_ms,
             COUNT(DISTINCT t.id) as unique_tracks
-        FROM listening_events le
-        INNER JOIN tracks t ON le.track_id = t.id
-        LEFT JOIN enriched_metadata em ON t.id = em.track_id
-        WHERE le.timestamp >= :startTime AND le.timestamp <= :endTime
-        AND t.album IS NOT NULL AND t.album != ''
-        AND (em.release_type IS NULL OR em.release_type NOT IN ('Single', 'single'))
-        AND (:filterPodcasts = 0 OR t.content_type IS NULL OR t.content_type != 'PODCAST')
-        AND (:filterAudiobooks = 0 OR t.content_type IS NULL OR t.content_type != 'AUDIOBOOK')
-        GROUP BY t.album, t.artist
-        HAVING COUNT(DISTINCT t.id) > 1
-        ORDER BY play_count DESC, total_time_ms DESC
+        $RANKED_ALBUM_GROUPS
+        ORDER BY play_count DESC, total_time_ms DESC, t.album ASC, t.artist ASC
         LIMIT :limit OFFSET :offset
     """,
     )
@@ -2411,17 +2409,8 @@ interface StatsDao {
             COUNT(le.id) as play_count,
             SUM(le.playDuration) as total_time_ms,
             COUNT(DISTINCT t.id) as unique_tracks
-        FROM listening_events le
-        INNER JOIN tracks t ON le.track_id = t.id
-        LEFT JOIN enriched_metadata em ON t.id = em.track_id
-        WHERE le.timestamp >= :startTime AND le.timestamp <= :endTime
-        AND t.album IS NOT NULL AND t.album != ''
-        AND (em.release_type IS NULL OR em.release_type NOT IN ('Single', 'single'))
-        AND (:filterPodcasts = 0 OR t.content_type IS NULL OR t.content_type != 'PODCAST')
-        AND (:filterAudiobooks = 0 OR t.content_type IS NULL OR t.content_type != 'AUDIOBOOK')
-        GROUP BY t.album, t.artist
-        HAVING COUNT(DISTINCT t.id) > 1
-        ORDER BY total_time_ms DESC, play_count DESC
+        $RANKED_ALBUM_GROUPS
+        ORDER BY total_time_ms DESC, play_count DESC, t.album ASC, t.artist ASC
         LIMIT :limit OFFSET :offset
     """,
     )
@@ -2445,16 +2434,7 @@ interface StatsDao {
                 COUNT(le.id) as play_count,
                 SUM(le.playDuration) as total_time_ms,
                 COUNT(DISTINCT t.id) as unique_tracks
-            FROM listening_events le
-            INNER JOIN tracks t ON le.track_id = t.id
-            LEFT JOIN enriched_metadata em ON t.id = em.track_id
-            WHERE le.timestamp >= :startTime AND le.timestamp <= :endTime
-            AND t.album IS NOT NULL AND t.album != ''
-            AND (em.release_type IS NULL OR em.release_type NOT IN ('Single', 'single'))
-            AND (:filterPodcasts = 0 OR t.content_type IS NULL OR t.content_type != 'PODCAST')
-            AND (:filterAudiobooks = 0 OR t.content_type IS NULL OR t.content_type != 'AUDIOBOOK')
-            GROUP BY t.album, t.artist
-            HAVING COUNT(DISTINCT t.id) > 1
+            $RANKED_ALBUM_GROUPS
         ),
         max_values AS (
             SELECT 
@@ -2474,7 +2454,7 @@ interface StatsDao {
                 ELSE 0.0
             END) DESC,
             stats.play_count DESC,
-            stats.total_time_ms DESC
+            stats.total_time_ms DESC, stats.album ASC, stats.artist ASC
         LIMIT :limit OFFSET :offset
     """,
     )
@@ -2489,15 +2469,7 @@ interface StatsDao {
 
     @Query(
         """
-        SELECT COUNT(DISTINCT t.album) 
-        FROM listening_events le
-        INNER JOIN tracks t ON le.track_id = t.id
-        LEFT JOIN enriched_metadata em ON t.id = em.track_id
-        WHERE le.timestamp >= :startTime AND le.timestamp <= :endTime
-        AND t.album IS NOT NULL
-        AND (em.release_type IS NULL OR LOWER(em.release_type) != 'single')
-        AND (:filterPodcasts = 0 OR t.content_type IS NULL OR t.content_type != 'PODCAST')
-        AND (:filterAudiobooks = 0 OR t.content_type IS NULL OR t.content_type != 'AUDIOBOOK')
+        $RANKED_ALBUM_COUNT
     """,
     )
     suspend fun getUniqueAlbumsCountFiltered(
@@ -2514,7 +2486,7 @@ interface StatsDao {
             COUNT(le.id) as play_count,
             COUNT(DISTINCT le.track_id) as unique_tracks,
             COUNT(DISTINCT t.artist) as unique_artists,
-            COUNT(DISTINCT CASE WHEN t.album IS NOT NULL THEN t.album END) as unique_albums
+            ($RANKED_ALBUM_COUNT) as unique_albums
         FROM listening_events le
         INNER JOIN tracks t ON le.track_id = t.id
         WHERE le.timestamp >= :startTime AND le.timestamp <= :endTime
@@ -2734,16 +2706,7 @@ interface StatsDao {
                 COUNT(le.id) as play_count,
                 SUM(le.playDuration) as total_time_ms,
                 COUNT(DISTINCT t.id) as unique_tracks
-            FROM listening_events le
-            INNER JOIN tracks t ON le.track_id = t.id
-            LEFT JOIN enriched_metadata em ON t.id = em.track_id
-            WHERE le.timestamp >= :startTime AND le.timestamp <= :endTime
-            AND t.album IS NOT NULL AND t.album != ''
-            AND (em.release_type IS NULL OR em.release_type NOT IN ('Single', 'single'))
-            AND (:filterPodcasts = 0 OR t.content_type IS NULL OR t.content_type != 'PODCAST')
-            AND (:filterAudiobooks = 0 OR t.content_type IS NULL OR t.content_type != 'AUDIOBOOK')
-            GROUP BY t.album, t.artist
-            HAVING COUNT(DISTINCT t.id) > 1
+            $RANKED_ALBUM_GROUPS
         ),
         top_matches AS (
             SELECT stats.*
@@ -2785,16 +2748,7 @@ interface StatsDao {
                 COUNT(le.id) as play_count,
                 SUM(le.playDuration) as total_time_ms,
                 COUNT(DISTINCT t.id) as unique_tracks
-            FROM listening_events le
-            INNER JOIN tracks t ON le.track_id = t.id
-            LEFT JOIN enriched_metadata em ON t.id = em.track_id
-            WHERE le.timestamp >= :startTime AND le.timestamp <= :endTime
-            AND t.album IS NOT NULL AND t.album != ''
-            AND (em.release_type IS NULL OR em.release_type NOT IN ('Single', 'single'))
-            AND (:filterPodcasts = 0 OR t.content_type IS NULL OR t.content_type != 'PODCAST')
-            AND (:filterAudiobooks = 0 OR t.content_type IS NULL OR t.content_type != 'AUDIOBOOK')
-            GROUP BY t.album, t.artist
-            HAVING COUNT(DISTINCT t.id) > 1
+            $RANKED_ALBUM_GROUPS
         ),
         top_matches AS (
             SELECT stats.*
@@ -2836,16 +2790,7 @@ interface StatsDao {
                 COUNT(le.id) as play_count,
                 SUM(le.playDuration) as total_time_ms,
                 COUNT(DISTINCT t.id) as unique_tracks
-            FROM listening_events le
-            INNER JOIN tracks t ON le.track_id = t.id
-            LEFT JOIN enriched_metadata em ON t.id = em.track_id
-            WHERE le.timestamp >= :startTime AND le.timestamp <= :endTime
-            AND t.album IS NOT NULL AND t.album != ''
-            AND (em.release_type IS NULL OR em.release_type NOT IN ('Single', 'single'))
-            AND (:filterPodcasts = 0 OR t.content_type IS NULL OR t.content_type != 'PODCAST')
-            AND (:filterAudiobooks = 0 OR t.content_type IS NULL OR t.content_type != 'AUDIOBOOK')
-            GROUP BY t.album, t.artist
-            HAVING COUNT(DISTINCT t.id) > 1
+            $RANKED_ALBUM_GROUPS
         ),
         top_matches AS (
             SELECT stats.*
@@ -2887,16 +2832,7 @@ interface StatsDao {
                 COUNT(le.id) as play_count,
                 SUM(le.playDuration) as total_time_ms,
                 COUNT(DISTINCT t.id) as unique_tracks
-            FROM listening_events le
-            INNER JOIN tracks t ON le.track_id = t.id
-            LEFT JOIN enriched_metadata em ON t.id = em.track_id
-            WHERE le.timestamp >= :startTime AND le.timestamp <= :endTime
-            AND t.album IS NOT NULL AND t.album != ''
-            AND (em.release_type IS NULL OR em.release_type NOT IN ('Single', 'single'))
-            AND (:filterPodcasts = 0 OR t.content_type IS NULL OR t.content_type != 'PODCAST')
-            AND (:filterAudiobooks = 0 OR t.content_type IS NULL OR t.content_type != 'AUDIOBOOK')
-            GROUP BY t.album, t.artist
-            HAVING COUNT(DISTINCT t.id) > 1
+            $RANKED_ALBUM_GROUPS
         ),
         max_values AS (
             SELECT 

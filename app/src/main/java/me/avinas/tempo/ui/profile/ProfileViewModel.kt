@@ -16,6 +16,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.CancellationException
+import android.content.Context
+import me.avinas.tempo.data.repository.observeChallengeDays
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -44,6 +48,29 @@ class ProfileViewModel @Inject constructor(
         observeRefreshEvents()
     }
     
+    suspend fun observeChallenges(context: Context) {
+        observeChallengeDays(context).collectLatest { day ->
+            _uiState.update { state ->
+                if (state.challenges.any { it.date != day.date.toString() }) {
+                    state.copy(challenges = emptyList(), challengeXpTotal = 0)
+                } else state
+            }
+            try {
+                challengeRepository.generateDailyChallengesIfNeeded(day.date)
+                challengeRepository.refreshChallengeProgress(day)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                _uiState.update { it.copy(error = failure.message) }
+            }
+            challengeRepository.observeChallenges(day.date).collect { challenges ->
+                _uiState.update { state ->
+                    state.copy(challenges = challenges, challengeXpTotal = challenges.sumOf { it.xpReward })
+                }
+            }
+        }
+    }
+
     private fun observeData() {
         viewModelScope.launch {
             gamificationRepository.observeUserLevel().collect { level ->
@@ -122,19 +149,6 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             gamificationRepository.observeUnacknowledgedBadges().collect { badges ->
                 _uiState.update { it.copy(unacknowledgedBadges = badges) }
-            }
-        }
-        
-        viewModelScope.launch {
-            // Generate today's challenges before observing
-            challengeRepository.generateDailyChallengesIfNeeded()
-            
-            // Then observe them
-            challengeRepository.observeTodayChallenges().collect { challenges ->
-                _uiState.update { it.copy(
-                    challenges = challenges,
-                    challengeXpTotal = challenges.sumOf { challenge -> challenge.xpReward }
-                ) }
             }
         }
         
