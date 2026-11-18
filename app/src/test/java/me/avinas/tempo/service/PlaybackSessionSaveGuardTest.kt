@@ -5,13 +5,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Regression tests for [MusicTrackingService.PlaybackSession.eventSaveClaimed] to ensure
+ * Regression tests for [PlaybackSession.eventSaveClaimed] to ensure
  * a session can only be saved once.
  */
 class PlaybackSessionSaveGuardTest {
 
     private fun session(title: String) =
-        MusicTrackingService.PlaybackSession(
+        PlaybackSession(
             packageName = "player",
             title = title,
             artist = "Artist",

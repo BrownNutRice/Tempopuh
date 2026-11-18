@@ -7,7 +7,7 @@ import org.junit.Test
 
 class PlaybackSessionLiveAccountingTest {
     @Test fun `position update does not consume the play pause transition`() {
-        val session = MusicTrackingService.PlaybackSession(
+        val session = PlaybackSession(
             packageName = "com.spotify.music",
             title = "Song",
             artist = "Artist",
@@ -30,7 +30,7 @@ class PlaybackSessionLiveAccountingTest {
     }
 
     @Test fun `notification only playback accumulates without a MediaSession position`() {
-        val session = MusicTrackingService.PlaybackSession(
+        val session = PlaybackSession(
             packageName = "com.example.player",
             title = "Notification-only song",
             artist = "Artist",
@@ -47,7 +47,7 @@ class PlaybackSessionLiveAccountingTest {
     }
 
     @Test fun `position based duration still preserves preexisting precise samples`() {
-        val session = MusicTrackingService.PlaybackSession(
+        val session = PlaybackSession(
             packageName = "com.spotify.music",
             title = "Long Song",
             artist = "Artist",
@@ -59,7 +59,7 @@ class PlaybackSessionLiveAccountingTest {
     }
 
     @Test fun `pausing freezes monotonic listening time until resumed`() {
-        val session = MusicTrackingService.PlaybackSession(
+        val session = PlaybackSession(
             packageName = "player", title = "Song", artist = "Artist",
             album = null, isPlaying = true,
         )
@@ -77,7 +77,7 @@ class PlaybackSessionLiveAccountingTest {
     }
 
     @Test fun `track coverage comes from position not elapsed listening time`() {
-        val session = MusicTrackingService.PlaybackSession(
+        val session = PlaybackSession(
             packageName = "player", title = "Half-song", artist = "Artist",
             album = null, estimatedDurationMs = 100_000L, isPlaying = true,
             lastRecordedPosition = 0L, hasReceivedInitialPosition = true,
@@ -92,7 +92,7 @@ class PlaybackSessionLiveAccountingTest {
     }
 
     @Test fun `unknown completion remains unknown without position evidence`() {
-        val session = MusicTrackingService.PlaybackSession(
+        val session = PlaybackSession(
             packageName = "player", title = "Unmeasured", artist = "Artist",
             album = null, estimatedDurationMs = 200_000L, isPlaying = true,
         )
@@ -100,7 +100,7 @@ class PlaybackSessionLiveAccountingTest {
         session.pause()
     }
     @Test fun `the first position sample cannot swallow pause handling`() {
-        val session = MusicTrackingService.PlaybackSession(
+        val session = PlaybackSession(
             packageName = "player",
             title = "Opening",
             artist = "Artist",

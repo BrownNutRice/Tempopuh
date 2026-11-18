@@ -523,9 +523,12 @@ class MusicTrackingManager(
             if (pending.nextAttemptAt > now) continue
             if (due.size < OFFLINE_RETRY_BATCH_SIZE) {
                 due.add(pending)
-            } else if (pending.nextAttemptAt < due.peek().nextAttemptAt) {
-                due.poll()
-                due.add(pending)
+            } else {
+                val latest = due.peek() ?: continue
+                if (pending.nextAttemptAt < latest.nextAttemptAt) {
+                    due.poll()
+                    due.add(pending)
+                }
             }
         }
         val toProcess = due.sortedBy { it.nextAttemptAt }
@@ -694,14 +697,7 @@ data class SessionState(
     val isPlaying: Boolean,
     val pauseCount: Int,
     val estimatedDurationMs: Long?
-) {
-    companion object {
-        fun fromPlaybackSession(session: Any): SessionState {
-            // This would be called with the actual PlaybackSession from MusicTrackingService
-            throw NotImplementedError("Use MusicTrackingService.PlaybackSession directly")
-        }
-    }
-}
+)
 
 /**
  * Tracking metrics for monitoring and debugging.

@@ -48,6 +48,12 @@ The current tree is an incremental MVVM/repository architecture, not a completed
 
 ## Organization backlog
 
+`service/PlaybackSession.kt` owns per-play accounting, pause and seek state,
+and conversion to the existing recovery record. `MusicTrackingService` owns
+Android callbacks, session membership, and scheduling persistence. Extracting
+the session model moved about 360 lines out of the service. The existing
+playback duration, live accounting and duplicate-save tests exercise that model.
+
 Large tracking, statistics, import and Profile files should be split by responsibility through focused follow-ups with migration/API and behavior tests. This maintenance pass establishes the map and contributor boundaries; it does not claim those runtime refactors are complete.
 
 Generated `build/`, `.gradle/`, `node_modules/` and extension `dist/` output remain outside version control. Historical audits describe their original revision and are not current acceptance evidence.

@@ -5,7 +5,7 @@ import org.junit.Test
 
 class PlaybackSessionDurationTest {
     @Test fun `long allowed media counts beyond one hour`() {
-        val session = MusicTrackingService.PlaybackSession(
+        val session = PlaybackSession(
             packageName = "player", title = "Concert", artist = "Artist", album = null,
             accumulatedPositionMs = 7_200_000L, estimatedDurationMs = 10_800_000L
         )
