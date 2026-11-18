@@ -28,10 +28,36 @@ case "${1:-}" in
     # Capture verification and certificate output from the same command. A failed
     # verification must never be mistaken for an empty or partial certificate list.
     report="$(LC_ALL=C "$2" verify --print-certs "$3")" || fail 'APK signature verification failed.'
-    mapfile -t certificates < <(sed -nE 's/^Signer #[0-9]+ certificate SHA-256 digest: ([[:xdigit:]]{64})$/\1/p' <<< "$report")
-    if [[ "${#certificates[@]}" -ne 1 || "${certificates[0],,}" != "$expected" ]]; then
-      fail 'APK must have exactly one signer matching TEMPO_BETA_SIGNER_SHA256.'
-    fi
+    # Build-tools versions emit either "Signer #1" or a line per verified
+    # scheme such as "V2 Signer". A scheme may contain exactly one signer,
+    # and every reported signer must use the established certificate.
+    declare -A schemes=()
+    found=0
+    while IFS= read -r line; do
+      scheme=""
+      certificate=""
+      if [[ "$line" =~ ^Signer\ \#([0-9]+)\ certificate\ SHA-256\ digest:\ ([[:xdigit:]]{64})$ ]]; then
+        [[ "${BASH_REMATCH[1]}" == 1 ]] || fail 'APK has multiple signers.'
+        scheme="standard"
+        certificate="${BASH_REMATCH[2]}"
+      elif [[ "$line" =~ ^(V[1-4])\ Signer:\ certificate\ SHA-256\ digest:\ ([[:xdigit:]]{64})$ ]]; then
+        scheme="${BASH_REMATCH[1]}"
+        certificate="${BASH_REMATCH[2]}"
+      elif [[ "$line" =~ ^(V[1-4])\ Signer\ \#([0-9]+):\ certificate\ SHA-256\ digest:\ ([[:xdigit:]]{64})$ ]]; then
+        [[ "${BASH_REMATCH[2]}" == 1 ]] || fail 'APK has multiple signers.'
+        scheme="${BASH_REMATCH[1]}"
+        certificate="${BASH_REMATCH[3]}"
+      elif [[ "$line" == *"certificate SHA-256 digest:"* ]]; then
+        fail 'Unrecognized signer certificate output.'
+      else
+        continue
+      fi
+      [[ -z "${schemes[$scheme]:-}" ]] || fail 'APK has multiple signers for one signature scheme.'
+      schemes[$scheme]=1
+      [[ "${certificate,,}" == "$expected" ]] || fail 'APK signer does not match TEMPO_BETA_SIGNER_SHA256.'
+      found=1
+    done <<< "$report"
+    [[ "$found" == 1 ]] || fail 'APK signer certificate was not reported.'
     ;;
   *)
     fail 'Usage: beta-signing.sh check-config | verify APKSIGNER APK'

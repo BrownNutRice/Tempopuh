@@ -55,6 +55,8 @@ jobs:
             echo "Validation-only build with the runner debug signer."
           fi
       - run: chmod +x gradlew
+      - name: Test signing verification
+        run: bash .github/scripts/test-beta-signing.sh
       - name: Unit tests
         run: ./gradlew :app:testDebugUnitTest --stacktrace
       - name: Android lint
