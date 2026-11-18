@@ -1254,5 +1254,8 @@
     <string name="spotlight_share_failed">Impossible de partager la story</string>
     <string name="profile_load_failed">Impossible de mettre à jour toutes les données du profil. Réessayez.</string>
     <string name="profile_acknowledgement_failed">Impossible de marquer ces badges comme vus. Réessayez.</string>
-    <string name="backup_restore_appearance_scope">Les réglages et les styles enregistrés dans le Studio d’apparence sont stockés séparément. Exportez votre style actuel depuis le Studio.</string>
+    <string name="backup_restore_appearance_scope">Les sauvegardes de la bibliothèque incluent les réglages et les styles enregistrés du Studio d’apparence.</string>
+    <string name="backup_appearance_included">Réglages et styles enregistrés inclus.</string>
+    <string name="backup_appearance_restored">Apparence restaurée depuis la sauvegarde.</string>
+    <string name="backup_appearance_unchanged">Apparence inchangée.</string>
 </resources>

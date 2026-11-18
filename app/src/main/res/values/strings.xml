@@ -1713,5 +1713,8 @@
     <string name="spotlight_share_failed">Could not share the story</string>
     <string name="profile_load_failed">Could not update all Profile data. Try again.</string>
     <string name="profile_acknowledgement_failed">Could not mark these badges as seen. Try again.</string>
-    <string name="backup_restore_appearance_scope">Appearance Studio settings and saved looks are stored separately. Use Appearance Studio to export your current look.</string>
+    <string name="backup_restore_appearance_scope">Library backups include Appearance Studio settings and saved looks.</string>
+    <string name="backup_appearance_included">Appearance settings and saved looks included.</string>
+    <string name="backup_appearance_restored">Appearance restored from the backup.</string>
+    <string name="backup_appearance_unchanged">Appearance left unchanged.</string>
 </resources>

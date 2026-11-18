@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -41,6 +42,7 @@ import me.avinas.tempo.ui.components.CachedAsyncImage
 import me.avinas.tempo.data.drive.*
 import me.avinas.tempo.data.importexport.ImportConflictStrategy
 import me.avinas.tempo.data.importexport.ImportExportResult
+import me.avinas.tempo.data.importexport.BackupAppearanceStatus
 import me.avinas.tempo.ui.components.DeepOceanBackground
 import me.avinas.tempo.ui.components.GlassCard
 import me.avinas.tempo.ui.components.GlassCardVariant
@@ -85,6 +87,7 @@ fun BackupRestoreScreen(
     
     // Get Activity context for Credential Manager
     val context = LocalContext.current
+    val resources = LocalResources.current
     val activity = context as? Activity
     
     // Track if we've shown the activity error to avoid spamming
@@ -171,9 +174,15 @@ fun BackupRestoreScreen(
         importExportResult?.let { result ->
             when (result) {
                 is ImportExportResult.Success -> {
-                    val imageText = if (result.imagesCount > 0) " and ${result.imagesCount} images" else ""
+                    val summary = resources.getString(R.string.settings_import_success, result.totalRecords, result.imagesCount)
+                    val appearance = when (result.appearanceStatus) {
+                        BackupAppearanceStatus.INCLUDED -> R.string.backup_appearance_included
+                        BackupAppearanceStatus.RESTORED -> R.string.backup_appearance_restored
+                        BackupAppearanceStatus.UNCHANGED -> R.string.backup_appearance_unchanged
+                        null -> null
+                    }
                     snackbarHostState.showSnackbar(
-                        "Successfully processed ${result.totalRecords} records$imageText"
+                        if (appearance == null) summary else "$summary\n${resources.getString(appearance)}"
                     )
                 }
                 is ImportExportResult.Error -> {

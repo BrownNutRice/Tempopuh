@@ -38,7 +38,8 @@ class ImportExportManager @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val database: AppDatabase,
     private val profileIdentityManager: ProfileIdentityManager,
-    private val statsRepository: me.avinas.tempo.data.repository.StatsRepository
+    private val statsRepository: me.avinas.tempo.data.repository.StatsRepository,
+    private val appearanceRepository: me.avinas.tempo.ui.appearance.AppearancePreferencesRepository,
 ) {
     companion object {
         private const val TAG = "ImportExportManager"
@@ -148,6 +149,7 @@ class ImportExportManager @Inject constructor(
             _progress.value = ImportExportProgress("Collecting data...", 0, 100, true)
             // DataStore is a separate persistence system; capture identity once, outside Room.
             val profile = profileIdentityManager.getProfileIdentity()
+            val appearance = appearanceRepository.exportBackup()
             val imageSources = linkedMapOf<String, File>()
             val result = BackupSnapshotWriter(database, codec).write(snapshotFile, profile) { shell ->
                 val (localPaths, hotlinks) = collectImageUrls(
@@ -167,7 +169,7 @@ class ImportExportManager @Inject constructor(
                         manifest[name] = path
                     }
                 }
-                shell.copy(localImageManifest = manifest, hotlinkedUrls = hotlinks)
+                shell.copy(localImageManifest = manifest, hotlinkedUrls = hotlinks, appearance = appearance)
             }
 
             _progress.value = ImportExportProgress("Creating backup...", 60, 100)
@@ -194,7 +196,7 @@ class ImportExportManager @Inject constructor(
                 return@withContext ImportExportResult.Error(message)
             }
             _progress.value = ImportExportProgress("Export complete!", 100, 100)
-            result
+            result.copy(appearanceStatus = BackupAppearanceStatus.INCLUDED)
         } catch (e: CancellationException) {
             target.delete()
             throw e
@@ -694,6 +696,14 @@ class ImportExportManager @Inject constructor(
             )
             profileIdentityManager.restoreProfileImagePath(restoredProfileImagePath)
             Log.i(TAG, "Restored profile image path present=${!restoredProfileImagePath.isNullOrBlank()}")
+            val restoredAppearance = try {
+                data.appearance?.let {
+                    appearanceRepository.restoreBackup(it, replace = conflictStrategy == ImportConflictStrategy.REPLACE)
+                } ?: false
+            } catch (e: java.io.IOException) {
+                Log.w(TAG, "Library restored but appearance settings could not be written", e)
+                false
+            }
             
             // Schedule pre-caching of hotlinked images. The list comes from the
             // restored backup file and is therefore untrusted input: a crafted
@@ -720,7 +730,8 @@ class ImportExportManager @Inject constructor(
                 artistsCount = importedArtists,
                 albumsCount = importedAlbums,
                 eventsCount = importedEvents,
-                imagesCount = extractedImages.size
+                imagesCount = extractedImages.size,
+                appearanceStatus = if (restoredAppearance) BackupAppearanceStatus.RESTORED else BackupAppearanceStatus.UNCHANGED,
             )
         } catch (e: CancellationException) {
             throw e

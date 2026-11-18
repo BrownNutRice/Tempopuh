@@ -18,6 +18,7 @@ import me.avinas.tempo.data.local.entities.*
  * - v7: Added userName (display name) from DataStore
  * - v8: Added userKnownArtists and dailyChallenges tables
  * - v9: Added userProfileImagePath from DataStore-backed profile identity
+ * - v10: Added Appearance Studio settings and saved looks
  */
 @JsonClass(generateAdapter = true)
 data class TempoExportData(
@@ -29,6 +30,7 @@ data class TempoExportData(
     // v7+: User profile identity (from DataStore)
     val userName: String? = null,
     val userProfileImagePath: String? = null,
+    val appearance: String? = null,
 
     // Core data
     val tracks: List<Track> = emptyList(),
@@ -80,7 +82,7 @@ data class TempoExportData(
     val imageManifest: Map<String, String> = emptyMap()
 ) {
     companion object {
-        const val CURRENT_VERSION = 9
+        const val CURRENT_VERSION = 10
         const val DATA_FILENAME = "data.json"
     }
 }
@@ -102,7 +104,8 @@ sealed class ImportExportResult {
         val artistsCount: Int = 0,
         val albumsCount: Int = 0,
         val eventsCount: Int = 0,
-        val imagesCount: Int = 0
+        val imagesCount: Int = 0,
+        val appearanceStatus: BackupAppearanceStatus? = null,
     ) : ImportExportResult() {
         val totalRecords: Int get() = tracksCount + artistsCount + albumsCount + eventsCount
     }
@@ -112,6 +115,8 @@ sealed class ImportExportResult {
         val cause: Throwable? = null
     ) : ImportExportResult()
 }
+
+enum class BackupAppearanceStatus { INCLUDED, RESTORED, UNCHANGED }
 
 /**
  * Progress update during import/export operations.

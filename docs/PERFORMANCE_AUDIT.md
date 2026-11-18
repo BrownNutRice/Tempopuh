@@ -17,11 +17,9 @@ on 18 November 2026 with the local XP query and test-fixture fixes in this chang
 | #83 | `3706768` | Browser sync drains bounded pages with page-level acknowledgement. A 100,000-row Chromium IndexedDB fixture resumed after closing the page, capped pages at 50 records and retained a late arrival. Extension service-worker lifecycle and memory profiling remain open. |
 | #84 | `89256bd` | Single-track enrichment avoids global artist repair; background repair has bounded passes. Verify latency, import contention and restart on Android. |
 
-These source changes do not establish device performance improvements. The
-associated issues retain their outstanding acceptance checks.
+The closed implementation tickets retain their manual verification notes.
 
-The same review matched other open audit findings to committed changes. These
-remain open for the checks shown below:
+These closed UI issues still have manual verification pending.
 
 | Issues | Commit | Remaining verification |
 | --- | --- | --- |
@@ -47,9 +45,10 @@ before running smoke checks (#16). Screenshot comparisons and rendered review
 remain outstanding. GitHub builds now direct issue reports to this fork and
 reserve Play review actions for builds explicitly configured for Play (#88).
 Device verification of the feedback actions remains outstanding.
-The backup screen explains that Appearance Studio settings and saved looks
-are stored separately (#86). The library backup format still needs an
-appearance round trip.
+Library backup format v10 includes Appearance Studio settings and saved looks
+(#86). Older archives preserve the current appearance. A replace restore
+applies the saved appearance snapshot. A keep-existing restore retains configured
+settings and adds unfamiliar looks to unused slots.
 
 > **Verification status.** Every fix recorded below was compiled with
 > `./gradlew :app:compileDebugKotlin` (BUILD SUCCESSFUL) and the full unit suite

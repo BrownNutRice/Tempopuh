@@ -1482,5 +1482,8 @@
     <string name="spotlight_share_failed">Не удалось поделиться историей</string>
     <string name="profile_load_failed">Не удалось обновить все данные профиля. Повторите попытку.</string>
     <string name="profile_acknowledgement_failed">Не удалось отметить эти значки как просмотренные. Повторите попытку.</string>
-    <string name="backup_restore_appearance_scope">Настройки и сохранённые стили студии оформления хранятся отдельно. Экспортируйте текущий стиль в студии оформления.</string>
+    <string name="backup_restore_appearance_scope">Резервные копии библиотеки включают настройки оформления и сохранённые стили.</string>
+    <string name="backup_appearance_included">Настройки оформления и сохранённые стили включены.</string>
+    <string name="backup_appearance_restored">Оформление восстановлено из резервной копии.</string>
+    <string name="backup_appearance_unchanged">Оформление не изменилось.</string>
 </resources>

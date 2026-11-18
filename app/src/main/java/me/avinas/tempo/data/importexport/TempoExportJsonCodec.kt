@@ -94,6 +94,7 @@ internal class TempoExportJsonCodec(private val moshi: Moshi) {
         writer.name("schemaVersion").value(shell.schemaVersion)
         shell.userName?.let { writer.name("userName").value(it) }
         shell.userProfileImagePath?.let { writer.name("userProfileImagePath").value(it) }
+        shell.appearance?.let { writer.name("appearance").value(it) }
 
         writeArray(writer, "tracks", trackAdapter, shell.tracks)
         writeArray(writer, "artists", artistAdapter, shell.artists)
@@ -153,6 +154,7 @@ internal class TempoExportJsonCodec(private val moshi: Moshi) {
         var schemaVersion = 0
         var userName: String? = null
         var userProfileImagePath: String? = null
+        var appearance: String? = null
         var tracks = emptyList<Track>()
         var artists = emptyList<Artist>()
         var albums = emptyList<Album>()
@@ -181,6 +183,11 @@ internal class TempoExportJsonCodec(private val moshi: Moshi) {
                 "schemaVersion" -> schemaVersion = nextIntOrDefault(reader, schemaVersion)
                 "userName" -> userName = nextNullableString(reader)
                 "userProfileImagePath" -> userProfileImagePath = nextNullableString(reader)
+                "appearance" -> if (reader.peek() == JsonReader.Token.STRING) {
+                    appearance = reader.nextString()
+                } else {
+                    reader.skipValue()
+                }
                 "tracks" -> tracks = readArray(reader, trackAdapter)
                 "artists" -> artists = readArray(reader, artistAdapter)
                 "albums" -> albums = readArray(reader, albumAdapter)
@@ -221,6 +228,7 @@ internal class TempoExportJsonCodec(private val moshi: Moshi) {
             schemaVersion = schemaVersion,
             userName = userName,
             userProfileImagePath = userProfileImagePath,
+            appearance = appearance,
             tracks = tracks,
             artists = artists,
             albums = albums,

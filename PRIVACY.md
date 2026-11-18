@@ -42,7 +42,7 @@ Tempo's enrichment path does not upload local music/audio files. A public previe
 
 Tempo backup archives are ZIP/JSON-based files with optional images. **They are not password-encrypted by the app**, including when uploaded to Drive. Choose destinations appropriate for personal listening records and protect exported files yourself. Transport or provider-managed storage encryption does not make an archive end-to-end or password encrypted.
 
-A backup does not include every app-private store or credential. In particular, the current library archive does not serialize Appearance Studio's separate settings/saved-look store. Appearance has its own JSON transfer. Verify what you need before reinstalling.
+Library archive format v10 includes Appearance Studio settings and saved looks. Appearance Studio also supports separate JSON transfer for the current look. Account credentials stay in their separate app-private stores.
 
 Signing out or deleting local app data does not delete files already exported, shared, or retained in Google Drive. Manage those copies at their destinations.
 

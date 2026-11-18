@@ -1256,5 +1256,8 @@
     <string name="spotlight_share_failed">Story konnte nicht geteilt werden</string>
     <string name="profile_load_failed">Nicht alle Profildaten konnten aktualisiert werden. Versuche es erneut.</string>
     <string name="profile_acknowledgement_failed">Diese Abzeichen konnten nicht als gesehen markiert werden. Versuche es erneut.</string>
-    <string name="backup_restore_appearance_scope">Einstellungen und gespeicherte Looks des Designstudios werden separat gespeichert. Exportiere deinen aktuellen Look im Designstudio.</string>
+    <string name="backup_restore_appearance_scope">Bibliothekssicherungen enthalten die Einstellungen und gespeicherten Looks des Designstudios.</string>
+    <string name="backup_appearance_included">Designeinstellungen und gespeicherte Looks enthalten.</string>
+    <string name="backup_appearance_restored">Design aus der Sicherung wiederhergestellt.</string>
+    <string name="backup_appearance_unchanged">Design unverändert.</string>
 </resources>

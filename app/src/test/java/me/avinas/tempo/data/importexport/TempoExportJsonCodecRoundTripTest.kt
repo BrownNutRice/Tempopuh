@@ -40,6 +40,7 @@ class TempoExportJsonCodecRoundTripTest {
         schemaVersion = 52,
         userName = "Avinash",
         userProfileImagePath = null,
+        appearance = """{"settings":"{\"version\":2,\"tone\":\"LIGHT\"}","looks":{"Night":"{\"version\":2,\"tone\":\"DARK\"}"}}""",
         tracks = listOf(
             Track(
                 id = 1, title = "Song A", artist = "Artist One", album = "Album X",
@@ -143,6 +144,7 @@ class TempoExportJsonCodecRoundTripTest {
         assertEquals(expectedShell.albums, data.albums)
         assertEquals(expectedShell.trackArtists, data.trackArtists)
         assertEquals(expectedShell.userPreferences, data.userPreferences)
+        assertEquals(expectedShell.appearance, data.appearance)
         assertEquals(expectedShell.localImageManifest, data.localImageManifest)
         assertEquals(expectedShell.hotlinkedUrls, data.hotlinkedUrls)
 
@@ -211,6 +213,18 @@ class TempoExportJsonCodecRoundTripTest {
         assertEquals(2, data.tracks.size)
         assertTrue(data.listeningEvents.isEmpty())
         assertTrue(data.scrobbleArchive.isEmpty())
+    }
+
+    @Test
+    fun `legacy and malformed appearance fields preserve the library data`() = runBlocking {
+        for (document in listOf(
+            """{"version":9,"userName":"Listener"}""",
+            """{"version":10,"appearance":{"settings":false},"userName":"Listener"}""",
+        )) {
+            val data = codec.read(JsonReader.of(Buffer().writeUtf8(document)), TempoExportJsonCodec.StreamHandlers())
+            assertEquals("Listener", data.userName)
+            assertEquals(null, data.appearance)
+        }
     }
 
     @Test

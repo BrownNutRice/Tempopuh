@@ -890,5 +890,8 @@
     <string name="spotlight_share_failed">A történetet nem sikerült megosztani</string>
     <string name="profile_load_failed">Nem sikerült frissíteni az összes profiladatot. Próbáld újra.</string>
     <string name="profile_acknowledgement_failed">Nem sikerült megtekintettként megjelölni ezeket a jelvényeket. Próbáld újra.</string>
-    <string name="backup_restore_appearance_scope">A Megjelenés beállításai és a mentett stílusok külön tárolódnak. Az aktuális stílust a Megjelenés képernyőn exportálhatod.</string>
+    <string name="backup_restore_appearance_scope">A könyvtármentések a Megjelenés beállításait és a mentett stílusokat is tartalmazzák.</string>
+    <string name="backup_appearance_included">A megjelenési beállítások és a mentett stílusok szerepelnek a mentésben.</string>
+    <string name="backup_appearance_restored">A megjelenés visszaállítva a mentésből.</string>
+    <string name="backup_appearance_unchanged">A megjelenés változatlan.</string>
 </resources>
