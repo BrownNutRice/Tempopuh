@@ -83,6 +83,7 @@ class DeezerDataImportFailureIntegrationTest {
                         database.artistDao(),
                         database.trackArtistDao(),
                         database.artistAliasDao(),
+                        database,
                     ),
                 enrichedMetadataDao = database.enrichedMetadataDao(),
                 trackRepository = faultingTrackRepository,

@@ -236,6 +236,7 @@ class ArtworkPersistenceIntegrationTest {
                         database.artistDao(),
                         database.trackArtistDao(),
                         database.artistAliasDao(),
+                        database,
                     ),
                 tracker = NoOpAnalyticsTracker(),
             )

@@ -1,6 +1,8 @@
 package me.avinas.tempo.data.repository
 
 import android.util.Log
+import androidx.room.withTransaction
+import me.avinas.tempo.data.local.AppDatabase
 import me.avinas.tempo.data.local.dao.ArtistAliasDao
 import me.avinas.tempo.data.local.dao.ArtistDao
 import me.avinas.tempo.data.local.dao.TrackArtistDao
@@ -24,7 +26,8 @@ class ArtistLinkingService @Inject constructor(
     private val trackDao: TrackDao,
     private val artistDao: ArtistDao,
     private val trackArtistDao: TrackArtistDao,
-    private val artistAliasDao: ArtistAliasDao
+    private val artistAliasDao: ArtistAliasDao,
+    private val database: AppDatabase,
 ) {
     companion object {
         private const val TAG = "ArtistLinkingService"
@@ -312,73 +315,12 @@ class ArtistLinkingService @Inject constructor(
         }
     }
     
-    /**
-     * Migration/backfill: link artists for every track with no primary artist.
-     * Capped to prevent runaway processing.
-     */
-    suspend fun processUnlinkedTracks(batchSize: Int = 100): Int = withContext(Dispatchers.IO) {
-        var totalProcessed = 0
-        var totalFeatured = 0
-        val maxIterations = 1000 // Safety limit: max 100,000 tracks per call
-        var iterations = 0
-        
-        // Track failed track IDs in memory to avoid reprocessing in this run
-        val failedTrackIds = mutableSetOf<Long>()
-        
-        Log.i(TAG, "Starting to process unlinked tracks...")
-        
-        while (iterations < maxIterations) {
-            iterations++
-            val unlinkedTracks = trackDao.getTracksWithoutPrimaryArtist(batchSize)
-                .filter { it.id !in failedTrackIds } // Skip tracks that already failed
-            
-            if (unlinkedTracks.isEmpty()) break
-            
-            unlinkedTracks.forEach { track ->
-                try {
-                    val result = linkArtistsForTrack(track)
-                    totalProcessed++
-                    
-                    // Count tracks with featured artists for batch summary
-                    val parsed = ArtistParser.parse(track.artist)
-                    if (parsed.featuredArtists.isNotEmpty()) {
-                        totalFeatured++
-                    }
-                } catch (e: Exception) {
-                    // Mark as failed in memory to skip in subsequent iterations
-                    failedTrackIds.add(track.id)
-                    
-                    // Try to mark with Unknown Artist to prevent future reruns
-                    try {
-                        val unknownArtist = getOrCreateUnknownArtist()
-                        trackDao.updatePrimaryArtistId(track.id, unknownArtist.id)
-                    } catch (updateError: Exception) {
-                        // Silently fail - will be retried next time
-                    }
-                }
-            }
-            
-            // Batch log every 500 tracks to avoid log bloat
-            if (totalProcessed % 500 == 0 && totalProcessed > 0) {
-                Log.i(TAG, "Progress: $totalProcessed tracks linked ($totalFeatured with featured artists)")
-            }
-        }
-        
-        if (iterations >= maxIterations) {
-            Log.w(TAG, "Reached iteration limit ($maxIterations). Stopping to prevent runaway.")
-        }
-        
-        // Final summary log
-        val failedCount = failedTrackIds.size
-        if (failedCount > 0) {
-            Log.i(TAG, "Completed: $totalProcessed linked, $totalFeatured with featured artists, $failedCount failed")
-        } else {
-            Log.i(TAG, "Completed: $totalProcessed tracks linked ($totalFeatured with featured artists)")
-        }
-        
-        totalProcessed
+    /** Read the current row and commit its artist links together. */
+    suspend fun linkUnlinkedTrack(trackId: Long): Track? = database.withTransaction {
+        val track = trackDao.getTrackById(trackId) ?: return@withTransaction null
+        if (track.primaryArtistId == null) linkArtistsForTrack(track) else track
     }
-    
+
     /**
      * Get the primary artist for a track, creating if necessary.
      */

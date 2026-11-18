@@ -10,6 +10,7 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.*
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import me.avinas.tempo.R
 import me.avinas.tempo.data.analytics.AnalyticsTracker
@@ -358,14 +359,10 @@ class EnrichmentWorker
             val backlogBefore = pendingEnrichmentCount()
 
             return try {
-                // First, link any unlinked artists (fixes imported tracks without artist relationships)
-                // Skip during active import to reduce DB contention
-                if (!isImportRunning) {
-                    linkUnlinkedArtists()
+                if (specificTrackId == null) {
+                    ArtistBackfillWorker.schedule(applicationContext)
+                    backfillAlbumArtUrls()
                 }
-
-                // Second, backfill any missing album art URLs to tracks table
-                backfillAlbumArtUrls()
 
                 if (isEnrichAll) {
                     // Bulk "Enrich All" sweep with progress reporting
@@ -392,6 +389,8 @@ class EnrichmentWorker
 
                 reportEnrichmentRun(trigger, RunPhase.COMPLETED, backlogBefore, startedAt)
                 Result.success()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (e: Exception) {
                 Log.e(TAG, "Enrichment work failed", e)
                 if (runAttemptCount < 3) {
@@ -446,21 +445,6 @@ class EnrichmentWorker
         }
 
         /**
-         * Link artists for tracks that don't have artist relationships.
-         * This fixes imported Spotify tracks and any legacy tracks without proper linking.
-         */
-        private suspend fun linkUnlinkedArtists() {
-            try {
-                val linkedCount = artistLinkingService.processUnlinkedTracks(50)
-                if (linkedCount > 0) {
-                    Log.i(TAG, "Linked artists for $linkedCount tracks")
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "Error linking unlinked artists", e)
-            }
-        }
-
-        /**
          * Backfill album art URLs from enriched_metadata to tracks table.
          * This fixes tracks that were enriched before the Track update was added.
          */
@@ -503,7 +487,15 @@ class EnrichmentWorker
         }
 
         private suspend fun enrichSpecificTrack(trackId: Long) {
-            val track = trackDao.getTrackById(trackId)
+            val existing = trackDao.getTrackById(trackId)
+            val track = if (existing != null && existing.primaryArtistId == null) try {
+                artistLinkingService.linkUnlinkedTrack(trackId)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                Log.w(TAG, "Could not link the artist for track $trackId", failure)
+                trackDao.getTrackById(trackId)
+            } else existing
             if (track == null) {
                 Log.w(TAG, "Track $trackId not found")
                 // Orphan metadata row (track deleted): remove it so it can never be

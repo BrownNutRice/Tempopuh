@@ -346,8 +346,11 @@ interface TrackDao {
     
     // Queries for Linking
     
-    @Query("SELECT * FROM tracks WHERE primary_artist_id IS NULL LIMIT :limit")
-    suspend fun getTracksWithoutPrimaryArtist(limit: Int = 100): List<Track>
+    @Query(
+        "SELECT id FROM tracks WHERE primary_artist_id IS NULL AND id > :afterId " +
+            "AND TRIM(artist) != '' ORDER BY id LIMIT :limit",
+    )
+    suspend fun getUnlinkedArtistTrackIds(afterId: Long, limit: Int): List<Long>
     
     @Query("UPDATE tracks SET primary_artist_id = :artistId WHERE id = :trackId")
     suspend fun updatePrimaryArtistId(trackId: Long, artistId: Long?)
