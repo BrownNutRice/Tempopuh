@@ -58,46 +58,20 @@ interface GamificationDao {
 
     // XP Calculation helpers (queries against listening_events)
 
-    /**
-     * Count XP-eligible full plays (≥80% completion).
-     *
-     * Anti-gaming rules applied:
-     *  1. Muted plays (volume_level = 0) are excluded — NULL is treated as audible (legacy rows).
-     *  2. The same track is capped at MAX_XP_PLAYS_PER_TRACK_PER_DAY full plays per calendar day.
-     *     Additional plays of the same song are still recorded but contribute 0 XP.
-     */
+    /** Counts audible XP-eligible plays, with separate per-track and per-local-day caps per tier. */
     @Query(
         """
-        SELECT COALESCE(SUM(capped), 0) FROM (
-            SELECT MIN(COUNT(*), 3) AS capped
+        SELECT COALESCE(SUM(full), 0) AS fullPlays, COALESCE(SUM(partial), 0) AS partialPlays FROM (
+            SELECT MIN(SUM(CASE WHEN completionPercentage >= 80 THEN 1 ELSE 0 END), 3) AS full,
+                   MIN(SUM(CASE WHEN completionPercentage < 80 THEN 1 ELSE 0 END), 3) AS partial
             FROM listening_events
-            WHERE completionPercentage >= 80
+            WHERE completionPercentage >= 30
               AND (volume_level IS NULL OR volume_level > 0)
             GROUP BY track_id, ${LocalTimeSql.LOCAL_DAY}
         )
-    """,
+        """,
     )
-    suspend fun getFullPlayCount(): Int
-
-    /**
-     * Count XP-eligible partial plays (30–79% completion).
-     *
-     * Anti-gaming rules applied:
-     *  1. Muted plays (volume_level = 0) are excluded.
-     *  2. Same track capped at 3 partial plays per calendar day for XP purposes.
-     */
-    @Query(
-        """
-        SELECT COALESCE(SUM(capped), 0) FROM (
-            SELECT MIN(COUNT(*), 3) AS capped
-            FROM listening_events
-            WHERE completionPercentage >= 30 AND completionPercentage < 80
-              AND (volume_level IS NULL OR volume_level > 0)
-            GROUP BY track_id, ${LocalTimeSql.LOCAL_DAY}
-        )
-    """,
-    )
-    suspend fun getPartialPlayCount(): Int
+    suspend fun getXpPlayCounts(): XpPlayCounts
 
     /** Total listening time in milliseconds */
     @Query("SELECT COALESCE(SUM(playDuration), 0) FROM listening_events")
@@ -482,3 +456,5 @@ interface GamificationDao {
         endHour: Int,
     ): Int
 }
+
+data class XpPlayCounts(val fullPlays: Int, val partialPlays: Int)

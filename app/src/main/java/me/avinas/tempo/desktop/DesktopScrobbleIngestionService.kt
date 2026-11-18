@@ -220,7 +220,7 @@ class DesktopPlayIngestionService @Inject constructor(
 
         // Notify the History screen (and other observers) that new plays were added.
         // Without this, the History ViewModel only reacts through the Room-backed
-        // observeListeningOverview() Flow, which may not fire while the screen is
+        // listening history flow, which may not fire while the screen is
         // in the background or on a non-zero page. This mirrors what MusicTrackingService
         // does after recording a live play.
         if (accepted > 0) {

@@ -2,7 +2,10 @@ package me.avinas.tempo.data.repository
 
 import android.util.Log
 import androidx.room.withTransaction
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import me.avinas.tempo.data.local.AppDatabase
 import me.avinas.tempo.data.local.DeviceTimeZone
 import me.avinas.tempo.data.local.dao.GamificationDao
@@ -28,6 +31,8 @@ class GamificationRepository
         companion object {
             private const val TAG = "GamificationRepo"
         }
+
+        private val fullRefreshMutex = Mutex()
 
         // Level & XP
 
@@ -57,13 +62,13 @@ class GamificationRepository
                 appDatabase.withTransaction {
                     val banked = gamificationDao.sumCompletedXpBefore(cutoffDate)
                     if (banked > 0) gamificationDao.addBankedChallengeXp(banked)
-                    // Recompute AFTER banking so total_xp includes the banked offset before the
-                    // source rows are removed.
-                    recomputeXpAndLevel()
                     deleted = gamificationDao.deleteChallengesOlderThan(cutoffDate)
+                    if (deleted > 0) recomputeXpAndLevel()
                 }
                 if (deleted > 0) Log.i(TAG, "Pruned $deleted challenges older than $cutoffDate (XP banked & preserved)")
                 deleted
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (e: Exception) {
                 Log.w(TAG, "pruneChallengesPreservingXp failed", e)
                 0
@@ -78,8 +83,7 @@ class GamificationRepository
             val previousLevelNum = previousLevel?.currentLevel ?: 0
 
             // Calculate XP deterministically from listening events
-            val fullPlays = gamificationDao.getFullPlayCount()
-            val partialPlays = gamificationDao.getPartialPlayCount()
+            val (fullPlays, partialPlays) = gamificationDao.getXpPlayCounts()
             val uniqueArtists = gamificationDao.getUniqueArtistCount()
             var totalXp = GamificationEngine.calculateXp(fullPlays, partialPlays, uniqueArtists)
 
@@ -125,14 +129,21 @@ class GamificationRepository
                     currentLevel = levelState.level,
                     xpForCurrentLevel = levelState.xpForCurrentLevel,
                     xpForNextLevel = levelState.xpForNextLevel,
-                    lastXpAwardedAt = System.currentTimeMillis(),
+                    lastXpAwardedAt = previousLevel?.lastXpAwardedAt ?: 0,
                     currentStreak = streakInfo.currentStreak,
                     longestStreak = maxOf(streakInfo.longestStreak, previousLevel?.longestStreak ?: 0),
                     lastStreakDate = dates.firstOrNull() ?: "",
                     bankedChallengeXp = bankedChallengeXp,
                 )
 
-            gamificationDao.upsertUserLevel(updatedLevel)
+            if (updatedLevel != previousLevel) {
+                val timestamp = if (previousLevel?.totalXp != updatedLevel.totalXp) {
+                    System.currentTimeMillis()
+                } else {
+                    updatedLevel.lastXpAwardedAt
+                }
+                gamificationDao.upsertUserLevel(updatedLevel.copy(lastXpAwardedAt = timestamp))
+            }
 
             Log.d(
                 TAG,
@@ -264,7 +275,7 @@ class GamificationRepository
                             },
                     )
 
-                updatedBadges.add(badge)
+                if (badge != existing) updatedBadges.add(badge)
 
                 if (isNowEarned && !wasAlreadyEarned) {
                     newlyEarned.add(def.badgeId)
@@ -287,12 +298,14 @@ class GamificationRepository
          */
         suspend fun fullRefresh(): GamificationRefreshResult =
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                val levelUpResult = recomputeXpAndLevel()
-                val newBadges = evaluateAllBadges()
-                GamificationRefreshResult(
-                    levelUpResult = levelUpResult,
-                    newlyEarnedBadgeIds = newBadges,
-                )
+                fullRefreshMutex.withLock {
+                    val levelUpResult = recomputeXpAndLevel()
+                    val newBadges = evaluateAllBadges()
+                    GamificationRefreshResult(
+                        levelUpResult = levelUpResult,
+                        newlyEarnedBadgeIds = newBadges,
+                    )
+                }
             }
     }
 

@@ -50,13 +50,8 @@ interface StatsRepository {
         withLeeway: Boolean = true,
     ): ListeningOverview
 
-    /**
-     * Get listening overview as a Flow for real-time updates.
-     */
-    fun observeListeningOverview(
-        timeRange: TimeRange,
-        withLeeway: Boolean = true,
-    ): Flow<ListeningOverview>
+    /** Signals history or content-filter changes without calculating an overview. */
+    fun observeListeningStatsChanges(): Flow<Unit>
 
     /**
      * Observe metadata updates (e.g., album art from enrichment).

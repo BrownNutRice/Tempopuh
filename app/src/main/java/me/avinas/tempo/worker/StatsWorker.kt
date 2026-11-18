@@ -10,138 +10,23 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.*
 import me.avinas.tempo.R
 import me.avinas.tempo.data.repository.RoomStatsRepository
-import me.avinas.tempo.data.stats.TimeRange
 import me.avinas.tempo.utils.ForegroundNotificationGuard
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import java.util.concurrent.TimeUnit
 
-/**
- * Periodically pre-computes stats cache for common time ranges ahead of user navigation.
- */
+/** Retained so pending work from older installs can finish without computing unused stats. */
 @HiltWorker
 class StatsPrecomputeWorker @AssistedInject constructor(
-    @Assisted private val context: Context,
-    @Assisted private val workerParams: WorkerParameters,
-    private val statsRepository: RoomStatsRepository
-) : CoroutineWorker(context, workerParams) {
+    @Assisted context: Context,
+    @Assisted parameters: WorkerParameters,
+) : CoroutineWorker(context, parameters) {
+    override suspend fun doWork(): Result = Result.success()
 
     companion object {
-        private const val TAG = "StatsPrecomputeWorker"
-        const val WORK_NAME = "stats_precompute_work"
-        private const val NOTIFICATION_CHANNEL_ID = "stats_precompute_worker"
-        // 3009, not 3006: NotificationWorker's daily challenge notification already owns 3006,
-        // and two ongoing foreground notifications sharing an id overwrite each other.
-        private const val NOTIFICATION_ID = 3009
-
-        /**
-         * Schedule periodic precomputation of stats.
-         */
-        fun schedule(context: Context) {
-            val constraints = Constraints.Builder()
-                .setRequiresBatteryNotLow(true)
-                .build()
-
-            val workRequest = PeriodicWorkRequestBuilder<StatsPrecomputeWorker>(
-                repeatInterval = 6,
-                repeatIntervalTimeUnit = TimeUnit.HOURS
-            )
-                .setConstraints(constraints)
-                .setBackoffCriteria(
-                    BackoffPolicy.EXPONENTIAL,
-                    WorkRequest.MIN_BACKOFF_MILLIS,
-                    TimeUnit.MILLISECONDS
-                )
-                .build()
-
-            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                WORK_NAME,
-                ExistingPeriodicWorkPolicy.KEEP,
-                workRequest
-            )
-
-            Log.d(TAG, "Stats precompute work scheduled")
+        fun cancelLegacyWork(context: Context) {
+            WorkManager.getInstance(context).cancelAllWorkByTag(StatsPrecomputeWorker::class.java.name)
         }
-
-        /**
-         * Trigger immediate one-time precomputation.
-         */
-        fun runNow(context: Context) {
-            val workRequest = OneTimeWorkRequestBuilder<StatsPrecomputeWorker>()
-                .build()
-
-            WorkManager.getInstance(context).enqueue(workRequest)
-            Log.d(TAG, "One-time stats precompute triggered")
-        }
-    }
-
-    override suspend fun doWork(): Result {
-        Log.d(TAG, "Starting stats precomputation")
-
-        return try {
-            // Precompute overview stats for common time ranges
-            val timeRanges = listOf(
-                TimeRange.TODAY,
-                TimeRange.THIS_WEEK,
-                TimeRange.THIS_MONTH,
-                TimeRange.THIS_YEAR
-            )
-
-            for (timeRange in timeRanges) {
-                Log.d(TAG, "Precomputing stats for $timeRange")
-                
-                statsRepository.getListeningOverview(timeRange)
-                statsRepository.getTopArtists(timeRange, page = 0, pageSize = 10)
-                statsRepository.getTopTracks(timeRange, page = 0, pageSize = 10)
-                statsRepository.getHourlyDistribution(timeRange)
-                statsRepository.getDayOfWeekDistribution(timeRange)
-                statsRepository.getDiscoveryStats(timeRange)
-                
-                setProgress(workDataOf("timeRange" to timeRange.name))
-            }
-
-            // Also precompute streak (time range independent)
-            statsRepository.getListeningStreak()
-
-            Log.d(TAG, "Stats precomputation completed successfully")
-            Result.success()
-        } catch (e: Exception) {
-            Log.e(TAG, "Stats precomputation failed", e)
-            if (runAttemptCount < 3) {
-                Result.retry()
-            } else {
-                Result.failure()
-            }
-        }
-    }
-
-    override suspend fun getForegroundInfo(): ForegroundInfo {
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                NOTIFICATION_CHANNEL_ID,
-                "Stats Processing",
-                NotificationManager.IMPORTANCE_LOW
-            )
-            notificationManager.createNotificationChannel(channel)
-        }
-        
-        val notification = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("Computing Statistics")
-            .setContentText("Updating your music stats...")
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setOngoing(true)
-            .build()
-        
-        return ForegroundNotificationGuard.postableForegroundInfo(
-            context = context,
-            notificationId = NOTIFICATION_ID,
-            requestedChannelId = NOTIFICATION_CHANNEL_ID,
-            notification = notification,
-            logTag = TAG,
-        )
     }
 }
 

@@ -21,12 +21,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -64,15 +62,13 @@ class SpotlightViewModel @Inject constructor(
     }.distinctUntilChanged()
 
     init {
-        checkIfStoryLocked(TimeRange.THIS_MONTH)
-        loadCards(TimeRange.THIS_MONTH)
         observeDataChanges()
         observeSyncStatus()
     }
 
     private fun observeSyncStatus() {
         viewModelScope.launch {
-            isSyncActive.collect { active ->
+            isSyncActive.drop(1).collect { active ->
                 if (active) {
                     if (_uiState.value.cards.isEmpty()) {
                         _uiState.value = _uiState.value.copy(isLoading = true)
@@ -87,28 +83,13 @@ class SpotlightViewModel @Inject constructor(
     }
 
     
-    @OptIn(ExperimentalCoroutinesApi::class)
     private fun observeDataChanges() {
         viewModelScope.launch {
-            // flatMapLatest cancels the in-flight query when selectedTimeRange changes,
-            // preventing stale results from an earlier filter overwriting the active one.
-            _uiState
-                .map { it.selectedTimeRange }
-                .distinctUntilChanged()
-                .flatMapLatest { range ->
-                    statsRepository.observeListeningOverview(range)
-                }
-                .collect { _ ->
-                    val range = _uiState.value.selectedTimeRange
-                    // The Room Flow emits the current DB state immediately on collection.
-                    // This re-fire catches data that the initial loadCards() may have missed
-                    // (e.g. DB queries racing, data settling on cold start).
-                    // Use silent mode when cards are already displayed so we don't flash
-                    // a loading spinner over visible content.
-                    val hasCards = _uiState.value.cards.isNotEmpty()
-                    loadCards(range, silent = hasCards)
-                    checkIfStoryLocked(range)
-                }
+            statsRepository.observeListeningStatsChanges().collect {
+                val range = _uiState.value.selectedTimeRange
+                loadCards(range, silent = _uiState.value.cards.isNotEmpty())
+                checkIfStoryLocked(range)
+            }
         }
     }
 

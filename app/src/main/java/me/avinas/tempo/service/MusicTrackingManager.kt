@@ -68,7 +68,7 @@ class MusicTrackingManager(
     private val processingMutex = Mutex()
     private var batchJob: Job? = null
     
-    init {
+    private val restoreJob = scope.launch(Dispatchers.IO) {
         // Restore events that failed to persist in a previous process lifetime.
         // An OEM kill or reboot must not discard plays that were already recorded.
         offlineEventStore?.let { store ->
@@ -82,6 +82,9 @@ class MusicTrackingManager(
                 Log.e(TAG, "Failed to restore offline events", e)
             }
         }
+    }
+
+    init {
         startBatchProcessor()
         startOfflineQueueProcessor()
     }
@@ -97,6 +100,8 @@ class MusicTrackingManager(
             Log.d(TAG, "Event rejected by current persistence rules: trackId=${event.track_id}")
             return false
         }
+
+        restoreJob.join()
 
         // Check for duplicates atomically using compute
         val eventHash = generateEventHash(event, sessionId)
@@ -129,8 +134,10 @@ class MusicTrackingManager(
         )
         
         // Durably stage before the 750ms batch window; process kills cannot erase it.
-        offlineQueue[pendingEvent.key()] = pendingEvent
-        persistOfflineQueue()
+        withContext(Dispatchers.IO) {
+            offlineQueue[pendingEvent.key()] = pendingEvent
+            persistOfflineQueue()
+        }
         eventChannel.send(pendingEvent)
         updateMetrics { it.copy(eventsQueued = it.eventsQueued + 1) }
         
@@ -311,7 +318,6 @@ class MusicTrackingManager(
                     filterSessionDuplicates(batch.filter { shouldPersistEvent(it.event) })
                 val candidateKeys = candidates.map { it.key() }.toSet()
                 batch.filterNot { it.key() in candidateKeys }.forEach { offlineQueue.remove(it.key()) }
-                persistOfflineQueue()
                 if (candidates.isEmpty()) {
                     updateMetrics { it.copy(batchesProcessed = it.batchesProcessed + 1) }
                     Log.d(TAG, "Batch contained no events allowed by current rules")
@@ -320,6 +326,8 @@ class MusicTrackingManager(
 
                 val ids = try {
                     listeningRepository.insertAll(candidates.map { it.event })
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
                 } catch (e: Exception) {
                     Log.e(TAG, "Batch save failed, moving valid events to offline queue", e)
                     for (pending in candidates) {
@@ -359,7 +367,6 @@ class MusicTrackingManager(
                         batchesProcessed = it.batchesProcessed + 1
                     ) 
                 }
-                persistOfflineQueue()
                 if (savedEvents.isNotEmpty()) notifyPersisted(savedEvents)
                 Log.d(TAG, "Batch saved: $successCount/${candidates.size} valid events")
             } catch (e: CancellationException) {
@@ -369,6 +376,8 @@ class MusicTrackingManager(
                 batch.forEach { handleFailedEvent(it) }
                 updateMetrics { it.copy(batchErrors = it.batchErrors + 1) }
             } finally {
+                // The original staged rows remain durable until this batch checkpoint is written.
+                persistOfflineQueue()
                 isProcessing.value = false
             }
         }
@@ -450,7 +459,6 @@ class MusicTrackingManager(
             nextAttemptAt = System.currentTimeMillis() + calculateRetryDelay(pending.retryCount),
         )
         updateMetrics { it.copy(eventsInOfflineQueue = offlineQueue.size) }
-        persistOfflineQueue()
         offlineWakeup.trySend(Unit)
     }
 
@@ -465,6 +473,7 @@ class MusicTrackingManager(
     
     private fun startOfflineQueueProcessor() {
         scope.launch {
+            restoreJob.join()
             var consecutiveEmptyChecks = 0
             while (isActive) {
                 // Adaptive delay: check more frequently when we have items, less when empty
@@ -488,6 +497,7 @@ class MusicTrackingManager(
     }
     
     private suspend fun processOfflineQueue() {
+        restoreJob.join()
         if (offlineQueue.isEmpty()) return
 
         Log.d(TAG, "Processing offline queue: ${offlineQueue.size} events")
@@ -563,6 +573,8 @@ class MusicTrackingManager(
     private suspend fun shouldPersistEvent(event: ListeningEvent): Boolean {
         return try {
             listeningRepository.shouldPersist(event)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (e: Exception) {
             Log.w(TAG, "Persistence rule lookup failed; keeping event", e)
             true

@@ -13,16 +13,25 @@ import me.avinas.tempo.data.stats.*
 import me.avinas.tempo.utils.ArtistParser
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.retryWhen
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -56,7 +65,8 @@ class RoomStatsRepository @Inject constructor(
     private val spotifyEnrichmentService: me.avinas.tempo.data.enrichment.SpotifyEnrichmentService,
     private val iTunesEnrichmentService: me.avinas.tempo.data.enrichment.ITunesEnrichmentService,
     private val userPreferencesDao: UserPreferencesDao,
-    private val artistAliasDao: ArtistAliasDao
+    private val artistAliasDao: ArtistAliasDao,
+    private val applicationScope: CoroutineScope,
 ) : StatsRepository {
 
     companion object {
@@ -510,13 +520,29 @@ class RoomStatsRepository @Inject constructor(
         )
     }
 
-    override fun observeListeningOverview(timeRange: TimeRange, withLeeway: Boolean): Flow<ListeningOverview> =
-        // Use a bounded query as a change trigger; all() on large datasets (e.g. after Last.fm import)
-        // overflows the 2MB CursorWindow and throws IllegalStateException. The actual data is
-        // fetched inside computeListeningOverview() via targeted statsDao queries.
-        listeningEventDao.recentEvents(1)
-            .map { _ -> computeListeningOverview(timeRange, withLeeway) }
-            .flowOn(Dispatchers.IO)
+    @OptIn(FlowPreview::class)
+    private val listeningStatsChanges by lazy {
+        val historyChanges = listeningEventDao.recentEvents(1).map { Unit }
+        val filterChanges = userPreferencesDao.preferences()
+            .map { (it?.filterPodcasts ?: true) to (it?.filterAudiobooks ?: true) }
+            .distinctUntilChanged()
+            .onEach { cachedUserPrefs = null }
+            .map { Unit }
+
+        merge(historyChanges, filterChanges)
+            .debounce(120)
+            .retryWhen { failure, attempt ->
+                if (failure !is Exception || failure is CancellationException) return@retryWhen false
+                Log.w(TAG, "Could not observe listening stats changes", failure)
+                if (attempt == 0L) emit(Unit)
+                delay(1_000L shl attempt.coerceAtMost(5).toInt())
+                true
+            }
+            .onEach { invalidateCache() }
+            .shareIn(applicationScope, SharingStarted.Lazily, replay = 1)
+    }
+
+    override fun observeListeningStatsChanges(): Flow<Unit> = listeningStatsChanges
 
     private suspend fun computeListeningOverview(timeRange: TimeRange, withLeeway: Boolean = true): ListeningOverview {
         val startTime = timeRange.getStartTimestamp(withLeeway = withLeeway)

@@ -6,6 +6,7 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.*
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import me.avinas.tempo.data.repository.ChallengeRepository
 import me.avinas.tempo.data.repository.GamificationRepository
@@ -32,6 +33,7 @@ class GamificationWorker
         companion object {
             const val TAG = "GamificationWorker"
             const val WORK_NAME = "gamification_refresh"
+            private const val IMMEDIATE_WORK_NAME = "gamification_refresh_immediate"
 
             /**
              * Enqueue periodic gamification refresh.
@@ -79,7 +81,11 @@ class GamificationWorker
                         .addTag(TAG)
                         .build()
 
-                WorkManager.getInstance(context).enqueue(request)
+                WorkManager.getInstance(context).enqueueUniqueWork(
+                    IMMEDIATE_WORK_NAME,
+                    ExistingWorkPolicy.KEEP,
+                    request,
+                )
                 Log.d(TAG, "Immediate gamification refresh enqueued")
             }
         }
@@ -103,6 +109,8 @@ class GamificationWorker
                 // app is only running its background workers.
                 try {
                     challengeRepository.refreshChallengeProgress()
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
                 } catch (e: Exception) {
                     // Non-fatal: a challenge-progress failure must not block the
                     // deterministic XP/badge recompute below.
@@ -119,6 +127,8 @@ class GamificationWorker
                             .minusDays(90)
                             .toString()
                     gamificationRepository.pruneChallengesPreservingXp(cutoff)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
                 } catch (e: Exception) {
                     Log.w(TAG, "Challenge prune failed", e)
                 }
@@ -138,6 +148,8 @@ class GamificationWorker
                 }
 
                 Result.success()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (e: Exception) {
                 Log.e(TAG, "Gamification refresh failed", e)
                 Result.retry()

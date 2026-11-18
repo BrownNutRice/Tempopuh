@@ -314,12 +314,7 @@ class TempoApplication :
         // Local-only read; the resulting aggregate is queued and uploaded by the flush worker.
         ListeningActivityWorker.schedule(this)
 
-        // Warm the stats cache. Every recorded listening event invalidates the whole cache
-        // (see RoomStatsRepository.onNewListeningEvent) and that cache is in-memory only, so the
-        // first visit to Stats or Home after any listening would otherwise pay the full cold
-        // aggregates. This worker exists to precompute them but was never scheduled anywhere —
-        // `grep StatsPrecomputeWorker.` had no call sites, so it never ran.
-        StatsPrecomputeWorker.schedule(this)
+        StatsPrecomputeWorker.cancelLegacyWork(this)
 
         scheduleSpotifyPollingIfEnabled()
 

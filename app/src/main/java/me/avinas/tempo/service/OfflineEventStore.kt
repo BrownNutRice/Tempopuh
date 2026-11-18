@@ -25,8 +25,10 @@ class OfflineEventStore(context: Context) {
         private const val KEY_EVENTS = "offline_events"
     }
 
-    private val prefs: SharedPreferences =
-        context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val appContext = context.applicationContext
+    private val prefs: SharedPreferences by lazy {
+        appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }
 
     private val moshi = Moshi.Builder()
         .add(KotlinJsonAdapterFactory())
@@ -43,25 +45,31 @@ class OfflineEventStore(context: Context) {
         try {
             preserveCorruptQueue()
             if (events.isEmpty()) {
+                checkedPayload = null
                 check(prefs.edit().remove(KEY_EVENTS).commit()) { "Unable to clear offline events" }
                 return
             }
-            check(prefs.edit()
-                .putString(KEY_EVENTS, adapter.toJson(events.toList()))
-                .commit()) { "Unable to persist offline events" }
+            val payload = adapter.toJson(events.toList())
+            check(prefs.edit().putString(KEY_EVENTS, payload).commit()) { "Unable to persist offline events" }
+            checkedPayload = payload
         } catch (e: Exception) {
             Log.e(TAG, "Failed to save offline events", e)
             throw e
         }
     }
 
+    private var checkedPayload: String? = null
     private var corruptionPending: Pair<String, String>? = null
 
     /** Preserve unreadable payloads before allowing any replacement queue to be written. */
     private fun preserveCorruptQueue() {
         if (corruptionPending == null) {
             val raw = prefs.getString(KEY_EVENTS, null) ?: return
-            if (runCatching { requireNotNull(adapter.fromJson(raw)) }.isSuccess) return
+            if (raw === checkedPayload) return
+            if (runCatching { requireNotNull(adapter.fromJson(raw)) }.isSuccess) {
+                checkedPayload = raw
+                return
+            }
             corruptionPending = "quarantined_events_${java.util.UUID.randomUUID()}" to raw
         }
         val (key, raw) = requireNotNull(corruptionPending)
@@ -71,6 +79,7 @@ class OfflineEventStore(context: Context) {
             "Unable to preserve corrupt offline queue; refusing overwrite"
         }
         corruptionPending = null
+        checkedPayload = null
     }
 
     fun hasRecoveryData(): Boolean = prefs.getBoolean("queue_recovery_required", false)
@@ -79,7 +88,7 @@ class OfflineEventStore(context: Context) {
     @Synchronized fun load(): List<PendingEvent> {
         return try {
             val json = prefs.getString(KEY_EVENTS, null) ?: return emptyList()
-            requireNotNull(adapter.fromJson(json))
+            requireNotNull(adapter.fromJson(json)).also { checkedPayload = json }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load offline events; preserving original queue", e)
             preserveCorruptQueue()
@@ -90,5 +99,6 @@ class OfflineEventStore(context: Context) {
     @Synchronized fun clear() {
         preserveCorruptQueue()
         check(prefs.edit().remove(KEY_EVENTS).commit()) { "Unable to clear offline events" }
+        checkedPayload = null
     }
 }

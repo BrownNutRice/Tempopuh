@@ -18,7 +18,6 @@ import me.avinas.tempo.data.stats.InsightType
 import me.avinas.tempo.data.stats.InsightPayload
 import me.avinas.tempo.ui.onboarding.dataStore
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -31,17 +30,14 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import javax.inject.Inject
 
-@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
+@OptIn(FlowPreview::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
@@ -51,7 +47,6 @@ class HomeViewModel @Inject constructor(
     private val listeningEventDao: ListeningEventDao,
     private val profileIdentityManager: ProfileIdentityManager,
     val gamificationRepository: me.avinas.tempo.data.repository.GamificationRepository,
-    private val refreshCoordinator: me.avinas.tempo.data.repository.RefreshCoordinator
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -91,7 +86,6 @@ class HomeViewModel @Inject constructor(
     private var rateAppChecked = false
 
     init {
-        loadData()
         viewModelScope.launch {
             // A one-shot persisted preference restore. A user tap during startup
             // always wins over an older preference read.
@@ -113,9 +107,7 @@ class HomeViewModel @Inject constructor(
     }
     
     private fun observeDataChanges() {
-        // All reactive reload sources funnel into one debounced signal so a single
-        // listening event (which fires BOTH the Room overview flow and refreshEvents)
-        // produces one data reload instead of two full multi-query fetches.
+        // History and metadata changes share a debounce before loading the dashboard.
         viewModelScope.launch {
             reactiveReload
                 .debounce(350)
@@ -123,28 +115,12 @@ class HomeViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            _uiState
-                .map { it.selectedTimeRange }
-                .distinctUntilChanged()
-                .flatMapLatest { timeRange ->
-                    statsRepository.observeListeningOverview(timeRange, withLeeway = false)
-                }
-                .distinctUntilChanged()
-                .collect { overview ->
-                    _uiState.update { it.copy(listeningOverview = overview, hasData = overview.totalPlayCount > 0) }
-                    reactiveReload.tryEmit(Unit)
-                }
+            statsRepository.observeListeningStatsChanges().collect { reactiveReload.tryEmit(Unit) }
         }
 
         // Also observe metadata updates (album art, artist images) from enrichment
         viewModelScope.launch {
             statsRepository.observeMetadataUpdates()
-                .collect { reactiveReload.tryEmit(Unit) }
-        }
-
-        // Listen for new track events from MusicTrackingService
-        viewModelScope.launch {
-            refreshCoordinator.refreshEvents
                 .collect { reactiveReload.tryEmit(Unit) }
         }
 

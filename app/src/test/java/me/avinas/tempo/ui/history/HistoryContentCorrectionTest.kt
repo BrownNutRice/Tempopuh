@@ -36,7 +36,7 @@ class HistoryContentCorrectionTest {
     )
     private fun viewModel() = HistoryViewModel(
         fake<StatsRepository> { name, args -> when (name) {
-            "observeListeningOverview" -> emptyFlow<Any>()
+            "observeListeningStatsChanges" -> emptyFlow<Any>()
             "getHistory" -> {
                 val page = args[7] as Int
                 requestedPages.add(page)

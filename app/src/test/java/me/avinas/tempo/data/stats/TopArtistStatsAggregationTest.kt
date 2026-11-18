@@ -57,7 +57,8 @@ class TopArtistStatsAggregationTest {
             spotifyEnrichmentService = allocateInstance(SpotifyEnrichmentService::class.java),
             iTunesEnrichmentService = allocateInstance(ITunesEnrichmentService::class.java),
             userPreferencesDao = userPrefsDao,
-            artistAliasDao = aliasDao
+            artistAliasDao = aliasDao,
+            applicationScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined),
         )
     }
 
