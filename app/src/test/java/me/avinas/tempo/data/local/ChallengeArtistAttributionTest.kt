@@ -283,6 +283,8 @@ class ChallengeArtistAttributionTest {
     ): Int {
         var bound = sql
         for ((key, value) in params) bound = bound.replace(Regex(":$key\\b"), value)
+        // The fixture's current day spans [100, 300); earlier events are yesterday.
+        if ("endOfDayMs" !in params) bound = bound.replace(Regex(":endOfDayMs\\b"), "300")
         connection.createStatement().executeQuery(bound).use { rs ->
             check(rs.next()) { "Query returned no row: $bound" }
             return rs.getInt(1)

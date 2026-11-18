@@ -1279,9 +1279,21 @@ fun SettingsScreen(
                 ) {
                     Column {
                         SettingsOption(
-                            title = stringResource(R.string.settings_rate_play_store),
+                            title = stringResource(
+                                if (me.avinas.tempo.BuildConfig.PLAY_STORE_REVIEWS) R.string.settings_rate_play_store else R.string.settings_report_issue,
+                            ),
                             onClick = {
-                                ReviewUtils.openPlayStoreListing(context)
+                                if (me.avinas.tempo.BuildConfig.PLAY_STORE_REVIEWS) {
+                                    ReviewUtils.openPlayStoreListing(context)
+                                } else {
+                                    try {
+                                        context.startActivity(
+                                            Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/matchalattewithbanana/Tempo/issues")),
+                                        )
+                                    } catch (_: ActivityNotFoundException) {
+                                        Toast.makeText(context, resources.getString(R.string.settings_no_browser), Toast.LENGTH_SHORT).show()
+                                    }
+                                }
                             },
                         )
                         HorizontalDivider(color = GlassBorderSoft)

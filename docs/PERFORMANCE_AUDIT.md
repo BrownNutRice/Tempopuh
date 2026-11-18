@@ -2,6 +2,55 @@
 
 Audit of the Tempo Android app (Kotlin/Compose/Room), ~159K LOC across 463 source files.
 
+## Later performance work — 18 November 2026
+
+The verification statement immediately below describes the earlier audit entries.
+The following later changes were committed separately and still require device
+validation. Android debug compilation, assembly, lint and the unit suite passed
+on 18 November 2026 with the local XP query and test-fixture fixes in this change.
+
+| Issues | Commit | Change and remaining work |
+| --- | --- | --- |
+| #77, #78 | `04aaaab` | Session aggregation reads 512-point pages; screen refresh producers follow destination visibility. Verify session results and navigation/background behavior on Android. |
+| #79, #80 | `9fe8cc5` | Home and Spotlight use a debounced data-change signal; periodic stats warming is retired. Verify invalidation, query counts and cancellation of previously scheduled work. |
+| #81, #82 | `9fe8cc5` | Immediate gamification jobs are coalesced and offline recovery avoids repeated batch writes. Freshness across completed jobs and incremental staging of new offline plays remain open. |
+| #83 | `3706768` | Browser sync drains bounded pages with page-level acknowledgement. A 100,000-row Chromium IndexedDB fixture resumed after closing the page, capped pages at 50 records and retained a late arrival. Extension service-worker lifecycle and memory profiling remain open. |
+| #84 | `89256bd` | Single-track enrichment avoids global artist repair; background repair has bounded passes. Verify latency, import contention and restart on Android. |
+
+These source changes do not establish device performance improvements. The
+associated issues retain their outstanding acceptance checks.
+
+The same review matched other open audit findings to committed changes. These
+remain open for the checks shown below:
+
+| Issues | Commit | Remaining verification |
+| --- | --- | --- |
+| #61 | `a1e69e8` | Exercise shared dialogs with an IME, large text, long translations and TalkBack. |
+| #62 | `2bb3567` | Review scanner and error states across themes and large text. |
+| #64, #65 | `1ed2f43` | Verify Android trend controls with accessibility services and the extension popup with keyboard and a screen reader. |
+| #66 | `f78af56` | Verify Spotlight interruption, sharing and audio focus on a device. |
+| #69 | `1cddbd7` | Review rendered Profile contrast and share previews across appearance presets. |
+| #70, #71 | `7336103` | Verify modal focus and Back behavior and injected Profile failure recovery on Android. |
+| #72 | `35dac21` | Verify countdown updates and resume behavior on a device. |
+
+The broader plans in #5, #16, #28, #68, #74, #85 and #90 still include
+unfinished implementation or validation. #7 still needs its phone-side
+WebSocket counterpart. Issues #75, #76 and #86–#89 also remain open.
+
+Room's first database open now runs the pre-migration file snapshot before
+SQLite touches the database (#75). Constructing the database and DAOs during
+dependency injection no longer copies the files. A large upgrade on a device
+is still needed to measure startup and verify recovery ordering.
+
+The manual extension validation workflow now builds both browser packages
+before running smoke checks (#16). Screenshot comparisons and rendered review
+remain outstanding. GitHub builds now direct issue reports to this fork and
+reserve Play review actions for builds explicitly configured for Play (#88).
+Device verification of the feedback actions remains outstanding.
+The backup screen explains that Appearance Studio settings and saved looks
+are stored separately (#86). The library backup format still needs an
+appearance round trip.
+
 > **Verification status.** Every fix recorded below was compiled with
 > `./gradlew :app:compileDebugKotlin` (BUILD SUCCESSFUL) and the full unit suite
 > `./gradlew :app:testDebugUnitTest` passes. Two regressions were caught by compiling rather than

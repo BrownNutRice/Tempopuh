@@ -5,6 +5,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.sqlite.db.SupportSQLiteOpenHelper
+import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import me.avinas.tempo.data.local.AppDatabase
 import me.avinas.tempo.data.local.DatabaseTransactionRunner
 import me.avinas.tempo.data.local.MigrationSafetyNet
@@ -135,9 +137,30 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
-        MigrationSafetyNet.snapshotBeforeMigrationIfNeeded(context)
-
         return Room.databaseBuilder(context, AppDatabase::class.java, "tempo.db")
+            .openHelperFactory { configuration ->
+                val delegate = FrameworkSQLiteOpenHelperFactory().create(configuration)
+                object : SupportSQLiteOpenHelper by delegate {
+                    // Room opens lazily during the first query or transaction. Keep the file
+                    // copy before SQLite can touch the database, without doing I/O during Hilt
+                    // construction. Concurrent first readers and writers share the same attempt.
+                    private val migrationSnapshot by lazy {
+                        MigrationSafetyNet.snapshotBeforeMigrationIfNeeded(context)
+                    }
+
+                    override val readableDatabase: SupportSQLiteDatabase
+                        get() {
+                            migrationSnapshot
+                            return delegate.readableDatabase
+                        }
+
+                    override val writableDatabase: SupportSQLiteDatabase
+                        get() {
+                            migrationSnapshot
+                            return delegate.writableDatabase
+                        }
+                }
+            }
             .addMigrations(
                 MIGRATION_1_2, 
                 MIGRATION_2_3, 

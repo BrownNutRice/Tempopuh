@@ -235,6 +235,13 @@ fun BackupRestoreScreen(
             ) {
                 // Data Overview Section
                 DataOverviewSection(uiState)
+
+                Text(
+                    text = stringResource(R.string.backup_restore_appearance_scope),
+                    modifier = Modifier.padding(top = 8.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 
                 Spacer(modifier = Modifier.height(24.dp))
                 

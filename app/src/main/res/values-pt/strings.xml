@@ -566,6 +566,7 @@
     <string name="settings_contribute">Contribuir</string>
     <string name="settings_contribute_desc">Ajude a melhorar o ritmo</string>
     <string name="settings_rate_play_store">Avalie na Play Store</string>
+    <string name="settings_report_issue">Relatar um problema no GitHub</string>
     <string name="settings_privacy_policy">Política de Privacidade</string>
     <string name="settings_version">Versão</string>
     <string name="settings_processing">Processamento…</string>
@@ -1364,4 +1365,5 @@
     <string name="spotlight_share_failed">Não foi possível compartilhar a história</string>
     <string name="profile_load_failed">Não foi possível atualizar todos os dados do perfil. Tente novamente.</string>
     <string name="profile_acknowledgement_failed">Não foi possível marcar estes emblemas como vistos. Tente novamente.</string>
+    <string name="backup_restore_appearance_scope">As configurações e os estilos salvos no Estúdio de Aparência são armazenados separadamente. Exporte seu estilo atual pelo Estúdio.</string>
 </resources>

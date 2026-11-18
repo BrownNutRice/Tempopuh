@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import me.avinas.tempo.BuildConfig
 import me.avinas.tempo.data.local.dao.ListeningEventDao
 import me.avinas.tempo.data.profile.ProfileIdentityManager
 import me.avinas.tempo.data.repository.StatsRepository
@@ -401,6 +402,7 @@ class HomeViewModel @Inject constructor(
     }
 
     private suspend fun shouldShowRateApp(): Boolean {
+        if (!BuildConfig.PLAY_STORE_REVIEWS) return false
         // Evaluated at most once per app session: the engagement gates are two full-table
         // DAO scans (getRealListeningTimeMs/getRealPlayCount) and must not run on every
         // data reload. If engagement is below threshold now, the prompt simply waits for

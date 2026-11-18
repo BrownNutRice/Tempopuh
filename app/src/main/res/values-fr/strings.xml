@@ -513,6 +513,7 @@
     <string name="settings_contribute">Contribuer</string>
     <string name="settings_contribute_desc">Aidez à améliorer Tempo</string>
     <string name="settings_rate_play_store">Noter sur le Play Store</string>
+    <string name="settings_report_issue">Signaler un problème sur GitHub</string>
     <string name="settings_privacy_policy">Politique de confidentialité</string>
     <string name="settings_version">Version</string>
     <string name="settings_processing">Traitement en cours…</string>
@@ -1253,4 +1254,5 @@
     <string name="spotlight_share_failed">Impossible de partager la story</string>
     <string name="profile_load_failed">Impossible de mettre à jour toutes les données du profil. Réessayez.</string>
     <string name="profile_acknowledgement_failed">Impossible de marquer ces badges comme vus. Réessayez.</string>
+    <string name="backup_restore_appearance_scope">Les réglages et les styles enregistrés dans le Studio d’apparence sont stockés séparément. Exportez votre style actuel depuis le Studio.</string>
 </resources>

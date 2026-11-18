@@ -627,6 +627,7 @@
     <string name="settings_contribute">Участие в проекте</string>
     <string name="settings_contribute_desc">Помогите улучшить Tempo</string>
     <string name="settings_rate_play_store">Оценить в Play Store</string>
+    <string name="settings_report_issue">Сообщить о проблеме на GitHub</string>
     <string name="settings_privacy_policy">Политика конфиденциальности</string>
     <string name="settings_version">Версия</string>
     <string name="settings_processing">Обработка…</string>
@@ -1481,4 +1482,5 @@
     <string name="spotlight_share_failed">Не удалось поделиться историей</string>
     <string name="profile_load_failed">Не удалось обновить все данные профиля. Повторите попытку.</string>
     <string name="profile_acknowledgement_failed">Не удалось отметить эти значки как просмотренные. Повторите попытку.</string>
+    <string name="backup_restore_appearance_scope">Настройки и сохранённые стили студии оформления хранятся отдельно. Экспортируйте текущий стиль в студии оформления.</string>
 </resources>

@@ -513,6 +513,7 @@
     <string name="settings_contribute">Közreműködés</string>
     <string name="settings_contribute_desc">Fordításokhoz</string>
     <string name="settings_rate_play_store">Értékelés a Play Áruházban</string>
+    <string name="settings_report_issue">Hiba bejelentése a GitHubon</string>
     <string name="settings_privacy_policy">Adatvédelmi Irányelvek</string>
     <string name="settings_version">Verzió</string>
     <string name="settings_processing">Folyamatban…</string>
@@ -889,4 +890,5 @@
     <string name="spotlight_share_failed">A történetet nem sikerült megosztani</string>
     <string name="profile_load_failed">Nem sikerült frissíteni az összes profiladatot. Próbáld újra.</string>
     <string name="profile_acknowledgement_failed">Nem sikerült megtekintettként megjelölni ezeket a jelvényeket. Próbáld újra.</string>
+    <string name="backup_restore_appearance_scope">A Megjelenés beállításai és a mentett stílusok külön tárolódnak. Az aktuális stílust a Megjelenés képernyőn exportálhatod.</string>
 </resources>

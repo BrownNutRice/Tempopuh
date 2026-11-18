@@ -72,10 +72,15 @@ class AlbumArtAggregationTest {
     fun `every album-grouped query aggregates its art column`() {
         val source = File("src/main/java/me/avinas/tempo/data/local/dao/StatsDao.kt")
         check(source.isFile) { "StatsDao.kt not found at ${source.absolutePath} (unit tests run from the app module dir)" }
+        val sourceText = source.readText()
+        val albumGroups =
+            Regex("private const val RANKED_ALBUM_GROUPS = \\\"\\\"\\\"(.*?)\\\"\\\"\\\"", RegexOption.DOT_MATCHES_ALL)
+                .find(sourceText)?.groupValues?.get(1)
+                ?: error("RANKED_ALBUM_GROUPS not found")
         val queries =
             Regex("@Query\\(\\s*\"\"\"(.*?)\"\"\"", RegexOption.DOT_MATCHES_ALL)
-                .findAll(source.readText())
-                .map { it.groupValues[1].replace(Regex("\\s+"), " ") }
+                .findAll(sourceText)
+                .map { it.groupValues[1].replace("\$RANKED_ALBUM_GROUPS", albumGroups).replace(Regex("\\s+"), " ") }
                 .toList()
         // Track-grouped queries (GROUP BY t.id) and ungrouped ones are fine as-is: each group is
         // a single row, so the bare column is not arbitrary. An album group spans many tracks.

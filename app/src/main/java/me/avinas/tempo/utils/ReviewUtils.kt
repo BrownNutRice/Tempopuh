@@ -6,6 +6,8 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
+import me.avinas.tempo.R
 import com.google.android.play.core.review.ReviewManagerFactory
 import kotlinx.coroutines.tasks.await
 
@@ -29,12 +31,16 @@ object ReviewUtils {
                 Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$packageName"))
             )
         } catch (_: ActivityNotFoundException) {
-            context.startActivity(
-                Intent(
-                    Intent.ACTION_VIEW,
-                    Uri.parse("https://play.google.com/store/apps/details?id=$packageName")
+            try {
+                context.startActivity(
+                    Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse("https://play.google.com/store/apps/details?id=$packageName")
+                    )
                 )
-            )
+            } catch (_: ActivityNotFoundException) {
+                Toast.makeText(context, R.string.settings_no_browser, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

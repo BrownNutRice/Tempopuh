@@ -61,9 +61,9 @@ interface GamificationDao {
     /** Counts audible XP-eligible plays, with separate per-track and per-local-day caps per tier. */
     @Query(
         """
-        SELECT COALESCE(SUM(full), 0) AS fullPlays, COALESCE(SUM(partial), 0) AS partialPlays FROM (
-            SELECT MIN(SUM(CASE WHEN completionPercentage >= 80 THEN 1 ELSE 0 END), 3) AS full,
-                   MIN(SUM(CASE WHEN completionPercentage < 80 THEN 1 ELSE 0 END), 3) AS partial
+        SELECT COALESCE(SUM(full_count), 0) AS fullPlays, COALESCE(SUM(partial_count), 0) AS partialPlays FROM (
+            SELECT MIN(SUM(CASE WHEN completionPercentage >= 80 THEN 1 ELSE 0 END), 3) AS full_count,
+                   MIN(SUM(CASE WHEN completionPercentage < 80 THEN 1 ELSE 0 END), 3) AS partial_count
             FROM listening_events
             WHERE completionPercentage >= 30
               AND (volume_level IS NULL OR volume_level > 0)

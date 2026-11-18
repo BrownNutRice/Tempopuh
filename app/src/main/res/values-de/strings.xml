@@ -513,6 +513,7 @@
     <string name="settings_contribute">Mitwirken</string>
     <string name="settings_contribute_desc">Hilf mit, Tempo zu verbessern</string>
     <string name="settings_rate_play_store">Im Play Store bewerten</string>
+    <string name="settings_report_issue">Problem auf GitHub melden</string>
     <string name="settings_privacy_policy">Datenschutzrichtlinie</string>
     <string name="settings_version">Version</string>
     <string name="settings_processing">Verarbeite…</string>
@@ -1255,4 +1256,5 @@
     <string name="spotlight_share_failed">Story konnte nicht geteilt werden</string>
     <string name="profile_load_failed">Nicht alle Profildaten konnten aktualisiert werden. Versuche es erneut.</string>
     <string name="profile_acknowledgement_failed">Diese Abzeichen konnten nicht als gesehen markiert werden. Versuche es erneut.</string>
+    <string name="backup_restore_appearance_scope">Einstellungen und gespeicherte Looks des Designstudios werden separat gespeichert. Exportiere deinen aktuellen Look im Designstudio.</string>
 </resources>

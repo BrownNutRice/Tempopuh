@@ -108,6 +108,10 @@ jobs:
         working-directory: browser-extension
         run: npm run typecheck
 
+      - name: Build browser packages
+        working-directory: browser-extension
+        run: npm run build:all
+
       - name: Run extension smoke checks
         working-directory: browser-extension
         run: npm run smoke

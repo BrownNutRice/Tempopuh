@@ -58,6 +58,12 @@ android {
 
     defaultConfig {
         applicationId = "me.avinas.tempo"
+        // Store reviews are enabled only for builds explicitly configured for Play distribution.
+        buildConfigField(
+            "boolean",
+            "PLAY_STORE_REVIEWS",
+            providers.gradleProperty("tempo.playStoreReviews").map { it.toBooleanStrict() }.orElse(false).get().toString(),
+        )
         minSdk = 26
         targetSdk = 36
         versionCode = appVersionCode

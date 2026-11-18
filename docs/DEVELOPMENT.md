@@ -20,6 +20,8 @@ GOOGLE_WEB_CLIENT_ID=your_web_oauth_client_id
 
 Do not commit secrets, keystores, personal exports or reporting deployment credentials. Spotify can also accept a public client ID at runtime. Google sign-in requires signer-specific setup; see [Drive setup](GOOGLE_DRIVE_SETUP.md).
 
+GitHub builds show a link to this fork's issue tracker and suppress Play Store review prompts. Builds explicitly intended for Play distribution can enable review actions with the Gradle property `-Ptempo.playStoreReviews=true`.
+
 ## Checks and local build commands
 
 Run only the checks/builds appropriate and authorized for the task:
