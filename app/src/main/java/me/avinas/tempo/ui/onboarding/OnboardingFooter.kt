@@ -11,6 +11,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -27,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.avinas.tempo.ui.theme.TempoPrimary
 import me.avinas.tempo.ui.theme.TextOnAccent
+import me.avinas.tempo.ui.theme.rememberReducedMotion
 import me.avinas.tempo.ui.utils.adaptiveSizeByCategory
 import me.avinas.tempo.ui.utils.adaptiveTextUnitByCategory
 import me.avinas.tempo.ui.utils.rememberScreenHeightPercentage
@@ -57,9 +59,10 @@ fun OnboardingFooter(
         val haptic = LocalHapticFeedback.current
         val interaction = remember { MutableInteractionSource() }
         val pressed by interaction.collectIsPressedAsState()
+        val reducedMotion = rememberReducedMotion()
         val pressScale by animateFloatAsState(
-            if (pressed) 0.97f else 1f,
-            tween(120, easing = FastOutSlowInEasing),
+            if (pressed && !reducedMotion) 0.97f else 1f,
+            if (reducedMotion) snap() else tween(120, easing = FastOutSlowInEasing),
             label = "footer_press"
         )
         Button(
@@ -71,7 +74,11 @@ fun OnboardingFooter(
             interactionSource = interaction,
             modifier = Modifier
                 .fillMaxWidth()
-                .graphicsLayer { scaleX = pressScale; scaleY = pressScale }
+                .graphicsLayer {
+                    val scale = if (reducedMotion) 1f else pressScale
+                    scaleX = scale
+                    scaleY = scale
+                }
                 .height(scaledSize(54.dp, 0.85f, 1.1f)),
             colors = ButtonDefaults.buttonColors(
                 containerColor = TempoPrimary,

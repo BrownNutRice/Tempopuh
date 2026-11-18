@@ -55,6 +55,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.material.icons.filled.Pause
 import me.avinas.tempo.R
+import me.avinas.tempo.ui.theme.rememberReducedMotion
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -69,9 +70,22 @@ fun SpotlightStoryScreen(
     val storyPages = remember { storyPages }
     val pagerState = rememberPagerState(pageCount = { storyPages.size })
     val coroutineScope = rememberCoroutineScope()
+    val reducedMotion = rememberReducedMotion()
     val currentProgress = remember { Animatable(0f) }
     var isPaused by remember { mutableStateOf(false) }
     
+    fun moveStoryPage(forward: Boolean) {
+        val target = pagerState.currentPage + (if (forward) 1 else -1)
+        if (target in storyPages.indices) {
+            coroutineScope.launch {
+                if (reducedMotion) pagerState.scrollToPage(target)
+                else pagerState.animateScrollToPage(target)
+            }
+        } else if (forward) {
+            onClose()
+        }
+    }
+
     // Audio Controller
     val context = LocalContext.current
     val audioController = remember { SpotlightAudioController(context = context, scope = coroutineScope) }
@@ -263,8 +277,8 @@ fun SpotlightStoryScreen(
     }
 
     // Auto-advance logic with pause support
-    LaunchedEffect(pagerState.currentPage, isPaused) {
-        if (!isPaused) {
+    LaunchedEffect(pagerState.currentPage, isPaused, reducedMotion) {
+        if (!isPaused && !reducedMotion) {
              if (timerPageIndex.value != pagerState.currentPage) {
                  currentProgress.snapTo(0f)
                  timerPageIndex.value = pagerState.currentPage
@@ -320,6 +334,7 @@ fun SpotlightStoryScreen(
                     val page = storyPages[pageIndex]
                     Box(modifier = Modifier.fillMaxSize()) {
                         CompositionLocalProvider(
+                            LocalStoryReducedMotion provides reducedMotion,
                             LocalStorySeenPages provides seenPages,
                             LocalStoryPageId provides page.id
                         ) {
@@ -376,30 +391,20 @@ fun SpotlightStoryScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(Unit) {
+                .pointerInput(reducedMotion) {
                     detectTapGestures(
                         onPress = {
-                            isPaused = true
-                            tryAwaitRelease()
-                            isPaused = false
-                        },
-                        onTap = { offset ->
-                            val width = size.width
-                            coroutineScope.launch {
-                                if (offset.x < width * 0.3f) {
-                                    // Previous
-                                    if (pagerState.currentPage > 0) {
-                                        pagerState.animateScrollToPage(pagerState.currentPage - 1)
-                                    }
-                                } else {
-                                    // Next
-                                    if (pagerState.currentPage < storyPages.size - 1) {
-                                        pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                                    } else {
-                                        onClose()
-                                    }
+                            if (!reducedMotion) {
+                                isPaused = true
+                                try {
+                                    tryAwaitRelease()
+                                } finally {
+                                    isPaused = false
                                 }
                             }
+                        },
+                        onTap = { offset ->
+                            moveStoryPage(forward = offset.x >= size.width * 0.3f)
                         }
                     )
                 }
@@ -409,7 +414,7 @@ fun SpotlightStoryScreen(
 
         // Visual indicator shown during hold-to-pause
         AnimatedVisibility(
-            visible = isPaused,
+            visible = isPaused && !reducedMotion,
             enter = fadeIn(tween(150)),
             exit = fadeOut(tween(200)),
             modifier = Modifier
@@ -453,7 +458,7 @@ fun SpotlightStoryScreen(
                 storyPages.forEachIndexed { index, _ ->
                     val progress = when {
                         index < pagerState.currentPage -> 1f
-                        index == pagerState.currentPage -> currentProgress.value
+                        index == pagerState.currentPage -> if (reducedMotion) 1f else currentProgress.value
                         else -> 0f
                     }
                     // Dim upcoming segments and brighten watched ones
@@ -521,6 +526,31 @@ fun SpotlightStoryScreen(
                         tint = Color.White,
                         modifier = Modifier.size(24.dp)
                     )
+                }
+            }
+            if (reducedMotion) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    TextButton(
+                        enabled = pagerState.currentPage > 0,
+                        onClick = { moveStoryPage(forward = false) },
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = Color.White,
+                            disabledContentColor = Color.White.copy(alpha = 0.4f)
+                        )
+                    ) {
+                        Text(stringResource(R.string.settings_back))
+                    }
+                    TextButton(onClick = { moveStoryPage(forward = true) }) {
+                        val label = if (pagerState.currentPage < storyPages.lastIndex) {
+                            R.string.how_it_works_next
+                        } else {
+                            R.string.common_done
+                        }
+                        Text(stringResource(label), color = Color.White)
+                    }
                 }
             }
         }

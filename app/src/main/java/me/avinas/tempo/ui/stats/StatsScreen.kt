@@ -11,6 +11,7 @@ import me.avinas.tempo.ui.theme.TextSecondary
 import me.avinas.tempo.ui.theme.TextTertiary
 import me.avinas.tempo.ui.theme.innerShadow
 import me.avinas.tempo.ui.theme.premiumClickable
+import me.avinas.tempo.ui.theme.rememberReducedMotion
 import me.avinas.tempo.ui.components.TempoDropdownMenu
 import me.avinas.tempo.ui.components.TempoDropdownMenuItem
 import me.avinas.tempo.ui.components.TempoIcons
@@ -21,6 +22,8 @@ import androidx.compose.ui.graphics.Brush
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -122,11 +125,12 @@ fun StatsScreen(
     var searchOpen by remember { mutableStateOf(false) }
     val searchFocusRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
-    LaunchedEffect(searchOpen) {
+    val reducedMotion = rememberReducedMotion()
+    LaunchedEffect(searchOpen, reducedMotion) {
         if (searchOpen) {
             // Reveal first, type later: focusing immediately makes the keyboard animation
             // fight the drawer motion and reads as a jolt. Stagger until the reveal settles.
-            delay(280)
+            if (!reducedMotion) delay(280)
             searchFocusRequester.requestFocus()
             keyboard?.show()
         }
@@ -366,11 +370,11 @@ fun StatsScreen(
             // Declared last so it draws above the top bar and list content.
             AnimatedVisibility(
                 visible = searchOpen,
-                enter = expandHorizontally(
+                enter = if (reducedMotion) EnterTransition.None else expandHorizontally(
                     expandFrom = Alignment.End,
                     animationSpec = tween(280, easing = FastOutSlowInEasing)
                 ) + fadeIn(animationSpec = tween(220)),
-                exit = shrinkHorizontally(
+                exit = if (reducedMotion) ExitTransition.None else shrinkHorizontally(
                     shrinkTowards = Alignment.End,
                     animationSpec = tween(220, easing = FastOutSlowInEasing)
                 ) + fadeOut(animationSpec = tween(160)),

@@ -1546,7 +1546,7 @@ fun SettingsScreen(
                 dismissOnClickOutside = !resetInProgress
             )
         ) {
-            TempoDialogSurface(modifier = Modifier.verticalScroll(rememberScrollState())) {
+            TempoDialogSurface {
                 TempoDialogIcon(
                     icon = TempoIcons.Trash,
                     tint = TempoError,

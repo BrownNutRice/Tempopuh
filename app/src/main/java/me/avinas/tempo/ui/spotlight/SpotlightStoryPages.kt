@@ -117,7 +117,13 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.text.font.FontStyle
 
-// Set by SpotlightStoryScreen's pager so pages can skip entrance choreography on re-visit.
+internal val LocalStoryReducedMotion = compositionLocalOf { false }
+
+@Composable
+private fun skipStoryEntryMotion(): Boolean =
+    LocalInCaptureContext.current || LocalStoryReducedMotion.current || isStoryPageSeen()
+
+// The pager marks viewed pages so they can skip entry effects on revisit.
 val LocalStorySeenPages = compositionLocalOf<SnapshotStateMap<String, Boolean>?> { null }
 val LocalStoryPageId = compositionLocalOf<String?> { null }
 
@@ -218,8 +224,7 @@ fun EnterAnimation(
     delay: Int = 0,
     content: @Composable () -> Unit
 ) {
-    val inCapture = LocalInCaptureContext.current
-    if (inCapture || isStoryPageSeen()) {
+    if (skipStoryEntryMotion()) {
         content()
     } else {
         var visible by remember { mutableStateOf(false) }
@@ -286,11 +291,10 @@ private fun AutoFitText(
     
 @Composable
 fun ListeningMinutesPage(page: SpotlightStoryPage.ListeningMinutes) {
-    val inCapture = LocalInCaptureContext.current
-    val seen = isStoryPageSeen()
+    val skipEntryMotion = skipStoryEntryMotion()
     val animatedMinutes = remember { Animatable(0f) }
-    LaunchedEffect(page.totalMinutes) {
-        if (inCapture || seen) {
+    LaunchedEffect(page.totalMinutes, skipEntryMotion) {
+        if (skipEntryMotion) {
             animatedMinutes.snapTo(page.totalMinutes.toFloat())
         } else {
             delay(500)
@@ -1284,11 +1288,10 @@ fun PersonalityPage(page: SpotlightStoryPage.Personality) {
 
 @Composable
 fun ListeningStreakPage(page: SpotlightStoryPage.ListeningStreak) {
-    val inCapture = LocalInCaptureContext.current
-    val seen = isStoryPageSeen()
+    val skipEntryMotion = skipStoryEntryMotion()
     val animatedStreak = remember { Animatable(0f) }
-    LaunchedEffect(page.currentStreakDays) {
-        if (inCapture || seen) {
+    LaunchedEffect(page.currentStreakDays, skipEntryMotion) {
+        if (skipEntryMotion) {
             animatedStreak.snapTo(page.currentStreakDays.toFloat())
         } else {
             delay(400)
@@ -1468,11 +1471,10 @@ fun ListeningStreakPage(page: SpotlightStoryPage.ListeningStreak) {
 
 @Composable
 fun ListeningClockPage(page: SpotlightStoryPage.ListeningClock) {
-    val inCapture = LocalInCaptureContext.current
-    val seen = isStoryPageSeen()
+    val skipEntryMotion = skipStoryEntryMotion()
     val animatedProgress = remember { Animatable(0f) }
-    LaunchedEffect(Unit) {
-        if (inCapture || seen) {
+    LaunchedEffect(skipEntryMotion) {
+        if (skipEntryMotion) {
             animatedProgress.snapTo(1f)
         } else {
             delay(300)
@@ -1846,21 +1848,20 @@ fun TopAlbumPage(page: SpotlightStoryPage.TopAlbum) {
 
 @Composable
 fun DiscoveryCountPage(page: SpotlightStoryPage.DiscoveryCount) {
-    val inCapture = LocalInCaptureContext.current
-    val seen = isStoryPageSeen()
+    val skipEntryMotion = skipStoryEntryMotion()
     val artistsAnim = remember { Animatable(0f) }
     val tracksAnim  = remember { Animatable(0f) }
 
-    LaunchedEffect(page.uniqueArtists) {
-        if (inCapture || seen) {
+    LaunchedEffect(page.uniqueArtists, skipEntryMotion) {
+        if (skipEntryMotion) {
             artistsAnim.snapTo(page.uniqueArtists.toFloat())
         } else {
             delay(500)
             artistsAnim.animateTo(page.uniqueArtists.toFloat(), tween(1400, easing = FastOutSlowInEasing))
         }
     }
-    LaunchedEffect(page.uniqueTracks) {
-        if (inCapture || seen) {
+    LaunchedEffect(page.uniqueTracks, skipEntryMotion) {
+        if (skipEntryMotion) {
             tracksAnim.snapTo(page.uniqueTracks.toFloat())
         } else {
             delay(650)
@@ -2065,11 +2066,10 @@ fun DiscoveryCountPage(page: SpotlightStoryPage.DiscoveryCount) {
 
 @Composable
 fun WeekdayVsWeekendPage(page: SpotlightStoryPage.WeekdayVsWeekend) {
-    val inCapture = LocalInCaptureContext.current
-    val seen = isStoryPageSeen()
+    val skipEntryMotion = skipStoryEntryMotion()
     val barAnims = remember { List(7) { Animatable(0f) } }
-    LaunchedEffect(Unit) {
-        if (inCapture || seen) {
+    LaunchedEffect(skipEntryMotion) {
+        if (skipEntryMotion) {
             barAnims.forEachIndexed { index, anim ->
                 anim.snapTo((page.dailyIntensity.getOrNull(index) ?: 0) / 100f)
             }
@@ -2291,21 +2291,20 @@ fun WeekdayVsWeekendPage(page: SpotlightStoryPage.WeekdayVsWeekend) {
 
 @Composable
 fun BingeSessionPage(page: SpotlightStoryPage.BingeSession) {
-    val inCapture = LocalInCaptureContext.current
-    val seen = isStoryPageSeen()
+    val skipEntryMotion = skipStoryEntryMotion()
     val countAnim = remember { Animatable(0f) }
     val timeAnim  = remember { Animatable(0f) }
 
-    LaunchedEffect(page.bingeCount) {
-        if (inCapture || seen) {
+    LaunchedEffect(page.bingeCount, skipEntryMotion) {
+        if (skipEntryMotion) {
             countAnim.snapTo(page.bingeCount.toFloat())
         } else {
             delay(600)
             countAnim.animateTo(page.bingeCount.toFloat(), tween(1200, easing = FastOutSlowInEasing))
         }
     }
-    LaunchedEffect(page.totalBingeMinutes) {
-        if (inCapture || seen) {
+    LaunchedEffect(page.totalBingeMinutes, skipEntryMotion) {
+        if (skipEntryMotion) {
             timeAnim.snapTo(page.totalBingeMinutes.toFloat())
         } else {
             delay(800)
@@ -2490,12 +2489,11 @@ fun TimeOfDayVibesPage(page: SpotlightStoryPage.TimeOfDayVibes) {
 
     val totalPct = periods.sumOf { it.percent }.coerceAtLeast(1)
 
-    val inCapture = LocalInCaptureContext.current
-    val seen = isStoryPageSeen()
+    val skipEntryMotion = skipStoryEntryMotion()
     // Each bar animates independently
     val anims = remember { periods.map { Animatable(0f) } }
-    LaunchedEffect(Unit) {
-        if (inCapture || seen) {
+    LaunchedEffect(skipEntryMotion) {
+        if (skipEntryMotion) {
             anims.forEachIndexed { index, anim ->
                 anim.snapTo(periods[index].percent / totalPct.toFloat())
             }
@@ -2655,8 +2653,7 @@ fun TimeOfDayVibesPage(page: SpotlightStoryPage.TimeOfDayVibes) {
 
 @Composable
 fun AudioMoodPage(page: SpotlightStoryPage.AudioMood) {
-    val inCapture = LocalInCaptureContext.current
-    val seen = isStoryPageSeen()
+    val skipEntryMotion = skipStoryEntryMotion()
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val dimens = rememberSpotlightDimens(maxHeight)
 
@@ -2729,8 +2726,8 @@ fun AudioMoodPage(page: SpotlightStoryPage.AudioMood) {
 
             moodBars.forEachIndexed { index, (label, percent, color) ->
                 val animatedWidth = remember { Animatable(0f) }
-                LaunchedEffect(percent) {
-                    if (inCapture || seen) {
+                LaunchedEffect(percent, skipEntryMotion) {
+                    if (skipEntryMotion) {
                         animatedWidth.snapTo(percent / 100f)
                     } else {
                         delay((300 + index * 150).toLong())
@@ -3276,31 +3273,30 @@ fun BadgesEarnedPage(page: SpotlightStoryPage.BadgesEarned) {
 
 @Composable
 fun LevelUpPage(page: SpotlightStoryPage.LevelUp) {
-    val inCapture = LocalInCaptureContext.current
-    val seen = isStoryPageSeen()
+    val skipEntryMotion = skipStoryEntryMotion()
     // Energy/power-up design — orange theme, horizontal glow streak, counter animation
     val levelAnim = remember { Animatable(0f) }
     val xpAnim   = remember { Animatable(0f) }
     val barAnim  = remember { Animatable(0f) }
 
-    LaunchedEffect(page.currentLevel) {
-        if (inCapture || seen) {
+    LaunchedEffect(page.currentLevel, skipEntryMotion) {
+        if (skipEntryMotion) {
             levelAnim.snapTo(page.currentLevel.toFloat())
         } else {
             delay(300)
             levelAnim.animateTo(page.currentLevel.toFloat(), tween(1000, easing = FastOutSlowInEasing))
         }
     }
-    LaunchedEffect(page.xpEarnedThisPeriod) {
-        if (inCapture || seen) {
+    LaunchedEffect(page.xpEarnedThisPeriod, skipEntryMotion) {
+        if (skipEntryMotion) {
             xpAnim.snapTo(page.xpEarnedThisPeriod.toFloat())
         } else {
             delay(500)
             xpAnim.animateTo(page.xpEarnedThisPeriod.toFloat(), tween(1200, easing = FastOutSlowInEasing))
         }
     }
-    LaunchedEffect(page.levelProgress) {
-        if (inCapture || seen) {
+    LaunchedEffect(page.levelProgress, skipEntryMotion) {
+        if (skipEntryMotion) {
             barAnim.snapTo(page.levelProgress.coerceIn(0f, 1f))
         } else {
             delay(800)
@@ -3514,16 +3510,15 @@ fun LevelUpPage(page: SpotlightStoryPage.LevelUp) {
 
 @Composable
 fun TitleEarnedPage(page: SpotlightStoryPage.TitleEarned) {
-    val inCapture = LocalInCaptureContext.current
-    val seen = isStoryPageSeen()
+    val skipEntryMotion = skipStoryEntryMotion()
     // Cross-fade to new title
     val oldTitleAlpha = remember { Animatable(0f) }
     val newTitleOffset = remember { Animatable(80f) }
     val newTitleAlpha  = remember { Animatable(0f) }
     val ringAlpha      = remember { Animatable(0f) }
 
-    LaunchedEffect(Unit) {
-        if (inCapture || seen) {
+    LaunchedEffect(skipEntryMotion) {
+        if (skipEntryMotion) {
             oldTitleAlpha.snapTo(0f)
             newTitleOffset.snapTo(0f)
             newTitleAlpha.snapTo(1f)
@@ -3537,8 +3532,8 @@ fun TitleEarnedPage(page: SpotlightStoryPage.TitleEarned) {
             newTitleAlpha.animateTo(1f, tween(500))
         }
     }
-    LaunchedEffect(Unit) {
-        if (inCapture || seen) {
+    LaunchedEffect(skipEntryMotion) {
+        if (skipEntryMotion) {
             ringAlpha.snapTo(1f)
         } else {
             delay(300)

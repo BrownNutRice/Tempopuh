@@ -3,6 +3,8 @@ package me.avinas.tempo.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -42,6 +44,7 @@ fun TempoDialogSurface(
     val appearancePalette = LocalTempoPalette.current
     Box(
         modifier = modifier
+            .safeDrawingPadding()
             .fillMaxWidth()
             .shadow(
                 elevation = 28.dp,
@@ -80,6 +83,7 @@ fun TempoDialogSurface(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             content = content
@@ -204,7 +208,7 @@ fun TempoDialogPrimaryButton(
         enabled = enabled,
         modifier = modifier
             .fillMaxWidth()
-            .height(50.dp)
+            .heightIn(min = 50.dp)
             .accentButtonChrome(containerColor, enabled, shape),
         colors = ButtonDefaults.buttonColors(
             containerColor = Color.Transparent,
@@ -247,7 +251,7 @@ fun TempoDialogSecondaryButton(
         enabled = enabled,
         modifier = modifier
             .fillMaxWidth()
-            .height(46.dp),
+            .heightIn(min = 48.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = color.copy(alpha = 0.14f),
             contentColor = appearancePalette.mutedText,
@@ -290,7 +294,7 @@ fun TempoDialogButtonRow(
             enabled = secondaryEnabled,
             modifier = Modifier
                 .weight(1f)
-                .height(48.dp),
+                .heightIn(min = 48.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = appearancePalette.mutedText.copy(alpha = 0.14f),
                 contentColor = appearancePalette.mutedText,
@@ -310,7 +314,7 @@ fun TempoDialogButtonRow(
             enabled = primaryEnabled,
             modifier = Modifier
                 .weight(1f)
-                .height(48.dp)
+                .heightIn(min = 48.dp)
                 .accentButtonChrome(primaryColor, primaryEnabled, shape),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color.Transparent,
