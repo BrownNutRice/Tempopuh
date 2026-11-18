@@ -10,8 +10,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.conflate
 
-internal fun observeChallengeDays(context: Context): Flow<ChallengeDay> {
-    val clockChanges = callbackFlow {
+internal fun observeChallengeDays(context: Context): Flow<ChallengeDay> =
+    challengeDays(observeClockChanges(context))
+
+internal fun observeClockChanges(context: Context, everyMinute: Boolean = false): Flow<Unit> =
+    callbackFlow {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
                 trySend(Unit)
@@ -21,10 +24,9 @@ internal fun observeChallengeDays(context: Context): Flow<ChallengeDay> {
             addAction(Intent.ACTION_DATE_CHANGED)
             addAction(Intent.ACTION_TIME_CHANGED)
             addAction(Intent.ACTION_TIMEZONE_CHANGED)
+            if (everyMinute) addAction(Intent.ACTION_TIME_TICK)
         }
         ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
         trySend(Unit)
         awaitClose { context.unregisterReceiver(receiver) }
     }.conflate()
-    return challengeDays(clockChanges)
-}

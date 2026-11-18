@@ -70,8 +70,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
+import me.avinas.tempo.data.repository.observeClockChanges
+import java.time.Instant
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
 import me.avinas.tempo.R
 import me.avinas.tempo.data.local.entities.Badge
 import me.avinas.tempo.data.local.entities.DailyChallenge
@@ -647,6 +650,22 @@ fun ProfileScreen(
         derivedStateOf { listState.firstVisibleItemIndex > 0 }
     }
     val hideStreaks = me.avinas.tempo.ui.components.LocalHideStreaks.current
+    var streakNow by remember { mutableStateOf(Instant.now()) }
+    LaunchedEffect(lifecycle, applicationContext, hideStreaks) {
+        if (!hideStreaks) {
+            lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                observeClockChanges(applicationContext, everyMinute = true).collect {
+                    streakNow = Instant.now()
+                }
+            }
+        }
+    }
+    val streak = if (hideStreaks) ProfileStreakStatus() else ProfileStreakStatus.at(
+        uiState.userLevel, streakNow, uiState.streakAnchorZone ?: ZoneId.systemDefault()
+    )
+    val streakMinutes = streak.minutesUntilExpiry
+    val streakTimeRemaining = streakMinutes?.let { "${it / 60}h ${it % 60}m" }.orEmpty()
+
 
     val tierAccent =
         remember(uiState.userLevel.currentLevel) {
@@ -733,10 +752,10 @@ fun ProfileScreen(
                                     modifier = contentModifier,
                                     verticalArrangement = Arrangement.spacedBy(22.dp),
                                 ) {
-                                    if (uiState.streakAtRisk && !hideStreaks) {
+                                    if (streakMinutes != null) {
                                         StreakRiskBanner(
-                                            streakDurationMinutes = uiState.streakDurationMinutes,
-                                            timeRemaining = uiState.streakTimeRemaining,
+                                            streakDurationMinutes = streakMinutes,
+                                            timeRemaining = streakTimeRemaining,
                                         )
                                     }
 
@@ -745,8 +764,9 @@ fun ProfileScreen(
                                         earnedCount = uiState.earnedCount,
                                         totalCount = uiState.totalCount,
                                         totalStars = uiState.totalStars,
-                                        streakAtRisk = uiState.streakAtRisk && !hideStreaks,
-                                        timeRemaining = uiState.streakTimeRemaining,
+                                        currentStreak = streak.days,
+                                        streakAtRisk = streakMinutes != null,
+                                        timeRemaining = streakTimeRemaining,
                                         tierAccent = tierAccent,
                                         compact = compact,
                                         hideStreaks = hideStreaks,
@@ -777,12 +797,7 @@ fun ProfileScreen(
                                 }
                             } else {
                                 badgeSection(
-                                    allBadges = uiState.allBadges,
                                     filteredBadges = uiState.filteredBadges,
-                                    earnedCount = uiState.earnedCount,
-                                    totalCount = uiState.totalCount,
-                                    totalStars = uiState.totalStars,
-                                    maxPossibleStars = uiState.maxPossibleStars,
                                     categories = uiState.categories,
                                     selectedCategory = uiState.selectedCategory,
                                     onCategorySelected = viewModel::onCategorySelected,
@@ -1207,6 +1222,7 @@ private fun MasterStatMasthead(
     earnedCount: Int,
     totalCount: Int,
     totalStars: Int,
+    currentStreak: Int,
     streakAtRisk: Boolean,
     timeRemaining: String,
     tierAccent: Color,
@@ -1214,7 +1230,6 @@ private fun MasterStatMasthead(
     hideStreaks: Boolean = false,
 ) {
     val appearancePalette = LocalTempoPalette.current
-    val currentStreak = userLevel.currentStreak
     val animatedStreak by animateIntAsState(
         targetValue = currentStreak,
         animationSpec = tween(durationMillis = 900, easing = FastOutSlowInEasing),
@@ -1233,9 +1248,9 @@ private fun MasterStatMasthead(
 
     val suffix =
         when {
-            streakAtRisk -> "days  ·  ends in $timeRemaining"
-            currentStreak == 1 -> "day in motion  ·  safe today"
-            else -> "days in motion  ·  safe today"
+            streakAtRisk -> if (currentStreak == 1) "day  ·  ends in $timeRemaining" else "days  ·  ends in $timeRemaining"
+            currentStreak == 1 -> "day in motion"
+            else -> "days in motion"
         }
     val accentTint = if (streakAtRisk) TempoErrorSoft else tierAccent
 
@@ -1762,12 +1777,7 @@ private fun ChallengeCard(challenge: DailyChallenge) {
 // ──────────────────────────────────────────────────────────────
 
 private fun LazyListScope.badgeSection(
-    allBadges: List<Badge>,
     filteredBadges: List<Badge>,
-    earnedCount: Int,
-    totalCount: Int,
-    totalStars: Int,
-    maxPossibleStars: Int,
     categories: List<String>,
     selectedCategory: String?,
     onCategorySelected: (String?) -> Unit,
@@ -1775,34 +1785,23 @@ private fun LazyListScope.badgeSection(
     contentModifier: Modifier,
     badgeColumns: Int = 2,
 ) {
-    val collectionProgress = if (totalCount == 0) 0f else earnedCount.toFloat() / totalCount
     item(key = "badges_header") {
         val appearancePalette = LocalTempoPalette.current
-        val beginnerIds = GamificationEngine.BEGINNER_BADGES
-        val almostThereBadge =
-            remember(allBadges) {
-                allBadges
-                    .filter { !it.isEarned && !it.isMaxed && it.badgeId !in beginnerIds && it.progressFraction >= 0.5f }
-                    .maxByOrNull { it.progressFraction }
-            }
-        val nextStarBadge =
-            remember(allBadges) {
-                if (almostThereBadge != null) {
-                    null
-                } else {
-                    allBadges
-                        .filter { it.isEarned && !it.isMaxed && it.badgeId !in beginnerIds && it.progressFraction >= 0.5f }
-                        .maxByOrNull { it.progressFraction }
-                }
-            }
-        val spotlightBadge = almostThereBadge ?: nextStarBadge
+        val earnedCount = remember(filteredBadges) { filteredBadges.count { it.isEarned } }
+        val totalCount = filteredBadges.size
+        val totalStars = remember(filteredBadges) { ProfileUiState.computeTotalStars(filteredBadges) }
+        val maxPossibleStars = remember(filteredBadges) { ProfileUiState.computeMaxPossibleStars(filteredBadges) }
+        val spotlightBadge = remember(filteredBadges) { selectFeaturedBadge(filteredBadges) }
+        val collectionProgress = if (totalCount == 0) 0f else earnedCount.toFloat() / totalCount
+        val count = "$earnedCount of $totalCount badges earned."
+        val subtitle = selectedCategory?.let { "${getCategoryLabel(it)} · $count" } ?: count
 
         Column(modifier = contentModifier) {
             Spacer(modifier = Modifier.height(24.dp))
             EditorialSectionHeader(
                 sectionNumber = "02",
                 title = "Trophy room",
-                subtitle = "$earnedCount of $totalCount badges earned.",
+                subtitle = subtitle,
                 trailing = if (totalStars > 0) ({ StarsChip(total = totalStars, max = maxPossibleStars) }) else null,
             )
             Spacer(modifier = Modifier.height(14.dp))
@@ -1865,11 +1864,20 @@ private fun LazyListScope.badgeSection(
             if (spotlightBadge != null) {
                 SpotlightBadgeCard(
                     badge = spotlightBadge,
-                    isAlmostThere = almostThereBadge != null,
+                    isAlmostThere = !spotlightBadge.isEarned,
                     onClick = { onBadgeClick(spotlightBadge) },
                 )
                 Spacer(modifier = Modifier.height(16.dp))
             }
+        }
+    }
+    if (filteredBadges.isEmpty()) {
+        item(key = "badges_empty") {
+            Text(
+                stringResource(R.string.profile_no_badges),
+                modifier = contentModifier,
+                color = LocalTempoPalette.current.mutedText,
+            )
         }
     }
     itemsIndexed(

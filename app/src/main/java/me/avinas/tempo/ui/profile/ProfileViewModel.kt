@@ -28,6 +28,7 @@ import me.avinas.tempo.data.analytics.AnalyticsTracker
 import me.avinas.tempo.data.analytics.FeatureFirstUsed
 import me.avinas.tempo.data.analytics.TempoFeature
 import androidx.compose.runtime.Immutable
+import java.time.ZoneId
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
@@ -89,23 +90,12 @@ class ProfileViewModel @Inject constructor(
                 // clock would flag a safe streak as at-risk (and print a countdown that disagrees
                 // with it). Both are therefore read in the streak's own zone.
                 val streakZone = try {
-                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                        gamificationRepository.getStreakAnchorZone()
-                    }
-                } catch (e: Exception) { null } ?: java.time.ZoneId.systemDefault()
-
-                val streakAtRisk = ProfileUiState.computeStreakAtRisk(
-                    currentLevel,
-                    java.time.LocalDate.now(streakZone).toString(),
-                )
-
-                val streakDurationMinutes = if (!streakAtRisk) Long.MAX_VALUE else try {
-                    java.time.Duration.between(java.time.LocalTime.now(streakZone), java.time.LocalTime.MAX).toMinutes()
-                } catch (e: Exception) { Long.MAX_VALUE }
-                
-                val hours = streakDurationMinutes / 60
-                val minutes = streakDurationMinutes % 60
-                val streakTimeRemaining = if (!streakAtRisk) "" else "${hours}h ${minutes}m"
+                    gamificationRepository.getStreakAnchorZone()
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (failure: Exception) {
+                    null
+                }
 
                 _uiState.update { state ->
                     val challengeXpTotal = state.challenges.sumOf { it.xpReward }
@@ -118,9 +108,7 @@ class ProfileViewModel @Inject constructor(
                         isLoading = false,
                         showLevelUpCelebration = shouldCelebrate || state.showLevelUpCelebration,
                         userTitle = calculatedTitle,
-                        streakAtRisk = streakAtRisk,
-                        streakDurationMinutes = streakDurationMinutes,
-                        streakTimeRemaining = streakTimeRemaining,
+                        streakAnchorZone = streakZone,
                         challengeXpTotal = challengeXpTotal
                     )
                 }
@@ -255,27 +243,16 @@ data class ProfileUiState(
     val showLevelUpCelebration: Boolean = false,
     val unacknowledgedBadges: List<Badge> = emptyList(),
     val challengeXpTotal: Int = 0,
-    val streakDurationMinutes: Long = Long.MAX_VALUE,
-    val streakTimeRemaining: String = "",
+    val streakAnchorZone: ZoneId? = null,
     val filteredBadges: List<Badge> = emptyList(),
     val earnedCount: Int = 0,
     val totalCount: Int = 0,
     val categories: List<String> = emptyList(),
-    val streakAtRisk: Boolean = computeStreakAtRisk(userLevel),
     val almostUnlockedBadges: List<Badge> = computeAlmostUnlockedBadges(allBadges),
     val totalStars: Int = computeTotalStars(allBadges),
     val maxPossibleStars: Int = computeMaxPossibleStars(allBadges)
 ) {
     companion object {
-        /**
-         * [today] is the current date in the zone the streak is counted in -- see
-         * [me.avinas.tempo.data.repository.GamificationRepository.getStreakAnchorZone].
-         */
-        fun computeStreakAtRisk(
-            userLevel: UserLevel,
-            today: String = java.time.LocalDate.now().toString(),
-        ): Boolean = userLevel.currentStreak > 0 && userLevel.lastStreakDate != today
-
         fun computeAlmostUnlockedBadges(allBadges: List<Badge>): List<Badge> =
             allBadges.filter { !it.isMaxed && it.progressFraction >= 0.7f }
 
@@ -286,3 +263,8 @@ data class ProfileUiState(
             allBadges.filter { it.badgeId !in GamificationEngine.BEGINNER_BADGES }.size * 5
     }
 }
+
+internal fun selectFeaturedBadge(badges: List<Badge>): Badge? =
+    badges.asSequence()
+        .filter { !it.isMaxed && it.badgeId !in GamificationEngine.BEGINNER_BADGES && it.progressFraction >= 0.5f }
+        .maxWithOrNull(compareBy<Badge> { !it.isEarned }.thenBy { it.progressFraction })

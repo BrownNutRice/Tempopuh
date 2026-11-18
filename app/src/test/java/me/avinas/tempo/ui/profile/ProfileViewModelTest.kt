@@ -7,51 +7,48 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.LocalDate
+import java.time.Instant
+import java.time.ZoneId
+import java.time.ZoneOffset
 
 class ProfileViewModelTest {
     @Test
-    fun `test streakAtRisk returns true when streak positive and last streak date not today`() {
-        // Given
-        val yesterday = LocalDate.now().minusDays(1).toString()
-        val userLevel =
-            UserLevel(
-                currentStreak = 5,
-                lastStreakDate = yesterday,
-            )
-        val state = ProfileUiState(userLevel = userLevel)
+    fun streakCountdownFollowsAnchorMidnightWithoutNewLevelData() {
+        val zone = ZoneOffset.ofHours(5)
+        val level = UserLevel(currentStreak = 5, lastStreakDate = "2026-11-17")
 
-        // Then
-        assertTrue(state.streakAtRisk)
+        assertEquals(ProfileStreakStatus(5), ProfileStreakStatus.at(level, Instant.parse("2026-11-17T18:59:00Z"), zone))
+        assertEquals(ProfileStreakStatus(5, 1440), ProfileStreakStatus.at(level, Instant.parse("2026-11-17T19:00:00Z"), zone))
+        assertEquals(ProfileStreakStatus(5, 1380), ProfileStreakStatus.at(level, Instant.parse("2026-11-17T20:00:00Z"), zone))
+        assertEquals(ProfileStreakStatus(5, 1), ProfileStreakStatus.at(level, Instant.parse("2026-11-18T18:59:59Z"), zone))
+        assertEquals(ProfileStreakStatus(), ProfileStreakStatus.at(level, Instant.parse("2026-11-18T19:00:00Z"), zone))
     }
 
     @Test
-    fun `test streakAtRisk returns false when streak is 0`() {
-        // Given
-        val userLevel =
-            UserLevel(
-                currentStreak = 0,
-                lastStreakDate = "2023-01-01",
-            )
-        val state = ProfileUiState(userLevel = userLevel)
-
-        // Then
-        assertFalse(state.streakAtRisk)
+    fun streakCountdownUsesElapsedTimeAcrossDaylightSaving() {
+        val level = UserLevel(currentStreak = 5, lastStreakDate = "2026-03-07")
+        val result = ProfileStreakStatus.at(level, Instant.parse("2026-03-08T05:00:00Z"), ZoneId.of("America/New_York"))
+        assertEquals(23L * 60, result.minutesUntilExpiry)
     }
 
     @Test
-    fun `test streakAtRisk returns false when last streak date is today`() {
-        // Given
-        val today = LocalDate.now().toString()
-        val userLevel =
-            UserLevel(
-                currentStreak = 10,
-                lastStreakDate = today,
-            )
-        val state = ProfileUiState(userLevel = userLevel)
+    fun zeroStreakHasNoCountdown() {
+        val level = UserLevel(currentStreak = 0, lastStreakDate = "2026-11-17")
+        assertEquals(ProfileStreakStatus(), ProfileStreakStatus.at(level, Instant.parse("2026-11-18T09:00:00Z"), ZoneOffset.UTC))
+    }
 
-        // Then
-        assertFalse(state.streakAtRisk)
+    @Test
+    fun featuredBadgeUsesTheVisibleCategoryAndAllowsEarnedRecommendations() {
+        val time = Badge(badgeId = "time-test", name = "Time", description = "", iconName = "star", category = "TIME", progress = 6, maxProgress = 10)
+        val streak = time.copy(badgeId = "streak-test", category = "STREAK", progress = 9)
+        val badges = listOf(time, streak)
+
+        assertEquals(streak, selectFeaturedBadge(badges))
+        assertEquals(time, selectFeaturedBadge(badges.filter { it.category == "TIME" }))
+        assertEquals(null, selectFeaturedBadge(badges.filter { it.category == "DISCOVERY" }))
+        val earned = time.copy(isEarned = true, stars = 1)
+        assertEquals(earned, selectFeaturedBadge(listOf(earned)))
+        assertEquals(null, selectFeaturedBadge(listOf(earned.copy(stars = 5))))
     }
 
     @Test
