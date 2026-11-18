@@ -4,7 +4,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import android.view.KeyEvent
 import androidx.test.platform.app.InstrumentationRegistry
 import me.avinas.tempo.ui.profile.ProfileModal
 import org.junit.Rule
@@ -40,9 +39,9 @@ class ProfileModalTest {
     }
 
     private fun pressSystemBack() {
-        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
-        check(automation.injectInputEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BACK), true))
-        check(automation.injectInputEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BACK), true))
+        val command = InstrumentationRegistry.getInstrumentation().uiAutomation
+            .executeShellCommand("input keyevent KEYCODE_BACK")
+        android.os.ParcelFileDescriptor.AutoCloseInputStream(command).use { it.readBytes() }
         compose.waitForIdle()
     }
 }
