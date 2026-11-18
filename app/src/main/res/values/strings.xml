@@ -1697,4 +1697,7 @@
     <string name="canvas_draft_discard">Discard changes</string>
     <string name="canvas_draft_keep_editing">Keep editing</string>
     <string name="canvas_draft_save_failed">Could not save this draft. Your edits are still here.</string>
+    <string name="appearance_exit_title">Leave Appearance?</string>
+    <string name="appearance_exit_body">Apply your changes before leaving, discard them, or keep editing.</string>
+    <string name="import_report_with_warnings">Import completed with warnings</string>
 </resources>

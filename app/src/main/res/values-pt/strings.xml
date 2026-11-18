@@ -1349,4 +1349,7 @@
     <string name="canvas_draft_discard">Descartar alterações</string>
     <string name="canvas_draft_keep_editing">Continuar editando</string>
     <string name="canvas_draft_save_failed">Não foi possível salvar o rascunho. Suas alterações ainda estão aqui.</string>
+    <string name="appearance_exit_title">Sair da aparência?</string>
+    <string name="appearance_exit_body">Aplique as alterações antes de sair, descarte-as ou continue editando.</string>
+    <string name="import_report_with_warnings">Importação concluída com avisos</string>
 </resources>

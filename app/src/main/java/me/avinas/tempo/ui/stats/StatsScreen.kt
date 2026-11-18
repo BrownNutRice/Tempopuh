@@ -30,6 +30,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -659,7 +662,7 @@ fun StatsTabSelector(selectedTab: StatsTab, onTabSelected: (StatsTab) -> Unit) {
         modifier = Modifier
             .padding(horizontal = 16.dp)
             .fillMaxWidth()
-            .height(50.dp)
+            .height(54.dp)
             .clip(RoundedCornerShape(25.dp))
             .background(palette.surfaceSunken)
             .innerShadow(
@@ -681,7 +684,7 @@ fun StatsTabSelector(selectedTab: StatsTab, onTabSelected: (StatsTab) -> Unit) {
             .padding(3.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().selectableGroup(),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             StatsTab.entries.forEach { tab ->
@@ -715,9 +718,10 @@ fun StatsTabSelector(selectedTab: StatsTab, onTabSelected: (StatsTab) -> Unit) {
                                 Modifier.clip(RoundedCornerShape(22.dp))
                             }
                         )
-                        .premiumClickable(
-                            onClick = { onTabSelected(tab) },
-                            pressedScale = 0.96f
+                        .selectable(
+                            selected = isSelected,
+                            role = Role.Tab,
+                            onClick = { if (!isSelected) onTabSelected(tab) },
                         ),
                     contentAlignment = Alignment.Center
                 ) {

@@ -1466,4 +1466,7 @@
     <string name="canvas_draft_discard">Отменить изменения</string>
     <string name="canvas_draft_keep_editing">Продолжить редактирование</string>
     <string name="canvas_draft_save_failed">Не удалось сохранить черновик. Ваши изменения пока на месте.</string>
+    <string name="appearance_exit_title">Закрыть настройки оформления?</string>
+    <string name="appearance_exit_body">Примените изменения перед выходом, отмените их или продолжите редактирование.</string>
+    <string name="import_report_with_warnings">Импорт завершён с предупреждениями</string>
 </resources>

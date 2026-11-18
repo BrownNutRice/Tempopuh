@@ -1238,4 +1238,7 @@
     <string name="canvas_draft_discard">Abandonner les modifications</string>
     <string name="canvas_draft_keep_editing">Continuer la modification</string>
     <string name="canvas_draft_save_failed">Impossible d’enregistrer le brouillon. Vos modifications sont toujours là.</string>
+    <string name="appearance_exit_title">Quitter l’apparence ?</string>
+    <string name="appearance_exit_body">Appliquez vos modifications avant de quitter, abandonnez-les ou continuez la modification.</string>
+    <string name="import_report_with_warnings">Importation terminée avec des avertissements</string>
 </resources>

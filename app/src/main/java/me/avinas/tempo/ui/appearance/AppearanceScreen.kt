@@ -4,6 +4,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
@@ -109,12 +110,59 @@ fun AppearanceScreen(onNavigateBack: () -> Unit, viewModel: AppearanceViewModel 
             }
         }
     }
+    var showExitDialog by rememberSaveable { mutableStateOf(false) }
+    var exitApplyTarget by remember { mutableStateOf<AppearanceSettings?>(null) }
+    val requestBack: () -> Unit = {
+        if (!busy && exitApplyTarget == null) {
+            if (draft == saved) onNavigateBack() else showExitDialog = true
+        }
+    }
+    BackHandler(onBack = requestBack)
+    LaunchedEffect(saved, draft, saving, saveFailed, exitApplyTarget) {
+        val target = exitApplyTarget
+        if (target == null) {
+            if (draft == saved && !saving) showExitDialog = false
+            return@LaunchedEffect
+        }
+        if (!saving && saveFailed) {
+            exitApplyTarget = null
+        } else if (!saving && saved == target) {
+            exitApplyTarget = null
+            showExitDialog = false
+            onNavigateBack()
+        }
+    }
+    if (showExitDialog) {
+        val exitBusy = busy || exitApplyTarget != null
+        AlertDialog(
+            onDismissRequest = { if (!exitBusy) showExitDialog = false },
+            title = { Text(stringResource(R.string.appearance_exit_title)) },
+            text = { Text(stringResource(if (saveFailed) R.string.appearance_save_failed else R.string.appearance_exit_body)) },
+            confirmButton = {
+                TextButton(enabled = !exitBusy, onClick = {
+                    exitApplyTarget = draft.forLiveApp()
+                    viewModel.apply(draft)
+                }) { Text(stringResource(R.string.appearance_apply)) }
+            },
+            dismissButton = {
+                Column(horizontalAlignment = Alignment.End) {
+                    TextButton(enabled = !exitBusy, onClick = onNavigateBack) {
+                        Text(stringResource(R.string.canvas_draft_discard))
+                    }
+                    TextButton(enabled = !exitBusy, onClick = { showExitDialog = false }) {
+                        Text(stringResource(R.string.canvas_draft_keep_editing))
+                    }
+                }
+            },
+        )
+    }
+
     val preview = draft
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = { TopAppBar(
             title = { Text(stringResource(R.string.appearance_title)) },
-            navigationIcon = { IconButton(onClick = onNavigateBack) {
+            navigationIcon = { IconButton(onClick = requestBack, enabled = !busy && exitApplyTarget == null) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.settings_back))
             } },
         ) },

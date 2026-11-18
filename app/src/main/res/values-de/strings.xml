@@ -1240,4 +1240,7 @@
     <string name="canvas_draft_discard">Änderungen verwerfen</string>
     <string name="canvas_draft_keep_editing">Weiter bearbeiten</string>
     <string name="canvas_draft_save_failed">Der Entwurf konnte nicht gespeichert werden. Deine Änderungen sind noch da.</string>
+    <string name="appearance_exit_title">Darstellung verlassen?</string>
+    <string name="appearance_exit_body">Übernimm deine Änderungen vor dem Verlassen, verwirf sie oder bearbeite sie weiter.</string>
+    <string name="import_report_with_warnings">Import mit Warnungen abgeschlossen</string>
 </resources>

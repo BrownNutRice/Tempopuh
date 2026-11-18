@@ -293,6 +293,9 @@ dependencies {
     testImplementation(libs.sqlite.jdbc)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.espresso.core)
+    androidTestImplementation(platform(libs.compose.bom))
+    androidTestImplementation(libs.compose.ui.test.junit4)
+    debugImplementation(libs.compose.ui.test.manifest)
 
     implementation(libs.profileinstaller)
 }

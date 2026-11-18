@@ -874,4 +874,7 @@
     <string name="canvas_draft_discard">Módosítások elvetése</string>
     <string name="canvas_draft_keep_editing">Szerkesztés folytatása</string>
     <string name="canvas_draft_save_failed">Nem sikerült menteni a piszkozatot. A módosításaid megmaradtak.</string>
+    <string name="appearance_exit_title">Kilépsz a megjelenés beállításaiból?</string>
+    <string name="appearance_exit_body">Kilépés előtt alkalmazd vagy vesd el a módosításokat, vagy folytasd a szerkesztést.</string>
+    <string name="import_report_with_warnings">Az importálás figyelmeztetésekkel befejeződött</string>
 </resources>

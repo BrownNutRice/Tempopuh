@@ -3,13 +3,16 @@ package me.avinas.tempo.ui.components
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -62,7 +65,7 @@ fun TimePeriodSelector(
             .padding(3.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().selectableGroup(),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             availableRanges.forEach { range ->
@@ -102,16 +105,17 @@ fun TimePeriodSelector(
                 Box(
                     modifier = Modifier
                         .weight(itemWeight)
-                        .height(36.dp)
+                        .heightIn(min = 48.dp)
                         .then(activeModifier)
-                        .premiumClickable(
+                        .selectable(
+                            selected = isSelected,
+                            role = Role.Tab,
                             onClick = {
                                 if (!isSelected) {
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     onRangeSelected(range)
                                 }
                             },
-                            pressedScale = 0.97f
                         ),
                     contentAlignment = Alignment.Center
                 ) {

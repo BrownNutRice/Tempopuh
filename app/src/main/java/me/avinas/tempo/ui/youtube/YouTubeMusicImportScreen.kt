@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
@@ -36,7 +37,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -57,7 +57,6 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import kotlinx.coroutines.delay
 import me.avinas.tempo.R
 import me.avinas.tempo.data.youtube.YouTubeMusicImportService
 import me.avinas.tempo.ui.components.DeepOceanBackground
@@ -76,13 +75,13 @@ fun YouTubeMusicImportScreen(
 
     var selectedUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
 
-    LaunchedEffect(uiState) {
-        if (uiState is YouTubeMusicImportUiState.Completed) {
-            delay(2000)
-            viewModel.resetState()
-            selectedUris = emptyList()
-            onNavigateBack()
-        }
+    val pendingReport = (importState as? YouTubeMusicImportService.ImportState.Completed)?.result
+    val screenState = if (uiState is YouTubeMusicImportUiState.Idle && pendingReport?.isSuccess == true) {
+        YouTubeMusicImportUiState.Completed(pendingReport)
+    } else uiState
+    val acknowledgeReport = {
+        viewModel.resetState()
+        onNavigateBack()
     }
 
     val filePickerLauncher =
@@ -146,7 +145,7 @@ fun YouTubeMusicImportScreen(
             ) {
                 Spacer(modifier = Modifier.height(16.dp))
 
-                when (uiState) {
+                when (screenState) {
                     is YouTubeMusicImportUiState.Idle -> {
                         IdleContent(
                             onSelectFiles = {
@@ -163,13 +162,14 @@ fun YouTubeMusicImportScreen(
 
                     is YouTubeMusicImportUiState.Completed -> {
                         CompletedContent(
-                            result = (uiState as YouTubeMusicImportUiState.Completed).result,
+                            result = (screenState as YouTubeMusicImportUiState.Completed).result,
+                            onDone = acknowledgeReport,
                         )
                     }
 
                     is YouTubeMusicImportUiState.Error -> {
                         ErrorContent(
-                            message = (uiState as YouTubeMusicImportUiState.Error).message,
+                            message = (screenState as YouTubeMusicImportUiState.Error).message,
                             onRetry = {
                                 viewModel.resetState()
                             },
@@ -363,7 +363,8 @@ private fun ImportingContent(importState: YouTubeMusicImportService.ImportState)
 }
 
 @Composable
-private fun CompletedContent(result: YouTubeMusicImportService.ImportResult) {
+private fun CompletedContent(result: YouTubeMusicImportService.ImportResult, onDone: () -> Unit) {
+    val hasWarnings = result.errors.isNotEmpty()
     GlassCard(
         contentPadding = PaddingValues(24.dp),
     ) {
@@ -372,7 +373,7 @@ private fun CompletedContent(result: YouTubeMusicImportService.ImportResult) {
             modifier = Modifier.fillMaxWidth(),
         ) {
             Icon(
-                imageVector = Icons.Default.CheckCircle,
+                imageVector = if (hasWarnings) Icons.Default.Warning else Icons.Default.CheckCircle,
                 contentDescription = null,
                 tint = YouTubeRed,
                 modifier = Modifier.size(56.dp),
@@ -381,7 +382,7 @@ private fun CompletedContent(result: YouTubeMusicImportService.ImportResult) {
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Import Complete!",
+                text = stringResource(if (hasWarnings) R.string.import_report_with_warnings else R.string.restore_import_complete),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -400,7 +401,7 @@ private fun CompletedContent(result: YouTubeMusicImportService.ImportResult) {
             if (result.errors.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "${result.errors.size} warnings",
+                    text = result.errors.joinToString("\n"),
                     style = MaterialTheme.typography.bodySmall,
                     color = TempoWarningBright,
                 )
@@ -408,11 +409,9 @@ private fun CompletedContent(result: YouTubeMusicImportService.ImportResult) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                text = "Continuing automatically...",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
-            )
+            Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.common_done))
+            }
         }
     }
 }

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
@@ -36,7 +37,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,7 +51,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.delay
 import me.avinas.tempo.R
 import me.avinas.tempo.data.musicolet.MusicoletImportService
 import me.avinas.tempo.ui.components.DeepOceanBackground
@@ -77,12 +76,13 @@ fun MusicoletImportScreen(
     val includeUndated by viewModel.includeUndatedPlays.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    LaunchedEffect(uiState) {
-        if (uiState is MusicoletImportUiState.Completed) {
-            delay(2500)
-            viewModel.resetState()
-            onNavigateBack()
-        }
+    val pendingReport = (importState as? MusicoletImportService.ImportState.Completed)?.result
+    val screenState = if (uiState is MusicoletImportUiState.Idle && pendingReport?.isSuccess == true) {
+        MusicoletImportUiState.Completed(pendingReport)
+    } else uiState
+    val acknowledgeReport = {
+        viewModel.resetState()
+        onNavigateBack()
     }
 
     val filePickerLauncher =
@@ -140,7 +140,7 @@ fun MusicoletImportScreen(
             ) {
                 Spacer(modifier = Modifier.height(16.dp))
 
-                when (val state = uiState) {
+                when (val state = screenState) {
                     is MusicoletImportUiState.Idle -> {
                         IdleContent(
                             includeUndated = includeUndated,
@@ -156,7 +156,7 @@ fun MusicoletImportScreen(
                     }
 
                     is MusicoletImportUiState.Completed -> {
-                        CompletedContent(result = state.result)
+                        CompletedContent(result = state.result, onDone = acknowledgeReport)
                     }
 
                     is MusicoletImportUiState.Error -> {
@@ -346,14 +346,15 @@ private fun ImportingContent(importState: MusicoletImportService.ImportState) {
 }
 
 @Composable
-private fun CompletedContent(result: MusicoletImportService.ImportResult) {
+private fun CompletedContent(result: MusicoletImportService.ImportResult, onDone: () -> Unit) {
+    val hasWarnings = result.errors.isNotEmpty() || result.warnings.isNotEmpty() || result.droppedPlays > 0 || result.truncated || result.undatedPlays > result.anchoredUndatedPlays || result.unmatchedPeriodPlays > 0
     GlassCard(contentPadding = PaddingValues(24.dp)) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Icon(
-                imageVector = Icons.Default.CheckCircle,
+                imageVector = if (hasWarnings) Icons.Default.Warning else Icons.Default.CheckCircle,
                 contentDescription = null,
                 tint = MusicoletAccent,
                 modifier = Modifier.size(56.dp),
@@ -362,7 +363,7 @@ private fun CompletedContent(result: MusicoletImportService.ImportResult) {
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Import complete",
+                text = stringResource(if (hasWarnings) R.string.import_report_with_warnings else R.string.restore_import_complete),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -432,10 +433,10 @@ private fun CompletedContent(result: MusicoletImportService.ImportResult) {
                 )
             }
 
-            if (result.warnings.isNotEmpty()) {
+            if (result.warnings.isNotEmpty() || result.errors.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = result.warnings.joinToString("\n"),
+                    text = (result.warnings + result.errors).joinToString("\n"),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
                     textAlign = TextAlign.Center,
@@ -444,11 +445,9 @@ private fun CompletedContent(result: MusicoletImportService.ImportResult) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                text = "Continuing automatically...",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
-            )
+            Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.common_done))
+            }
         }
     }
 }

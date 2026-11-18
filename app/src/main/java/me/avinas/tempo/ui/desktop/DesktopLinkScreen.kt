@@ -401,46 +401,62 @@ private fun DesktopScanningScreen(
             }
         }
 
-        // Dimmed border outside the scanning frame
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(modifier = Modifier.height(64.dp))
-
-            // Scanning frame indicator
-            Box(
-                modifier = Modifier
-                    .size(240.dp)
-                    .border(2.dp, MaterialTheme.colorScheme.onSurface, RoundedCornerShape(16.dp))
-            )
-
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text(
-                    text = stringResource(
-                        if (cameraFailed) R.string.desktop_scan_camera_unavailable else R.string.desktop_scan_instruction
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center
-                )
-                if (cameraFailed) {
-                    Button(onClick = { cameraFailed = false }) {
-                        Text(stringResource(R.string.common_retry))
+        val scannerSurface = Color(0xFF0A0E0E)
+        val scannerForeground = Color.White
+        BoxWithConstraints(Modifier.fillMaxSize().safeDrawingPadding()) {
+            val panelMaxHeight = maxHeight
+            Column(Modifier.fillMaxSize()) {
+                Box(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (!cameraFailed) {
+                        BoxWithConstraints(Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+                            Box(
+                                Modifier.size(minOf(maxWidth, maxHeight, 240.dp))
+                                    .border(2.dp, scannerForeground, RoundedCornerShape(16.dp))
+                            )
+                        }
                     }
                 }
-                OutlinedButton(
-                    onClick = onCancel,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
-                    border = BorderStroke(1.dp, GlassBorderMedium)
+                Surface(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    color = scannerSurface,
+                    contentColor = scannerForeground,
+                    shape = RoundedCornerShape(20.dp),
                 ) {
-                    Text(stringResource(R.string.desktop_cancel_scan))
+                    Column(
+                        modifier = Modifier.heightIn(max = panelMaxHeight).verticalScroll(rememberScrollState()).padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Text(
+                            text = stringResource(
+                                if (cameraFailed) R.string.desktop_scan_camera_unavailable else R.string.desktop_scan_instruction
+                            ),
+                            color = scannerForeground,
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center,
+                        )
+                        if (cameraFailed) {
+                            Button(
+                                onClick = { cameraFailed = false },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = scannerForeground,
+                                    contentColor = scannerSurface,
+                                ),
+                            ) {
+                                Text(stringResource(R.string.common_retry))
+                            }
+                        }
+                        OutlinedButton(
+                            onClick = onCancel,
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = scannerForeground),
+                            border = BorderStroke(1.dp, scannerForeground),
+                        ) {
+                            Text(stringResource(R.string.desktop_cancel_scan))
+                        }
+                    }
                 }
             }
         }
