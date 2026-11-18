@@ -1260,4 +1260,9 @@
     <string name="backup_appearance_included">Designeinstellungen und gespeicherte Looks enthalten.</string>
     <string name="backup_appearance_restored">Design aus der Sicherung wiederhergestellt.</string>
     <string name="backup_appearance_unchanged">Design unverändert.</string>
+    <string name="offline_queue_recovery_title">Offline-Wiedergaben prüfen</string>
+    <string name="offline_queue_recovery_description">Tempo hat unlesbare Offline-Wiedergaben auf diesem Gerät aufbewahrt. Öffne den Diagnosebericht, um den Wiederherstellungsstatus zu prüfen und mit dem Support zu teilen.</string>
+    <string name="offline_queue_discard">Unlesbare Wiedergaben verwerfen</string>
+    <string name="offline_queue_discard_confirmation">Unlesbare Offline-Wiedergaben endgültig verwerfen? Der gespeicherte Hörverlauf und die aktive Warteschlange bleiben erhalten.</string>
+    <string name="offline_queue_discard_failed">Die unlesbaren Wiedergaben konnten nicht verworfen werden. Versuche es erneut.</string>
 </resources>

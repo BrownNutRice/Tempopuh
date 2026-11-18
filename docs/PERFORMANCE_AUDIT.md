@@ -17,6 +17,16 @@ on 18 November 2026 with the local XP query and test-fixture fixes in this chang
 | #83 | `3706768` | Browser sync drains bounded pages with page-level acknowledgement. A 100,000-row Chromium IndexedDB fixture resumed after closing the page, capped pages at 50 records and retained a late arrival. Extension service-worker lifecycle and memory profiling remain open. |
 | #84 | `89256bd` | Single-track enrichment avoids global artist repair; background repair has bounded passes. Verify latency, import contention and restart on Android. |
 
+New offline plays now stage one row in a separate SQLite queue (#82). A
+transaction imports the legacy queue and records the migration, so an
+interrupted preference cleanup cannot replay already acknowledged rows.
+Checkpoints write only changed or removed rows, and retry selection retains at
+most 100 candidates. Service startup still loads the pending rows into memory.
+
+Data & diagnostics shows when unreadable offline records are quarantined
+(#87). The share preview contains only a recovery status. Discard requires
+confirmation and leaves queued and saved plays available.
+
 The closed implementation tickets retain their manual verification notes.
 
 These closed UI issues still have manual verification pending.

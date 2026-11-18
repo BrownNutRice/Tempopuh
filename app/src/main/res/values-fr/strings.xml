@@ -1258,4 +1258,9 @@
     <string name="backup_appearance_included">Réglages et styles enregistrés inclus.</string>
     <string name="backup_appearance_restored">Apparence restaurée depuis la sauvegarde.</string>
     <string name="backup_appearance_unchanged">Apparence inchangée.</string>
+    <string name="offline_queue_recovery_title">Écoutes hors ligne à vérifier</string>
+    <string name="offline_queue_recovery_description">Tempo a conservé les écoutes hors ligne illisibles sur cet appareil. Ouvrez le rapport de diagnostic pour consulter leur état et le partager avec l’assistance.</string>
+    <string name="offline_queue_discard">Supprimer les écoutes illisibles</string>
+    <string name="offline_queue_discard_confirmation">Supprimer définitivement les écoutes hors ligne illisibles ? L’historique enregistré et la file hors ligne active seront conservés.</string>
+    <string name="offline_queue_discard_failed">Impossible de supprimer les écoutes illisibles. Réessayez.</string>
 </resources>

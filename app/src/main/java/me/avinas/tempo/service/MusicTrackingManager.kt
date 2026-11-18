@@ -12,6 +12,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import me.avinas.tempo.data.local.entities.ListeningEvent
 import me.avinas.tempo.data.repository.ListeningRepository
+import java.util.PriorityQueue
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
@@ -44,6 +45,7 @@ class MusicTrackingManager(
         
         // Offline queue limits
         private const val MAX_OFFLINE_QUEUE_SIZE = 1000
+        private const val OFFLINE_RETRY_BATCH_SIZE = 100
     }
     
     // Event channel for batching
@@ -51,6 +53,7 @@ class MusicTrackingManager(
     
     // Offline queue for events that couldn't be saved
     private val offlineQueue = ConcurrentHashMap<String, PendingEvent>()
+    private val offlineStorageLock = Any()
     private val offlineWakeup = Channel<Unit>(Channel.CONFLATED)
     
     // Deduplication: recent event hashes
@@ -135,8 +138,15 @@ class MusicTrackingManager(
         
         // Durably stage before the 750ms batch window; process kills cannot erase it.
         withContext(Dispatchers.IO) {
-            offlineQueue[pendingEvent.key()] = pendingEvent
-            persistOfflineQueue()
+            synchronized(offlineStorageLock) {
+                offlineQueue[pendingEvent.key()] = pendingEvent
+                try {
+                    offlineEventStore?.stage(pendingEvent)
+                } catch (e: Exception) {
+                    // Keep the in-memory play eligible for immediate insert and later checkpoint.
+                    Log.w(TAG, "Failed to stage offline event", e)
+                }
+            }
         }
         eventChannel.send(pendingEvent)
         updateMetrics { it.copy(eventsQueued = it.eventsQueued + 1) }
@@ -465,7 +475,9 @@ class MusicTrackingManager(
     /** Mirror the in-memory offline queue to durable storage (best effort). */
     private fun persistOfflineQueue() {
         try {
-            offlineEventStore?.save(offlineQueue.values)
+            synchronized(offlineStorageLock) {
+                offlineEventStore?.save(offlineQueue.values)
+            }
         } catch (e: Exception) {
             Log.w(TAG, "Failed to persist offline queue", e)
         }
@@ -506,8 +518,17 @@ class MusicTrackingManager(
         // AFTER it has been successfully inserted. A durable retry may outlive a later
         // manual classification, so current persistence rules are re-checked as well.
         val now = System.currentTimeMillis()
-        val toProcess = offlineQueue.values.filter { it.nextAttemptAt <= now }
-            .sortedBy { it.nextAttemptAt }.take(100)
+        val due = PriorityQueue<PendingEvent>(OFFLINE_RETRY_BATCH_SIZE, compareByDescending { it.nextAttemptAt })
+        for (pending in offlineQueue.values) {
+            if (pending.nextAttemptAt > now) continue
+            if (due.size < OFFLINE_RETRY_BATCH_SIZE) {
+                due.add(pending)
+            } else if (pending.nextAttemptAt < due.peek().nextAttemptAt) {
+                due.poll()
+                due.add(pending)
+            }
+        }
+        val toProcess = due.sortedBy { it.nextAttemptAt }
 
         for (pending in toProcess) {
             try {

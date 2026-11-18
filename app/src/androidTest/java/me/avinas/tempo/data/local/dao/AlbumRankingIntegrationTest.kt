@@ -17,7 +17,8 @@ import org.junit.runner.RunWith
 class AlbumRankingIntegrationTest {
     @Test fun albumCountsAndPagesUseTheSameArtistAndReleaseRules() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build().use { db ->
+        val db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()
+        try {
             suspend fun play(artist: String, album: String, track: Int, releaseType: String? = null) {
                 val trackId = db.trackDao().insert(Track(
                     title = "Track $track", artist = artist, album = album, duration = 180_000,
@@ -46,6 +47,8 @@ class AlbumRankingIntegrationTest {
             assertEquals("Artist A", dao.getTopAlbumsByPlayCountFiltered(0, end, false, false, 1, 0).single().artist)
             assertEquals("Artist B", dao.getTopAlbumsByPlayCountFiltered(0, end, false, false, 1, 1).single().artist)
             assertEquals(emptyList<Any>(), dao.getTopAlbumsByPlayCountFiltered(0, end, false, false, 1, 2))
+        } finally {
+            db.close()
         }
     }
 }

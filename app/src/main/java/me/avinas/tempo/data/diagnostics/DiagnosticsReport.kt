@@ -34,6 +34,7 @@ data class DiagnosticsInput(
     val workerStates: Map<String, String>,
     val lastNotificationCallbackAgoMillis: Long? = null,
     val lastMediaSessionCallbackAgoMillis: Long? = null,
+    val offlineQueueRecoveryRequired: Boolean? = null,
 )
 
 object DiagnosticsReport {
@@ -77,6 +78,7 @@ object DiagnosticsReport {
             appendLine("Last heartbeat        : ${input.listenerAliveAgoMillis.describeAge()}")
             appendLine("Last notification     : ${input.lastNotificationCallbackAgoMillis.describeAge()}")
             appendLine("Last media session    : ${input.lastMediaSessionCallbackAgoMillis.describeAge()}")
+            appendLine("Offline queue recovery: ${input.offlineQueueRecoveryRequired?.yesNo() ?: "unknown"}")
             appendLine("Callbacks indicate player activity, not a confirmed saved listening event.")
             appendLine("Battery optimisation  : ${if (input.batteryOptimisationExempt) "exempt" else "NOT exempt"}")
             appendLine("Tracked apps          : ${input.trackedAppCount} (${input.enabledAppCount} enabled)")

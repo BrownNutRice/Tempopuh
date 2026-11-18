@@ -1369,4 +1369,9 @@
     <string name="backup_appearance_included">Configurações de aparência e estilos salvos incluídos.</string>
     <string name="backup_appearance_restored">Aparência restaurada do backup.</string>
     <string name="backup_appearance_unchanged">Aparência mantida.</string>
+    <string name="offline_queue_recovery_title">Revisar reproduções offline</string>
+    <string name="offline_queue_recovery_description">O Tempo manteve as reproduções offline ilegíveis neste dispositivo. Abra o relatório de diagnóstico para verificar o estado de recuperação e compartilhá-lo com o suporte.</string>
+    <string name="offline_queue_discard">Descartar reproduções ilegíveis</string>
+    <string name="offline_queue_discard_confirmation">Descartar permanentemente as reproduções offline ilegíveis? O histórico salvo e a fila offline ativa serão mantidos.</string>
+    <string name="offline_queue_discard_failed">Não foi possível descartar as reproduções ilegíveis. Tente novamente.</string>
 </resources>

@@ -894,4 +894,9 @@
     <string name="backup_appearance_included">A megjelenési beállítások és a mentett stílusok szerepelnek a mentésben.</string>
     <string name="backup_appearance_restored">A megjelenés visszaállítva a mentésből.</string>
     <string name="backup_appearance_unchanged">A megjelenés változatlan.</string>
+    <string name="offline_queue_recovery_title">Ellenőrizd az offline lejátszásokat</string>
+    <string name="offline_queue_recovery_description">A Tempo megőrizte az olvashatatlan offline lejátszásokat ezen az eszközön. A diagnosztikai jelentésben ellenőrizheted az állapotukat, és megoszthatod az ügyfélszolgálattal.</string>
+    <string name="offline_queue_discard">Olvashatatlan lejátszások törlése</string>
+    <string name="offline_queue_discard_confirmation">Végleg törlöd az olvashatatlan offline lejátszásokat? A mentett előzmények és az aktív offline sor megmaradnak.</string>
+    <string name="offline_queue_discard_failed">Az olvashatatlan lejátszások törlése sikertelen. Próbáld újra.</string>
 </resources>

@@ -1486,4 +1486,9 @@
     <string name="backup_appearance_included">Настройки оформления и сохранённые стили включены.</string>
     <string name="backup_appearance_restored">Оформление восстановлено из резервной копии.</string>
     <string name="backup_appearance_unchanged">Оформление не изменилось.</string>
+    <string name="offline_queue_recovery_title">Проверьте офлайн-прослушивания</string>
+    <string name="offline_queue_recovery_description">Tempo сохранил нечитаемые офлайн-прослушивания на этом устройстве. Откройте отчёт диагностики, чтобы проверить состояние восстановления и поделиться им с поддержкой.</string>
+    <string name="offline_queue_discard">Удалить нечитаемые прослушивания</string>
+    <string name="offline_queue_discard_confirmation">Удалить нечитаемые офлайн-прослушивания безвозвратно? Сохранённая история и активная офлайн-очередь останутся.</string>
+    <string name="offline_queue_discard_failed">Не удалось удалить нечитаемые прослушивания. Повторите попытку.</string>
 </resources>

@@ -1717,4 +1717,9 @@
     <string name="backup_appearance_included">Appearance settings and saved looks included.</string>
     <string name="backup_appearance_restored">Appearance restored from the backup.</string>
     <string name="backup_appearance_unchanged">Appearance left unchanged.</string>
+    <string name="offline_queue_recovery_title">Offline plays need attention</string>
+    <string name="offline_queue_recovery_description">Tempo kept unreadable offline plays on this device. Open the diagnostics report below to review and share their recovery status with support.</string>
+    <string name="offline_queue_discard">Discard unreadable plays</string>
+    <string name="offline_queue_discard_confirmation">Permanently discard the unreadable offline plays? Saved listening history and the active offline queue will be kept.</string>
+    <string name="offline_queue_discard_failed">Could not discard the unreadable plays. Try again.</string>
 </resources>
