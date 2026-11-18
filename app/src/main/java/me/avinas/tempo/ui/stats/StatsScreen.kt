@@ -1,5 +1,10 @@
 package me.avinas.tempo.ui.stats
 
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
+
 import me.avinas.tempo.ui.details.formatListeningTime
 import me.avinas.tempo.ui.theme.TempoDarkBackground
 import me.avinas.tempo.ui.theme.TempoDarkSurfaceSunken
@@ -109,7 +114,13 @@ fun StatsScreen(
     onNavigateToAlbum: suspend (title: String, artist: String) -> Boolean,
     onNavigateToSupportedApps: () -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(lifecycle, viewModel) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.observeWhileVisible()
+        }
+    }
     // New tab/range/sort/search = new list: recreate state so scroll resets to
     // 0 synchronously before the next measure. The old manual scroll-to-item
     // clamp fought flings mid-measure (subcompose crash trigger) and is gone.

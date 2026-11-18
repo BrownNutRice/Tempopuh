@@ -2,8 +2,8 @@ package me.avinas.tempo.ui.stats
 
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -13,14 +13,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.merge
 import me.avinas.tempo.ui.appearance.*
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import me.avinas.tempo.data.repository.RefreshCoordinator
-import me.avinas.tempo.data.repository.ListeningRepository
 import me.avinas.tempo.data.repository.SortBy
 import me.avinas.tempo.data.repository.StatsRepository
 import me.avinas.tempo.data.stats.StatItem
@@ -37,19 +34,15 @@ class StatsViewModel
     constructor(
         private val statsRepository: StatsRepository,
         private val appearancePreferences: AppearancePreferencesRepository,
-        private val refreshCoordinator: RefreshCoordinator,
-        private val listeningRepository: ListeningRepository,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(StatsUiState())
         val uiState: StateFlow<StatsUiState> = _uiState.asStateFlow()
-
-        // Refresh trigger to force data reload with debounce
-        private val refreshTrigger = MutableStateFlow(0L)
 
         // Track last loaded analytics time range to skip redundant reloads
         // Analytics is time-range dependent, not tab-dependent
         private var lastAnalyticsTimeRange: TimeRange? = null
         private var loadJob: Job? = null
+        private var visibleScope: CoroutineScope? = null
         private var loadMoreJob: Job? = null
 
         // A filter/search switch must make in-flight query results obsolete.
@@ -67,8 +60,10 @@ class StatsViewModel
             _uiState.update { it.copy(isLoadingMore = false, isRefreshing = false) }
         }
 
-        init {
-            viewModelScope.launch {
+        private var defaultsLoaded = false
+
+        suspend fun observeWhileVisible() {
+            if (!defaultsLoaded && !userSelectedFilters) {
                 val defaults = appearancePreferences.settings.first()
                 if (!userSelectedFilters) _uiState.update { state -> state.copy(
                     selectedTab = when (defaults.statsTab) {
@@ -83,52 +78,24 @@ class StatsViewModel
                         AppearanceStatsRange.ALL_TIME -> TimeRange.ALL_TIME
                     },
                 ) }
+                defaultsLoaded = true
+            }
+            try {
+                coroutineScope {
+                    visibleScope = this
+                    merge(statsRepository.observeListeningStatsChanges(), statsRepository.observeMetadataUpdates())
+                        .debounce(300)
+                        .collect {
+                            statsRepository.invalidateCache(_uiState.value.selectedTimeRange)
+                            invalidateInFlightQueries()
+                            lastAnalyticsTimeRange = null
+                            loadJob = loadData()
+                        }
+                }
+            } finally {
+                visibleScope = null
+                searchJob?.cancel()
                 invalidateInFlightQueries()
-                loadJob = loadData()
-                observeDataChanges()
-            }
-        }
-
-        private fun observeDataChanges() {
-            viewModelScope.launch {
-                // A single-row Room query is a cheap insertion trigger. Never
-                // compute all-time/longest-session aggregates just to discover
-                // that a listening event changed.
-                listeningRepository.recentEvents(1).collect {
-                    refreshTrigger.value = System.currentTimeMillis()
-                }
-            }
-
-            viewModelScope.launch {
-                // Observe metadata updates - this triggers when content is marked as podcast/audiobook
-                // or when track metadata is enriched
-                statsRepository
-                    .observeMetadataUpdates()
-                    .collect {
-                        // Force refresh when metadata changes (e.g., content marked as podcast)
-                        refreshTrigger.value = System.currentTimeMillis()
-                    }
-            }
-
-            // Listen for new track events from MusicTrackingService
-            viewModelScope.launch {
-                refreshCoordinator.refreshEvents.collect {
-                    refreshTrigger.value = System.currentTimeMillis()
-                }
-            }
-
-            // React to refresh triggers with debounce to prevent excessive refreshes
-            viewModelScope.launch {
-                refreshTrigger
-                    .filter { it > 0 }
-                    .debounce(300) // Coalesce rapid writes without adding visible lag
-                    .distinctUntilChanged()
-                    .collect { _ ->
-                        // Invalidate cache and reload data
-                        statsRepository.invalidateCache(_uiState.value.selectedTimeRange)
-                        invalidateInFlightQueries()
-                        loadJob = loadData()
-                    }
             }
         }
 
@@ -170,7 +137,7 @@ class StatsViewModel
             invalidateInFlightQueries()
             _uiState.update { it.copy(searchQuery = query) }
             searchJob =
-                viewModelScope.launch {
+                visibleScope?.launch {
                     delay(300) // Debounce keystrokes
                     _uiState.update { it.copy(isLoading = true, items = emptyList(), page = 0, hasMore = false) }
                     loadJob = loadData()
@@ -178,6 +145,7 @@ class StatsViewModel
         }
 
         fun loadMore() {
+            if (visibleScope == null) return
             val state = _uiState.value
             if (state.isLoading || state.isLoadingMore || !state.hasMore) return
             if (state.searchQuery.isNotBlank()) return // Search results are not paginated
@@ -193,9 +161,9 @@ class StatsViewModel
             loadJob = loadData()
         }
 
-        private fun loadData(isLoadMore: Boolean = false): Job {
+        private fun loadData(isLoadMore: Boolean = false): Job? {
             val generation = resultGeneration
-            return viewModelScope.launch {
+            return visibleScope?.launch {
                 try {
                     val currentState = _uiState.value
                     val page = if (isLoadMore) currentState.page + 1 else 0
@@ -295,6 +263,10 @@ class StatsViewModel
 
         /** Pull-to-refresh handler. */
         suspend fun refresh() {
+            visibleScope?.launch { refreshData() }?.join()
+        }
+
+        private suspend fun refreshData() {
             searchJob?.cancel()
             invalidateInFlightQueries()
             val generation = resultGeneration

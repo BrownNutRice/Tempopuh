@@ -22,6 +22,7 @@ import kotlinx.coroutines.FlowPreview
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -56,6 +57,7 @@ class HomeViewModel @Inject constructor(
     val flagsState: StateFlow<HomeFlags> = _flagsState.asStateFlow()
 
     private var loadJob: Job? = null
+    private var visibleScope: CoroutineScope? = null
     private val extendedInsightsKey = booleanPreferencesKey("home_extended_insights")
     private var extendedInsightsVisible = false
     private var userChangedExpansion = false
@@ -85,8 +87,10 @@ class HomeViewModel @Inject constructor(
     // Rate-app prompt is evaluated at most once per app session.
     private var rateAppChecked = false
 
-    init {
-        viewModelScope.launch {
+    private var expansionRestored = false
+
+    suspend fun observeWhileVisible() {
+        if (!expansionRestored) {
             // A one-shot persisted preference restore. A user tap during startup
             // always wins over an older preference read.
             val remembered = try {
@@ -99,33 +103,43 @@ class HomeViewModel @Inject constructor(
             if (!userChangedExpansion && remembered) {
                 extendedInsightsVisible = true
                 _expandedInsights.value = true
-                loadData()
             }
+            expansionRestored = true
         }
-        observeDataChanges()
-        checkSpotlightReminder()
+        try {
+            coroutineScope {
+                visibleScope = this
+                observeDataChanges()
+                checkSpotlightReminder()
+                if (_uiState.value.hasData) maybeShowShareNudge()
+            }
+        } finally {
+            visibleScope = null
+            loadJob?.cancel()
+            _flagsState.update { it.copy(isRefreshing = false) }
+        }
     }
-    
-    private fun observeDataChanges() {
+
+    private fun CoroutineScope.observeDataChanges() {
         // History and metadata changes share a debounce before loading the dashboard.
-        viewModelScope.launch {
+        launch {
             reactiveReload
                 .debounce(350)
                 .collect { loadData() }
         }
 
-        viewModelScope.launch {
+        launch {
             statsRepository.observeListeningStatsChanges().collect { reactiveReload.tryEmit(Unit) }
         }
 
         // Also observe metadata updates (album art, artist images) from enrichment
-        viewModelScope.launch {
+        launch {
             statsRepository.observeMetadataUpdates()
                 .collect { reactiveReload.tryEmit(Unit) }
         }
 
         // Listen for preference changes (e.g. Gamification toggle, spotlight viewed state)
-        viewModelScope.launch {
+        launch {
             var lastGamificationState: Boolean? = null
             preferencesRepository.preferences().collect { prefs ->
                 val state = prefs?.isGamificationEnabled ?: true
@@ -177,7 +191,7 @@ class HomeViewModel @Inject constructor(
         val startTime = System.currentTimeMillis()
         _flagsState.update { it.copy(isRefreshing = true, isLoading = true) }
         try {
-            loadData().join()
+            loadData()?.join()
         } finally {
             // Keep spinner visible for at least 600ms to prevent flicker
             val elapsed = System.currentTimeMillis() - startTime
@@ -188,12 +202,14 @@ class HomeViewModel @Inject constructor(
 
     /** Requery date-scoped Home cards after the local calendar day or zone changes. */
     fun refreshCalendarData() {
+        statsRepository.invalidateCache()
         loadData()
     }
 
-    private fun loadData(): kotlinx.coroutines.Job {
+    private fun loadData(): Job? {
+        val scope = visibleScope ?: return null
         loadJob?.cancel()
-        return viewModelScope.launch { fetchData() }.also { loadJob = it }
+        return scope.launch { fetchData() }.also { loadJob = it }
     }
 
     private suspend fun fetchData() {
@@ -702,9 +718,10 @@ class HomeViewModel @Inject constructor(
      *  5. Never stacks on top of the rate popup or spotlight reminder.
      */
     private fun maybeShowShareNudge() {
+        val scope = visibleScope ?: return
         if (shareNudgeEvaluated) return
         shareNudgeEvaluated = true
-        viewModelScope.launch {
+        scope.launch {
             try {
                 // Let the home screen settle before any overlay appears.
                 delay(1500)
@@ -757,6 +774,9 @@ class HomeViewModel @Inject constructor(
                         shareNudgeOverview = overview
                     )
                 }
+            } catch (cancelled: CancellationException) {
+                shareNudgeEvaluated = false
+                throw cancelled
             } catch (e: Exception) {
                 android.util.Log.d("HomeViewModel", "Share nudge skipped: ${e.message}")
             }
@@ -809,8 +829,8 @@ class HomeViewModel @Inject constructor(
      * - Last day of the month (for THIS_MONTH story)
      * - December 1st (for THIS_YEAR story)
      */
-    private fun checkSpotlightReminder() {
-        viewModelScope.launch {
+    private fun CoroutineScope.checkSpotlightReminder() {
+        launch {
             val today = java.time.LocalDate.now()
             val todayString = today.toString() // YYYY-MM-DD format
             

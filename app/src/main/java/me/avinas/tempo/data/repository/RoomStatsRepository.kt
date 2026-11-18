@@ -71,6 +71,7 @@ class RoomStatsRepository @Inject constructor(
 
     companion object {
         private const val TAG = "StatsRepository"
+        private const val SESSION_PAGE_SIZE = 512
         private const val CACHE_TTL_MS = 5 * 60 * 1000L // 5 minutes
         private const val MAX_CACHE_SIZE = 64 // LRU cache max entries
         private const val CACHE_SIZE_BYTES = 4 * 1024 * 1024 // 4MB max cache memory
@@ -556,14 +557,20 @@ class RoomStatsRepository @Inject constructor(
         // Use combined query with content filtering to reduce database round trips
         val combinedStats = statsDao.getCombinedBasicStatsFiltered(startTime, endTime, filterPodcasts, filterAudiobooks)
 
-        // Use observed play boundaries for real sessions. The previous
-        // calculation divided total listening time by active DAYS and mislabeled
-        // the result as an average listening SESSION.
-        val sessions = me.avinas.tempo.data.stats.ListeningSessionAggregator.summarize(
-            listeningEventDao.getSessionPointsInRange(
-                startTime, endTime, filterPodcasts, filterAudiobooks,
+        val accumulator = ListeningSessionAggregator.Accumulator()
+        var afterTimestamp = startTime
+        var afterId = Long.MIN_VALUE
+        while (true) {
+            currentCoroutineContext().ensureActive()
+            val page = listeningEventDao.getSessionPointPage(
+                afterTimestamp, afterId, endTime, filterPodcasts, filterAudiobooks, SESSION_PAGE_SIZE,
             )
-        )
+            accumulator.addPage(page)
+            if (page.size < SESSION_PAGE_SIZE) break
+            afterTimestamp = page.last().timestamp
+            afterId = page.last().id
+        }
+        val sessions = accumulator.summary()
 
         return ListeningOverview(
             totalListeningTimeMs = combinedStats.totalTimeMs,

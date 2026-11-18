@@ -105,6 +105,7 @@ data class SessionPoint(
     val playDuration: Long,
     /** Timestamp when playback ended, if directly observed rather than inferred. */
     val endTimestamp: Long? = null,
+    val id: Long = 0L,
 )
 
 // Basic Stats Models

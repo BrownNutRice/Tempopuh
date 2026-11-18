@@ -3,7 +3,6 @@ package me.avinas.tempo.ui.spotlight
 import android.content.Context
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import coil3.ImageLoader
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
@@ -24,7 +23,10 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -43,6 +45,8 @@ class SpotlightViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(SpotlightUiState())
     val uiState: StateFlow<SpotlightUiState> = _uiState.asStateFlow()
     private var cardsJob: Job? = null
+    private var lockJob: Job? = null
+    private var visibleScope: CoroutineScope? = null
     private var storyJob: Job? = null
 
     private val isSyncActive = combine(
@@ -61,13 +65,23 @@ class SpotlightViewModel @Inject constructor(
         spotifyReconstructing || lastFmImportActive || spotifyInitialImportPending
     }.distinctUntilChanged()
 
-    init {
-        observeDataChanges()
-        observeSyncStatus()
+    suspend fun observeWhileVisible() {
+        try {
+            coroutineScope {
+                visibleScope = this
+                observeDataChanges()
+                observeSyncStatus()
+            }
+        } finally {
+            visibleScope = null
+            lockJob?.cancel()
+            cardsJob?.cancel()
+            storyJob?.cancel()
+        }
     }
 
-    private fun observeSyncStatus() {
-        viewModelScope.launch {
+    private fun CoroutineScope.observeSyncStatus() {
+        launch {
             isSyncActive.drop(1).collect { active ->
                 if (active) {
                     if (_uiState.value.cards.isEmpty()) {
@@ -83,8 +97,8 @@ class SpotlightViewModel @Inject constructor(
     }
 
     
-    private fun observeDataChanges() {
-        viewModelScope.launch {
+    private fun CoroutineScope.observeDataChanges() {
+        launch {
             statsRepository.observeListeningStatsChanges().collect {
                 val range = _uiState.value.selectedTimeRange
                 loadCards(range, silent = _uiState.value.cards.isNotEmpty())
@@ -118,7 +132,7 @@ class SpotlightViewModel @Inject constructor(
     private fun loadCards(timeRange: TimeRange, silent: Boolean = false) {
         cardsJob?.cancel()
         storyJob?.cancel()
-        cardsJob = viewModelScope.launch {
+        cardsJob = visibleScope?.launch {
             if (!silent) {
                 _uiState.value = _uiState.value.copy(isLoading = true, storyLoading = true)
             }
@@ -140,8 +154,14 @@ class SpotlightViewModel @Inject constructor(
                     }
                 }.distinct()
                 if (artistNamesForEnrichment.isNotEmpty()) {
-                    viewModelScope.launch {
-                        statsRepository.enrichMissingArtistImagesInBackground(artistNamesForEnrichment)
+                    launch {
+                        try {
+                            statsRepository.enrichMissingArtistImagesInBackground(artistNamesForEnrichment)
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (_: Exception) {
+                            // Visible cards are usable without the optional image.
+                        }
                     }
                 }
                 
@@ -153,6 +173,8 @@ class SpotlightViewModel @Inject constructor(
                 
                 // Story loads in background - doesn't block card display
                 loadStory(timeRange)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (e: Exception) {
                 val syncActive = isSyncActive.first()
                 _uiState.value = _uiState.value.copy(
@@ -168,8 +190,8 @@ class SpotlightViewModel @Inject constructor(
      * This starts loading images before the UI renders, so they're often 
      * already cached when the cards are displayed.
      */
-    private fun prefetchCardImages(cards: List<SpotlightCardData>) {
-        viewModelScope.launch {
+    private fun CoroutineScope.prefetchCardImages(cards: List<SpotlightCardData>) {
+        launch {
             // Extract all image URLs from cards
             val imageUrls = cards.mapNotNull { card ->
                 when (card) {
@@ -191,7 +213,7 @@ class SpotlightViewModel @Inject constructor(
                     .size(300, 300)
                     .build()
                 
-                imageLoader.enqueue(request)
+                launch { imageLoader.execute(request) }
             }
         }
     }
@@ -202,7 +224,7 @@ class SpotlightViewModel @Inject constructor(
      */
     private fun loadStory(timeRange: TimeRange) {
         storyJob?.cancel()
-        storyJob = viewModelScope.launch {
+        storyJob = visibleScope?.launch {
             try {
                 val storyPages = cardGenerator.generateStory(timeRange)
                 if (_uiState.value.selectedTimeRange != timeRange) return@launch
@@ -210,6 +232,8 @@ class SpotlightViewModel @Inject constructor(
                     storyPages = storyPages,
                     storyLoading = false
                 )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(storyLoading = false)
             }
@@ -217,7 +241,8 @@ class SpotlightViewModel @Inject constructor(
     }
 
     private fun checkIfStoryLocked(timeRange: TimeRange) {
-        viewModelScope.launch {
+        lockJob?.cancel()
+        lockJob = visibleScope?.launch {
             val now = java.time.LocalDate.now()
             
             var isLocked = false
@@ -274,6 +299,7 @@ class SpotlightViewModel @Inject constructor(
                 }
             }
             
+            if (_uiState.value.selectedTimeRange != timeRange) return@launch
             _uiState.value = _uiState.value.copy(
                 isStoryLocked = isLocked,
                 storyLockMessage = lockMessage

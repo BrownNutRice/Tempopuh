@@ -36,10 +36,10 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.compose.runtime.DisposableEffect
 import java.time.LocalDate
+import me.avinas.tempo.data.repository.observeClockChanges
 import java.time.ZoneId
 import kotlinx.coroutines.launch
 import me.avinas.tempo.ui.components.DeepOceanBackground
@@ -76,8 +76,8 @@ fun HomeScreen(
     onNavigateToSupportedApps: () -> Unit,
     onNavigateToProfile: () -> Unit = {}
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val flags by viewModel.flagsState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val flags by viewModel.flagsState.collectAsStateWithLifecycle()
     val analyticsDisclosure by analyticsDisclosureViewModel.uiState.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -88,14 +88,13 @@ fun HomeScreen(
     val scope = rememberCoroutineScope()
     val lazyListState = rememberLazyListState()
 
-    // Room invalidation alone cannot refresh a weekly chart when the calendar
-    // rolls over and no new play arrives. Refresh on resume after date/zone
-    // changes, and once at the next local midnight while Home remains visible.
-    DisposableEffect(lifecycleOwner, viewModel) {
-        var observedDate = LocalDate.now(ZoneId.systemDefault())
+    LaunchedEffect(lifecycleOwner, viewModel, context) {
         var observedZone = ZoneId.systemDefault()
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
+        var observedDate = LocalDate.now(observedZone)
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            launch { viewModel.observeWhileVisible() }
+            // A calendar rollover can change charts even when no listening rows change.
+            observeClockChanges(context.applicationContext).collect {
                 val zone = ZoneId.systemDefault()
                 val date = LocalDate.now(zone)
                 if (date != observedDate || zone != observedZone) {
@@ -104,18 +103,6 @@ fun HomeScreen(
                     viewModel.refreshCalendarData()
                 }
             }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
-    LaunchedEffect(viewModel) {
-        while (true) {
-            val zone = ZoneId.systemDefault()
-            val now = java.time.ZonedDateTime.now(zone)
-            val nextMidnight = now.toLocalDate().plusDays(1).atStartOfDay(zone)
-            val waitMs = java.time.Duration.between(now, nextMidnight).toMillis().coerceAtLeast(1L)
-            kotlinx.coroutines.delay(waitMs)
-            viewModel.refreshCalendarData()
         }
     }
 

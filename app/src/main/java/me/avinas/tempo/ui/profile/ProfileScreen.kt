@@ -628,7 +628,10 @@ fun ProfileScreen(
     val applicationContext = LocalContext.current.applicationContext
     LaunchedEffect(lifecycle, viewModel, applicationContext) {
         lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            viewModel.observeChallenges(applicationContext)
+            kotlinx.coroutines.coroutineScope {
+                launch { viewModel.observeWhileVisible() }
+                launch { viewModel.observeChallenges(applicationContext) }
+            }
         }
     }
     val scope = rememberCoroutineScope()

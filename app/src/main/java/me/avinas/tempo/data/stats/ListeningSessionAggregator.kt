@@ -16,38 +16,41 @@ internal object ListeningSessionAggregator {
         val longestListeningMs: Long = 0L,
     )
 
-    fun summarize(events: List<SessionPoint>): Summary {
-        if (events.isEmpty()) return Summary()
-        var sessionCount = 0
-        var longest = 0L
-        var sessionListening = 0L
-        var totalListening = 0L
-        var previousEndMs: Long? = null
+    fun summarize(events: List<SessionPoint>): Summary =
+        Accumulator().apply { addPage(events) }.summary()
 
-        for (event in events) {
-            val listenedMs = event.playDuration.coerceAtLeast(0L)
-            val endMs = event.endTimestamp
-                ?.takeIf { it >= event.timestamp }
-                ?: (event.timestamp + listenedMs)
+    class Accumulator {
+        private var sessionCount = 0
+        private var longest = 0L
+        private var sessionListening = 0L
+        private var totalListening = 0L
+        private var previousEndMs: Long? = null
 
-            if (previousEndMs == null || event.timestamp - previousEndMs > MAX_SESSION_GAP_MS) {
-                if (previousEndMs != null) {
+        fun addPage(events: List<SessionPoint>) {
+            for (event in events) {
+                val listenedMs = event.playDuration.coerceAtLeast(0L)
+                val endMs = event.endTimestamp
+                    ?.takeIf { it >= event.timestamp }
+                    ?: (event.timestamp + listenedMs)
+                val previousEnd = previousEndMs
+
+                if (previousEnd == null || event.timestamp - previousEnd > MAX_SESSION_GAP_MS) {
                     longest = maxOf(longest, sessionListening)
+                    sessionCount++
+                    sessionListening = 0L
                 }
-                sessionCount++
-                sessionListening = 0L
-            }
 
-            sessionListening += listenedMs
-            totalListening += listenedMs
-            // Overlapping sessions must never move the boundary backwards.
-            previousEndMs = maxOf(previousEndMs ?: endMs, endMs)
+                sessionListening += listenedMs
+                totalListening += listenedMs
+                // Overlapping plays must never move the boundary backwards.
+                previousEndMs = maxOf(previousEnd ?: endMs, endMs)
+            }
         }
-        longest = maxOf(longest, sessionListening)
-        return Summary(
+
+        fun summary(): Summary = if (sessionCount == 0) Summary() else Summary(
             count = sessionCount,
             averageListeningMs = totalListening / sessionCount,
-            longestListeningMs = longest,
+            longestListeningMs = maxOf(longest, sessionListening),
         )
     }
 }

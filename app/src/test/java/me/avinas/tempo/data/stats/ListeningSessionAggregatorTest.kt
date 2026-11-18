@@ -52,4 +52,18 @@ class ListeningSessionAggregatorTest {
         assertEquals(1, result.count) // 18m30s from first real end
         assertEquals(140_000L, result.longestListeningMs)
     }
+    @Test fun `a page boundary preserves tied timestamps and overlapping ends`() {
+        val accumulator = ListeningSessionAggregator.Accumulator()
+        accumulator.addPage(listOf(SessionPoint(100L, 60_000L, 240_000L, id = 1)))
+        accumulator.addPage(listOf(
+            SessionPoint(100L, 10_000L, 10_100L, id = 2),
+            SessionPoint(1_440_000L, 30_000L, id = 3),
+        ))
+        accumulator.addPage(listOf(SessionPoint(2_670_001L, 20_000L, id = 4)))
+
+        assertEquals(
+            ListeningSessionAggregator.Summary(count = 2, averageListeningMs = 60_000L, longestListeningMs = 100_000L),
+            accumulator.summary(),
+        )
+    }
 }

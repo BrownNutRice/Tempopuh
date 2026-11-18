@@ -18,6 +18,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.coroutineScope
 import android.content.Context
 import android.util.Log
 import kotlinx.coroutines.flow.Flow
@@ -50,12 +52,12 @@ class ProfileViewModel @Inject constructor(
     
     private val retryRequests = MutableStateFlow(0L)
 
-    init {
+    suspend fun observeWhileVisible(): Unit = coroutineScope {
         observeData()
-        refreshGamification()
+        launch { refreshProfileData() }
         observeRefreshEvents()
     }
-    
+
     suspend fun observeChallenges(context: Context) {
         observeChallengeDays(context).combine(retryRequests) { day, _ -> day }.collectLatest { day ->
             _uiState.update { state ->
@@ -107,8 +109,8 @@ class ProfileViewModel @Inject constructor(
         setProblem(problem, true)
     }
 
-    private fun observeData() {
-        viewModelScope.launch {
+    private fun CoroutineScope.observeData() {
+        launch {
             gamificationRepository.observeUserLevel().collectProfile(ProfileProblem.LEVEL) { level ->
                 val uniqueArtists = gamificationRepository.getUniqueArtistCount()
                 val calculatedTitle = GamificationEngine.computeTitle(level?.currentLevel ?: 0, uniqueArtists)
@@ -133,7 +135,7 @@ class ProfileViewModel @Inject constructor(
             }
         }
         
-        viewModelScope.launch {
+        launch {
             gamificationRepository.observeAllBadges().collectProfile(ProfileProblem.BADGES) { badges ->
                 _uiState.update { state ->
                     val filteredBadges = if (state.selectedCategory == null) badges
@@ -153,13 +155,13 @@ class ProfileViewModel @Inject constructor(
             }
         }
         
-        viewModelScope.launch {
+        launch {
             gamificationRepository.observeUnacknowledgedBadges().collectProfile(ProfileProblem.CELEBRATIONS) { badges ->
                 _uiState.update { it.copy(unacknowledgedBadges = badges) }
             }
         }
         
-        viewModelScope.launch {
+        launch {
             profileIdentityManager.profileIdentity.collectProfile(ProfileProblem.IDENTITY) { identity ->
                 _uiState.update {
                     it.copy(
@@ -177,8 +179,8 @@ class ProfileViewModel @Inject constructor(
      * Uses debounce to avoid processing rapid-fire events (e.g., skips).
      */
     @OptIn(kotlinx.coroutines.FlowPreview::class)
-    private fun observeRefreshEvents() {
-        viewModelScope.launch {
+    private fun CoroutineScope.observeRefreshEvents() {
+        launch {
             refreshCoordinator.refreshEvents
                 .debounce(1_000) // Wait 1s to batch rapid events
                 .collect {
@@ -209,10 +211,6 @@ class ProfileViewModel @Inject constructor(
         } finally {
             _uiState.update { it.copy(isRefreshing = false) }
         }
-    }
-
-    private fun refreshGamification() {
-        viewModelScope.launch { refreshProfileData() }
     }
 
     private suspend fun refreshProfileData() {

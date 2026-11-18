@@ -1,5 +1,10 @@
 package me.avinas.tempo.ui.spotlight
 
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -52,7 +57,13 @@ fun SpotlightScreen(
     initialTimeRange: TimeRange? = null,
     directLaunch: Boolean = false
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(lifecycle, viewModel) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.observeWhileVisible()
+        }
+    }
     val context = LocalContext.current
 
     // For direct launches, show the story overlay immediately so the
