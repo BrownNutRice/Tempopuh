@@ -10,7 +10,10 @@ const dir = mkdtempSync(join(tmpdir(), 'tempo-sync-'));
 const out = join(dir, 'sync.mjs');
 
 await esbuild.build({
-  entryPoints: ['src/background/sync.ts'],
+  stdin: {
+    contents: "export * from './src/background/sync'; export { decryptBody } from './src/shared/security';",
+    resolveDir: process.cwd(),
+  },
   bundle: true,
   format: 'esm',
   platform: 'node',
@@ -23,7 +26,7 @@ await esbuild.build({
       build.onResolve({ filter: /^\.\/storage$/ }, () => ({ path: 'storage', namespace: 'smoke' }));
       build.onLoad({ filter: /.*/, namespace: 'smoke' }, () => ({
         contents: [
-          'getSettings', 'getPairing', 'retryFailedPlays', 'getQueuedPlays', 'saveSyncBackoff',
+          'getSettings', 'getPairing', 'retryFailedPlays', 'getLastQueuedPlayId', 'getQueuedPlayPage', 'saveSyncBackoff',
           'recordSync', 'recordConnectionSuccess', 'recordConnectionFailure', 'getConnectionHistory',
           'recordConnectionFailures', 'savePairing', 'getSyncCheckpoint', 'clearSyncCheckpoint',
           'saveSyncCheckpoint', 'markPlaysSynced', 'markPlaysFailed', 'cleanupOldRecords', 'enforceMaxRecords',
@@ -103,7 +106,9 @@ console.log('\n[4] Permission blocks delivery without changing queued records');
   globalThis.tempoSmokeStorage = {
     getSettings: async () => ({ offlineMode: false }),
     getPairing: async () => pairing,
-    getQueuedPlays: async () => plays.filter(play => play.status === 'queued'),
+    getLastQueuedPlayId: async () => plays.findLast(play => play.status === 'queued')?.id ?? null,
+    getQueuedPlayPage: async (afterId, throughId, limit) => plays
+      .filter(play => play.status === 'queued' && play.id > afterId && play.id <= throughId).slice(0, limit),
     retryFailedPlays: async () => 0,
     saveSyncBackoff: async () => {},
     recordSync: async (...result) => syncResults.push(result),
@@ -154,6 +159,102 @@ console.log('\n[4] Permission blocks delivery without changing queued records');
   check('successful port reaches delivery URL', requests.includes('http://tempo-paired.local:9876/api/plays'));
   check('successful endpoint is persisted and recorded',
     pairing.phonePort === 9876 && successes.some(endpoint => endpoint.ip === pairing.phoneIp && endpoint.port === 9876));
+
+  console.log('\n[6] Large queue paging, rejection, token rotation and restart');
+  let checkpoint = null;
+  let maxPage = 0;
+  let rejected = false;
+  let currentToken = pairing.authToken;
+  const delivered = new Set();
+  const count = 10_000;
+  plays.splice(0, plays.length, ...Array.from({ length: count }, (_, i) => ({
+    id: i + 1,
+    sessionId: 'session-' + (i + 1),
+    status: 'queued',
+  })));
+  Object.assign(globalThis.tempoSmokeStorage, {
+    retryFailedPlays: async () => {
+      const failed = plays.filter(play => play.status === 'failed');
+      failed.forEach(play => { play.status = 'queued'; });
+      return failed.length;
+    },
+    getQueuedPlayPage: async (afterId, throughId, limit) => {
+      const page = [];
+      for (const play of plays) {
+        if (play.status === 'queued' && play.id > afterId && play.id <= throughId) page.push(play);
+        if (page.length === limit) break;
+      }
+      maxPage = Math.max(maxPage, page.length);
+      return page;
+    },
+    getSyncCheckpoint: async () => checkpoint,
+    clearSyncCheckpoint: async () => { checkpoint = null; },
+    saveSyncCheckpoint: async value => { checkpoint = value; },
+  });
+  globalThis.fetch = async (url, options) => {
+    if (!url.endsWith('/api/plays')) return Response.json({ ok: true });
+    const payload = JSON.parse(await mod.decryptBody(options.body, currentToken));
+    const ids = payload.plays.map(play => play.session_id);
+    if (!rejected && ids[0] === 'session-51') {
+      rejected = true;
+      return new Response('Rejected fixture', { status: 422 });
+    }
+    if (ids.some(id => delivered.has(id))) throw new Error('Previously acknowledged play was resent');
+    ids.forEach(id => delivered.add(id));
+    if (ids[0] === 'session-1') {
+      currentToken = 'rotated-fixture';
+      return Response.json({ ok: true, next_token: currentToken });
+    }
+    if (ids[0] === 'session-51') {
+      plays.push({ id: count + 1, sessionId: 'new-arrival', status: 'queued' });
+    }
+    return Response.json({ ok: true });
+  };
+  check('explicit rejection surfaces after first acknowledgement', await sync() === 'rejected');
+  check('only the rejected page is failed', plays.filter(play => play.status === 'failed').length === 50 &&
+    plays.find(play => play.id === 101).status === 'queued');
+  check('first page is committed and counted even when a later page fails',
+    plays.slice(0, 50).every(play => play.status === 'synced') &&
+    syncResults.at(-1)[0] === 50 && syncResults.at(-1)[1] === 'failed');
+  check('rotated token persists before the next page', pairing.authToken === 'rotated-fixture');
+
+  const restart = await import(pathToFileURL(out).href + '?restart');
+  const log = console.log;
+  let syncedAfterRestart;
+  try {
+    console.log = () => {};
+    syncedAfterRestart = await restart.syncToPhone();
+  } finally {
+    console.log = log;
+  }
+  check('restart resumes through the existing backlog without resending acknowledged rows',
+    syncedAfterRestart === count - 50 && delivered.size === count);
+  check('every transport page stayed within the batch limit', maxPage === 50);
+  check('new arrivals remain queued for the next pass', plays.at(-1).status === 'queued');
+  check('a new pass picks up newly queued plays', await restart.syncToPhone() === 1 && plays.at(-1).status === 'synced');
+
+
+  console.log('\n[7] Interruption after phone acceptance but before local acknowledgement');
+  plays.push({ id: count + 2, sessionId: 'interrupted', status: 'queued' });
+  const realMarkSynced = globalThis.tempoSmokeStorage.markPlaysSynced;
+  globalThis.tempoSmokeStorage.markPlaysSynced = async () => { throw new Error('Terminated before acknowledgement'); };
+  let accepted = 0;
+  const phoneSessions = new Set();
+  globalThis.fetch = async (url, options) => {
+    if (url.endsWith('/api/plays')) {
+      const payload = JSON.parse(await mod.decryptBody(options.body, currentToken));
+      accepted++;
+      payload.plays.forEach(play => phoneSessions.add(play.session_id));
+    }
+    return Response.json({ ok: true });
+  };
+  check('uncommitted acknowledgement leaves the page queued and checkpointed',
+    await sync() === undefined && checkpoint?.batchIds[0] === count + 2 && plays.at(-1).status === 'queued');
+  globalThis.tempoSmokeStorage.markPlaysSynced = realMarkSynced;
+  check('restart replays the same session ID and clears the checkpoint after committing',
+    await restart.syncToPhone() === 1 && accepted === 2 && phoneSessions.size === 1 &&
+    checkpoint === null && plays.at(-1).status === 'synced');
+
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

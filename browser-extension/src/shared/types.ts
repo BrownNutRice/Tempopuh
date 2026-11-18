@@ -308,7 +308,6 @@ export interface ConnectionHealth {
 export interface SyncCheckpoint {
   batchIds: number[];
   batchIndex: number;
-  totalBatches: number;
   lastAttempt: number;
   retryCount: number;
 }

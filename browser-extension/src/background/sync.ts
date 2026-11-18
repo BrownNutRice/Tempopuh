@@ -4,7 +4,7 @@
  * rate-limit cooldowns, and alarm-based retries across worker hibernations.
  */
 
-import type { Play, SyncPayload, SyncPlay, SyncResponse, PairingInfo, ConnectionHistoryEntry } from '../shared/types';
+import type { SyncPayload, SyncResponse, PairingInfo, ConnectionHistoryEntry } from '../shared/types';
 import * as storage from './storage';
 import { signRequest, buildJsonHeaders, encryptBody, decryptBody } from '../shared/security';
 
@@ -43,8 +43,7 @@ const MAX_RETRY_DELAY_MINUTES = 60;
 // need different reactions:
 //   • rate_limited / server / network / unreachable / battery are TRANSIENT —
 //     plays stay queued and we back off exponentially instead of hammering.
-//   • auth / rejected are FATAL for the current batch — plays are marked
-//     failed so the user sees them and can retry deliberately.
+//   • auth triggers a token refresh; explicit rejection marks only the sent batch failed.
 
 export type SyncErrorKind =
   | 'rate_limited'
@@ -69,7 +68,7 @@ export class SyncError extends Error {
   }
 }
 
-/** Transient errors keep plays queued; fatal errors mark them failed. */
+/** Transient errors keep plays queued for automatic retry. */
 export function isTransientSyncError(kind: SyncErrorKind): boolean {
   return kind === 'rate_limited' || kind === 'server' || kind === 'network' ||
          kind === 'unreachable' || kind === 'battery';
@@ -577,11 +576,8 @@ export async function syncToPhone(options: SyncOptions = {}): Promise<number> {
 
   _isSyncing = true;
 
-  // Snapshot of queued play ids taken right after the initial fetch. Reused by
-  // the fatal-error path so a third full getQueuedPlays() collection read is
-  // not needed; ids of batches that complete successfully are removed as we
-  // go so already-synced plays are never marked failed.
-  let queuedIdsForFailure: number[] = [];
+  let activeBatchIds: number[] = [];
+  let totalSynced = 0;
 
   try {
     // 0. Hard gates — offline mode or no pairing means ZERO phone traffic.
@@ -636,10 +632,9 @@ export async function syncToPhone(options: SyncOptions = {}): Promise<number> {
       console.log(`[Tempo] Retrying ${retried} previously failed plays`);
     }
 
-    // 3. Get queued plays (includes retried ones)
-    const allPlays = await storage.getQueuedPlays();
-    queuedIdsForFailure = allPlays.filter(p => p.id != null).map(p => p.id!);
-    if (allPlays.length === 0) {
+    // Freeze the upper key for this pass. New arrivals are picked up on the next sync.
+    const throughId = await storage.getLastQueuedPlayId();
+    if (throughId == null) {
       _lastSyncResult = 'No plays to sync';
       _lastSyncTime = new Date().toISOString();
       return 0;
@@ -672,19 +667,17 @@ export async function syncToPhone(options: SyncOptions = {}): Promise<number> {
     const checkpoint = await storage.getSyncCheckpoint();
     if (checkpoint && Date.now() - checkpoint.lastAttempt < 120_000) {
       console.warn(
-        `[Tempo] Resuming from sync checkpoint (batch ${checkpoint.batchIndex + 1}/${checkpoint.totalBatches}). ` +
+        `[Tempo] Resuming from sync checkpoint (batch ${checkpoint.batchIndex + 1}). ` +
         `${checkpoint.batchIds.length} plays from previous batch may duplicate — phone dedup handles this.`,
       );
       await storage.clearSyncCheckpoint();
     }
 
-    // 7. Batch sync — adaptive batch size based on network conditions
     const batchSize = getAdaptiveBatchSize();
-    let totalSynced = 0;
-    const batches = Math.ceil(allPlays.length / batchSize);
-
-    for (let i = 0; i < batches; i++) {
-      const batch = allPlays.slice(i * batchSize, (i + 1) * batchSize);
+    let afterId = 0;
+    for (let i = 0; afterId < throughId; i++) {
+      const batch = await storage.getQueuedPlayPage(afterId, throughId, batchSize);
+      if (batch.length === 0) break;
 
       const deviceName = 'Tempo Stats (Browser)';
       const payload: SyncPayload = {
@@ -716,13 +709,12 @@ export async function syncToPhone(options: SyncOptions = {}): Promise<number> {
       };
 
       const url = `http://${address.ip}:${address.port}/api/plays`;
-      console.log(`[Tempo] Syncing batch ${i + 1}/${batches} (${batch.length} plays) to ${url}`);
+      console.log(`[Tempo] Syncing batch ${i + 1} (${batch.length} plays) to ${url}`);
 
-      const batchIds = batch.filter(p => p.id != null).map(p => p.id!);
+      activeBatchIds = batch.map(p => p.id);
       await storage.saveSyncCheckpoint({
-        batchIds,
+        batchIds: activeBatchIds,
         batchIndex: i,
-        totalBatches: batches,
         lastAttempt: Date.now(),
         retryCount: 0,
       });
@@ -742,15 +734,16 @@ export async function syncToPhone(options: SyncOptions = {}): Promise<number> {
         pairing = { ...pairing, authToken: nextToken };
       }
 
-      if (response && response.ok !== false) {
-        await storage.clearSyncCheckpoint();
-        await storage.markPlaysSynced(batchIds);
-        const syncedSet = new Set(batchIds);
-        queuedIdsForFailure = queuedIdsForFailure.filter(id => !syncedSet.has(id));
-        totalSynced += batch.length;
-      } else {
+      if (!response || response.ok !== true) {
         throw new SyncError(`Phone rejected batch ${i + 1}: server returned ok=false`, 'rejected');
       }
+
+      // Commit the acknowledgement before clearing the restart marker.
+      await storage.markPlaysSynced(activeBatchIds);
+      totalSynced += activeBatchIds.length;
+      afterId = activeBatchIds[activeBatchIds.length - 1];
+      activeBatchIds = [];
+      await storage.clearSyncCheckpoint();
     }
 
     await storage.clearSyncCheckpoint();
@@ -812,20 +805,17 @@ export async function syncToPhone(options: SyncOptions = {}): Promise<number> {
         await scheduleRetryAlarm(delayMin);
         console.warn(`[Tempo] Transient sync failure (${kind}) — retry in ${delayMin} min, plays stay queued`);
       } else {
-        // Fatal (rejected/unknown): mark plays failed so the user can act.
-        // Reuse the pre-batch id snapshot (already-synced ids removed); only
-        // fall back to a fresh collection read when the snapshot is empty.
-        const ids = queuedIdsForFailure.length > 0
-          ? queuedIdsForFailure
-          : (await storage.getQueuedPlays()).filter(p => p.id != null).map(p => p.id!);
-        await storage.markPlaysFailed(ids);
+        if (kind === 'rejected' && activeBatchIds.length > 0) {
+          await storage.markPlaysFailed(activeBatchIds);
+          await storage.clearSyncCheckpoint();
+        }
         await scheduleRetryAlarm(10);
       }
     } catch { /* ignore — status already recorded */ }
 
     await persistBackoffState();
 
-    await storage.recordSync(0, 'failed', msg);
+    await storage.recordSync(totalSynced, 'failed', msg);
     console.error(`[Tempo] Sync failed (${kind}): ${msg}`);
     throw error;
   } finally {

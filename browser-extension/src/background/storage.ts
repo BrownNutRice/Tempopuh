@@ -176,27 +176,46 @@ export async function insertPlaysBatch(plays: Array<Omit<Play, 'id'>>): Promise<
   });
 }
 
-export async function getQueuedPlays(): Promise<Play[]> {
+type PendingStatus = 'queued' | 'failed';
+type StoredPlay = Play & { id: number };
+const QUEUE_MUTATION_PAGE_SIZE = 100;
+
+async function getLastPlayId(status: PendingStatus): Promise<number | null> {
   const db = await openDb();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(PLAYS_STORE, 'readonly');
-    const store = tx.objectStore(PLAYS_STORE);
-    const index = store.index('status');
-    const request = index.getAll('queued');
-    request.onsuccess = () => resolve(request.result as Play[]);
-    request.onerror = () => reject(request.error);
+    const request = tx.objectStore(PLAYS_STORE).index('status').openKeyCursor(status, 'prev');
+    request.onsuccess = () => resolve((request.result?.primaryKey as number | undefined) ?? null);
+    tx.onabort = () => reject(tx.error ?? new Error('Play queue read aborted'));
   });
 }
 
-export async function getFailedPlays(): Promise<Play[]> {
+export function getLastQueuedPlayId(): Promise<number | null> {
+  return getLastPlayId('queued');
+}
+
+/** Status-index entries are ordered by primary key within a single status. */
+export async function getQueuedPlayPage(afterId: number, throughId: number, limit: number): Promise<StoredPlay[]> {
   const db = await openDb();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(PLAYS_STORE, 'readonly');
-    const store = tx.objectStore(PLAYS_STORE);
-    const index = store.index('status');
-    const request = index.getAll('failed');
-    request.onsuccess = () => resolve(request.result as Play[]);
-    request.onerror = () => reject(request.error);
+    const request = tx.objectStore(PLAYS_STORE).index('status').openCursor('queued');
+    const page: StoredPlay[] = [];
+
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor || page.length >= limit) return;
+      const id = cursor.primaryKey as number;
+      if (id > throughId) return;
+      if (id <= afterId) {
+        cursor.continuePrimaryKey('queued', afterId + 1);
+        return;
+      }
+      page.push(cursor.value as StoredPlay);
+      if (page.length < limit) cursor.continue();
+    };
+    tx.oncomplete = () => resolve(page);
+    tx.onabort = () => reject(tx.error ?? new Error('Play queue page read aborted'));
   });
 }
 
@@ -243,90 +262,90 @@ export async function getQueueCount(): Promise<number> {
   });
 }
 
-/**
- * Flip the status of a set of play records in ONE readwrite cursor pass over
- * the [min(ids), max(ids)] key range instead of N individual get+put pairs.
- */
-async function setPlaysStatus(ids: number[], status: Play['status']): Promise<void> {
+/** Acknowledge only rows that are still queued. Never recreate a deleted row. */
+async function setQueuedPlaysStatus(ids: number[], status: 'synced' | 'failed'): Promise<void> {
   if (ids.length === 0) return;
-
-  let minId = Infinity;
-  let maxId = -Infinity;
-  for (const id of ids) {
-    if (id < minId) minId = id;
-    if (id > maxId) maxId = id;
-  }
-  const idSet = new Set(ids);
 
   const db = await openDb();
   return new Promise<void>((resolve, reject) => {
     const tx = db.transaction(PLAYS_STORE, 'readwrite');
     const store = tx.objectStore(PLAYS_STORE);
-    const request = store.openCursor(IDBKeyRange.bound(minId, maxId));
-
-    request.onsuccess = () => {
-      const cursor = request.result;
-      if (cursor) {
-        if (idSet.has(cursor.key as number)) {
-          const play = cursor.value as Play;
-          play.status = status;
-          cursor.update(play);
-        }
-        cursor.continue();
-      }
-    };
+    for (const id of ids) {
+      const request = store.get(id);
+      request.onsuccess = () => {
+        const play = request.result as Play | undefined;
+        if (play?.status === 'queued') store.put({ ...play, status });
+      };
+    }
 
     tx.oncomplete = () => { invalidateQueueCountCache(); invalidateStatsCache(); resolve(); };
-    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error ?? new Error('Play acknowledgement aborted'));
   });
 }
 
 export function markPlaysSynced(ids: number[]): Promise<void> {
-  return setPlaysStatus(ids, 'synced');
+  return setQueuedPlaysStatus(ids, 'synced');
 }
 
 export function markPlaysFailed(ids: number[]): Promise<void> {
-  return setPlaysStatus(ids, 'failed');
+  return setQueuedPlaysStatus(ids, 'failed');
+}
+
+/** Use short write transactions so other queue activity can run between pages. */
+async function mutatePlayQueue(status: PendingStatus, remove: boolean): Promise<number> {
+  const throughId = await getLastPlayId(status);
+  if (throughId == null) return 0;
+
+  const db = await openDb();
+  let afterId = 0;
+  let total = 0;
+  while (afterId < throughId) {
+    const page = await new Promise<{ count: number; lastId: number }>((resolve, reject) => {
+      const tx = db.transaction(PLAYS_STORE, 'readwrite');
+      const request = tx.objectStore(PLAYS_STORE).index('status').openCursor(status);
+      let count = 0;
+      let lastId = afterId;
+
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) return;
+        const id = cursor.primaryKey as number;
+        if (id > throughId) return;
+        if (id <= afterId) {
+          cursor.continuePrimaryKey(status, afterId + 1);
+          return;
+        }
+
+        if (remove) cursor.delete();
+        else cursor.update({ ...(cursor.value as StoredPlay), status: 'queued' });
+        count++;
+        lastId = id;
+        if (count < QUEUE_MUTATION_PAGE_SIZE) cursor.continue();
+      };
+      tx.oncomplete = () => {
+        if (count > 0) {
+          invalidateQueueCountCache();
+          invalidateStatsCache();
+          if (remove) _playCountEstimate -= count;
+        }
+        resolve({ count, lastId });
+      };
+      tx.onabort = () => reject(tx.error ?? new Error('Play queue update aborted'));
+    });
+    total += page.count;
+    if (page.count < QUEUE_MUTATION_PAGE_SIZE) break;
+    afterId = page.lastId;
+  }
+  return total;
 }
 
 /** Reset failed plays back to queued so they can be retried on next sync. */
-export async function retryFailedPlays(): Promise<number> {
-  // Reuse the full records from getFailedPlays() — flip the status field in
-  // place and put the SAME objects back; no second read inside the transaction.
-  const failed = await getFailedPlays();
-  const toRetry = failed.filter(p => p.id != null);
-  if (toRetry.length === 0) return 0;
-
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(PLAYS_STORE, 'readwrite');
-    const store = tx.objectStore(PLAYS_STORE);
-
-    for (const play of toRetry) {
-      play.status = 'queued';
-      store.put(play);
-    }
-
-    tx.oncomplete = () => { invalidateQueueCountCache(); invalidateStatsCache(); resolve(toRetry.length); };
-    tx.onerror = () => reject(tx.error);
-  });
+export function retryFailedPlays(): Promise<number> {
+  return mutatePlayQueue('failed', false);
 }
 
-export async function clearQueue(): Promise<number> {
-  const queued = await getQueuedPlays();
-
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(PLAYS_STORE, 'readwrite');
-    const store = tx.objectStore(PLAYS_STORE);
-
-    for (const play of queued) {
-      if (play.id) store.delete(play.id);
-    }
-
-    tx.oncomplete = () => { invalidateQueueCountCache(); invalidateStatsCache(); _playCountEstimate -= queued.length; resolve(queued.length); };
-    tx.onerror = () => reject(tx.error);
-  });
+export function clearQueue(): Promise<number> {
+  return mutatePlayQueue('queued', true);
 }
 
 /** Hard-delete a single play record (any status) by its IndexedDB id. */
