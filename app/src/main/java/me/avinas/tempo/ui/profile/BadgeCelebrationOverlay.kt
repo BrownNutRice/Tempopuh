@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarOutline
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material3.*
@@ -33,6 +34,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
@@ -69,6 +71,7 @@ fun BadgeCelebrationOverlay(
 ) {
     var currentIndex by remember { mutableIntStateOf(0) }
     if (badges.isEmpty()) return
+    val palette = LocalTempoPalette.current
     val visibleIndex = currentIndex.coerceAtMost(badges.lastIndex)
     val badge = badges[visibleIndex]
 
@@ -84,7 +87,6 @@ fun BadgeCelebrationOverlay(
     val density = LocalDensity.current.density
 
     // Spatial emergence physics
-    val scrimAlpha = remember { Animatable(0f) }
     val emblemScale = remember { Animatable(if (reducedMotion) 0.85f else 0.28f) }
     val emblemAlpha = remember { Animatable(0f) }
     val glowScale = remember { Animatable(0.20f) }
@@ -97,9 +99,6 @@ fun BadgeCelebrationOverlay(
     // Launch emergence on entry or badge step
     LaunchedEffect(badge.badgeId, currentIndex) {
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-        launch {
-            scrimAlpha.animateTo(1f, tween(240, easing = FastOutSlowInEasing))
-        }
         launch {
             emblemAlpha.animateTo(1f, tween(120, easing = LinearEasing))
             emblemScale.animateTo(
@@ -145,12 +144,17 @@ fun BadgeCelebrationOverlay(
         }
     }
 
+    val rarityChip = rarityColor.copy(alpha = 0.14f).compositeOver(palette.surface)
+    val xpChip = TempoWarning.copy(alpha = 0.14f).compositeOver(palette.surface)
+    val xpText = profileTextColor(TempoWarning, xpChip)
+    val actionSurface = profileIndicatorColor(intrinsicColor, palette.surface)
+    val actionText = profileTextColor(palette.onAccent, actionSurface)
     ProfileModal(
         title = stringResource(R.string.profile_badges),
         onDismiss = { if (!acknowledging) onDismiss() },
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF04060A).copy(alpha = 0.92f * scrimAlpha.value)),
+            .background(palette.surface),
     ) {
         // High-energy particle celebration burst
         CelebrationParticlesCanvas(
@@ -182,7 +186,7 @@ fun BadgeCelebrationOverlay(
                 badge.stars > 1 -> "STAR TIER PROMOTION · ★ ${badge.stars} OF 5"
                 else -> "NEW TROPHY UNLOCKED"
             }
-            val kickerColor = if (badge.isMaxed) TempoWarningBright else intrinsicColor
+            val kickerColor = profileTextColor(if (badge.isMaxed) TempoWarningBright else intrinsicColor, palette.surface)
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -269,13 +273,13 @@ fun BadgeCelebrationOverlay(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = (-0.5).sp
                         ),
-                        color = TextPrimary,
+                        color = palette.onSurface,
                         textAlign = TextAlign.Center
                     )
                     Text(
                         text = badge.description,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary,
+                        color = palette.mutedText,
                         textAlign = TextAlign.Center,
                         maxLines = 3,
                         overflow = TextOverflow.Ellipsis
@@ -291,7 +295,7 @@ fun BadgeCelebrationOverlay(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(50))
-                            .background(rarityColor.copy(alpha = 0.14f))
+                            .background(rarityChip)
                             .border(0.8.dp, rarityColor.copy(alpha = 0.40f), RoundedCornerShape(50))
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
@@ -299,7 +303,7 @@ fun BadgeCelebrationOverlay(
                             text = rarity.label.uppercase(Locale.getDefault()),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = rarityColor,
+                            color = profileTextColor(rarityColor, rarityChip),
                             letterSpacing = 1.sp
                         )
                     }
@@ -309,7 +313,7 @@ fun BadgeCelebrationOverlay(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(50))
-                            .background(TempoWarning.copy(alpha = 0.14f))
+                            .background(xpChip)
                             .border(0.8.dp, TempoWarning.copy(alpha = 0.40f), RoundedCornerShape(50))
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
@@ -320,14 +324,14 @@ fun BadgeCelebrationOverlay(
                             Icon(
                                 imageVector = Icons.Default.AutoAwesome,
                                 contentDescription = null,
-                                tint = TempoWarning,
+                                tint = xpText,
                                 modifier = Modifier.size(12.dp)
                             )
                             Text(
                                 text = "+$rewardXp XP",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = TempoWarning,
+                                color = xpText,
                                 letterSpacing = 0.8.sp
                             )
                         }
@@ -352,7 +356,7 @@ fun BadgeCelebrationOverlay(
                             text = "TROPHY STAR PROGRESSION",
                             style = KickerSmall,
                             fontWeight = FontWeight.Bold,
-                            color = TextTertiary,
+                            color = palette.mutedText,
                             letterSpacing = 1.2.sp
                         )
 
@@ -369,9 +373,12 @@ fun BadgeCelebrationOverlay(
                                     lerp(0.4f, 1f, starStampAnim.value)
                                 } else 1f
 
-                                val starTint = if (isEarnedStar) {
-                                    if (badge.isMaxed) intrinsicColor else TempoWarningBright
-                                } else Color.White.copy(alpha = 0.12f)
+                                val starTint = profileIndicatorColor(
+                                    if (isEarnedStar) {
+                                        if (badge.isMaxed) intrinsicColor else TempoWarningBright
+                                    } else palette.border,
+                                    palette.surfaceSunken
+                                )
 
                                 Box(
                                     contentAlignment = Alignment.Center,
@@ -395,7 +402,7 @@ fun BadgeCelebrationOverlay(
                                     }
 
                                     Icon(
-                                        imageVector = Icons.Default.Star,
+                                        imageVector = if (isEarnedStar) Icons.Default.Star else Icons.Default.StarOutline,
                                         contentDescription = null,
                                         tint = starTint,
                                         modifier = Modifier
@@ -413,7 +420,7 @@ fun BadgeCelebrationOverlay(
                             text = if (badge.isMaxed) "All 5 Star Tiers Completed · Mastered"
                                    else "${badge.progress} / ${badge.maxProgress} towards Star ${badge.stars + 1}",
                             style = CaptionSmall,
-                            color = TextSecondary,
+                            color = palette.mutedText,
                             textAlign = TextAlign.Center
                         )
                     }
@@ -431,7 +438,7 @@ fun BadgeCelebrationOverlay(
                                 modifier = Modifier
                                     .size(if (active) 8.dp else 6.dp)
                                     .clip(CircleShape)
-                                    .background(if (active) intrinsicColor else Color.White.copy(alpha = 0.25f))
+                                    .background(if (active) profileIndicatorColor(intrinsicColor, palette.surface) else profileIndicatorColor(palette.border, palette.surface))
                             )
                         }
                     }
@@ -453,19 +460,19 @@ fun BadgeCelebrationOverlay(
                             },
                             shape = RoundedCornerShape(14.dp),
                             border = androidx.compose.foundation.BorderStroke(
-                                0.8.dp,
-                                GlassBorderMedium
+                                1.dp,
+                                profileIndicatorColor(palette.border, palette.surface)
                             ),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = TempoDarkSurfaceElevated.copy(alpha = 0.6f),
-                                contentColor = TextPrimary
+                                containerColor = palette.elevatedSurface,
+                                contentColor = palette.onSurface
                             ),
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Share,
                                 contentDescription = "Share",
-                                tint = TextSecondary,
+                                tint = palette.mutedText,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -491,8 +498,8 @@ fun BadgeCelebrationOverlay(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = intrinsicColor,
-                            contentColor = Color.Black
+                            containerColor = actionSurface,
+                            contentColor = actionText
                         ),
                         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp)
                     ) {
@@ -518,14 +525,14 @@ fun BadgeCelebrationOverlay(
                 }
                 if (visibleIndex < badges.lastIndex && !acknowledgementFailed) {
                     TextButton(onClick = onDismiss, enabled = !acknowledging) {
-                        Text(stringResource(R.string.share_close), color = Color.White)
+                        Text(stringResource(R.string.share_close), color = palette.onSurface)
                     }
                 }
                 if (acknowledgementFailed) {
                     Text(
                         text = stringResource(R.string.profile_acknowledgement_failed),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White,
+                        color = palette.onSurface,
                         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                     )
                 }

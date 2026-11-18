@@ -62,6 +62,7 @@ fun LevelUpCelebrationOverlay(
     onDismiss: () -> Unit,
     onShareMilestone: (() -> Unit)? = null
 ) {
+    val palette = LocalTempoPalette.current
     val tierAccent = remember(level) { getLevelTierAccent(level) }
     val reducedMotion = rememberReducedMotion()
     val coroutineScope = rememberCoroutineScope()
@@ -70,7 +71,6 @@ fun LevelUpCelebrationOverlay(
     var isClosing by remember { mutableStateOf(false) }
 
     // Spatial emergence animatables
-    val scrimAlpha = remember { Animatable(0f) }
     val crestScale = remember { Animatable(if (reducedMotion) 0.85f else 0.25f) }
     val crestAlpha = remember { Animatable(0f) }
     val auraScale = remember { Animatable(0.20f) }
@@ -104,9 +104,6 @@ fun LevelUpCelebrationOverlay(
                 crestAlpha.animateTo(0f, tween(170, easing = FastOutLinearInEasing))
                 auraScale.animateTo(0.20f, tween(180, easing = FastOutLinearInEasing))
             }
-            launch {
-                scrimAlpha.animateTo(0f, tween(200, easing = FastOutLinearInEasing))
-            }
             delay(210)
             onDismiss()
         }
@@ -115,9 +112,6 @@ fun LevelUpCelebrationOverlay(
     // Launch emergence on entry
     LaunchedEffect(level) {
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-        launch {
-            scrimAlpha.animateTo(1f, tween(240, easing = FastOutSlowInEasing))
-        }
         launch {
             crestAlpha.animateTo(1f, tween(120, easing = LinearEasing))
             crestScale.animateTo(
@@ -151,12 +145,14 @@ fun LevelUpCelebrationOverlay(
         }
     }
 
+    val actionSurface = profileIndicatorColor(tierAccent, palette.surface)
+    val actionText = profileTextColor(palette.onAccent, actionSurface)
     ProfileModal(
         title = stringResource(R.string.profile_level_progress),
         onDismiss = { dismissSmoothly() },
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF030508).copy(alpha = 0.94f * scrimAlpha.value)),
+            .background(palette.surface),
     ) {
         // High-energy particle celebration burst
         CelebrationParticlesCanvas(
@@ -191,14 +187,14 @@ fun LevelUpCelebrationOverlay(
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
                     contentDescription = null,
-                    tint = tierAccent,
+                    tint = profileIndicatorColor(tierAccent),
                     modifier = Modifier.size(16.dp)
                 )
                 Text(
                     text = "LEVEL MILESTONE ACHIEVED",
                     style = KickerSmall,
                     fontWeight = FontWeight.Bold,
-                    color = tierAccent,
+                    color = profileTextColor(tierAccent),
                     letterSpacing = 2.sp
                 )
             }
@@ -284,8 +280,8 @@ fun LevelUpCelebrationOverlay(
                         .background(
                             brush = Brush.radialGradient(
                                 listOf(
-                                    TempoDarkSurfaceElevated,
-                                    TempoDarkSurfaceSunken
+                                    palette.elevatedSurface,
+                                    palette.surfaceSunken
                                 )
                             )
                         )
@@ -300,7 +296,7 @@ fun LevelUpCelebrationOverlay(
                             text = "LEVEL",
                             style = KickerSmall,
                             fontWeight = FontWeight.Black,
-                            color = tierAccent,
+                            color = profileTextColor(tierAccent),
                             letterSpacing = 2.sp
                         )
                         Text(
@@ -311,7 +307,7 @@ fun LevelUpCelebrationOverlay(
                                 letterSpacing = (-1.5).sp
                             ),
                             fontWeight = FontWeight.Black,
-                            color = TextPrimary
+                            color = palette.onSurface
                         )
                     }
                 }
@@ -323,7 +319,7 @@ fun LevelUpCelebrationOverlay(
                         .offset(y = 12.dp)
                         .graphicsLayer { alpha = contentAlpha.value }
                         .clip(RoundedCornerShape(50))
-                        .background(TempoDarkSurface)
+                        .background(palette.surface)
                         .border(1.dp, tierAccent, RoundedCornerShape(50))
                         .padding(horizontal = 14.dp, vertical = 5.dp)
                 ) {
@@ -340,7 +336,7 @@ fun LevelUpCelebrationOverlay(
                         },
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Black,
-                        color = tierAccent,
+                        color = profileTextColor(tierAccent),
                         letterSpacing = 1.2.sp
                     )
                 }
@@ -371,13 +367,13 @@ fun LevelUpCelebrationOverlay(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = (-0.5).sp
                         ),
-                        color = TextPrimary,
+                        color = palette.onSurface,
                         textAlign = TextAlign.Center
                     )
                     Text(
                         text = "You've advanced to Level $level. Your listening rhythm is unmatched.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary,
+                        color = palette.mutedText,
                         textAlign = TextAlign.Center
                     )
                 }
@@ -399,7 +395,7 @@ fun LevelUpCelebrationOverlay(
                             text = "STATUS & PRIVILEGES UNLOCKED",
                             style = KickerSmall,
                             fontWeight = FontWeight.Bold,
-                            color = TextTertiary,
+                            color = palette.mutedText,
                             letterSpacing = 1.2.sp
                         )
 
@@ -419,7 +415,7 @@ fun LevelUpCelebrationOverlay(
                                 Icon(
                                     imageVector = Icons.Default.AutoAwesome,
                                     contentDescription = null,
-                                    tint = tierAccent,
+                                    tint = profileIndicatorColor(tierAccent),
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -428,12 +424,12 @@ fun LevelUpCelebrationOverlay(
                                     text = "Listener Title: $title",
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = TextPrimary
+                                    color = palette.onSurface
                                 )
                                 Text(
                                     text = "Permanent profile rank and trophy room showcase",
                                     style = CaptionSmall,
-                                    color = TextTertiary
+                                    color = palette.mutedText
                                 )
                             }
                         }
@@ -454,7 +450,7 @@ fun LevelUpCelebrationOverlay(
                                 Icon(
                                     imageVector = Icons.Rounded.MusicNote,
                                     contentDescription = null,
-                                    tint = TempoPrimary,
+                                    tint = profileIndicatorColor(TempoPrimary),
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -463,12 +459,12 @@ fun LevelUpCelebrationOverlay(
                                     text = "Profile Radiance & Aura",
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = TextPrimary
+                                    color = palette.onSurface
                                 )
                                 Text(
                                     text = "Ambient avatar ring matches your listening tier",
                                     style = CaptionSmall,
-                                    color = TextTertiary
+                                    color = palette.mutedText
                                 )
                             }
                         }
@@ -491,14 +487,14 @@ fun LevelUpCelebrationOverlay(
                             Text(
                                 text = "TOTAL XP",
                                 style = KickerSmall,
-                                color = TextTertiary
+                                color = palette.mutedText
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = String.format(Locale.getDefault(), "%,d", totalXp),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = TextPrimary
+                                color = palette.onSurface
                             )
                         }
 
@@ -507,21 +503,21 @@ fun LevelUpCelebrationOverlay(
                                 modifier = Modifier
                                     .height(26.dp)
                                     .width(0.8.dp)
-                                    .background(GlassBorderMedium)
+                                    .background(palette.border.copy(alpha = 0.45f))
                             )
 
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
                                     text = "STREAK",
                                     style = KickerSmall,
-                                    color = TextTertiary
+                                    color = palette.mutedText
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
                                     text = if (currentStreak > 0) "$currentStreak days" else "Active",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = TextPrimary
+                                    color = palette.onSurface
                                 )
                             }
                         }
@@ -543,19 +539,19 @@ fun LevelUpCelebrationOverlay(
                             },
                             shape = RoundedCornerShape(14.dp),
                             border = androidx.compose.foundation.BorderStroke(
-                                0.8.dp,
-                                GlassBorderMedium
+                                1.dp,
+                                profileIndicatorColor(palette.border, palette.surface)
                             ),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = TempoDarkSurfaceElevated.copy(alpha = 0.6f),
-                                contentColor = TextPrimary
+                                containerColor = palette.elevatedSurface,
+                                contentColor = palette.onSurface
                             ),
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Share,
                                 contentDescription = "Share",
-                                tint = TextSecondary,
+                                tint = palette.mutedText,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -573,8 +569,8 @@ fun LevelUpCelebrationOverlay(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = tierAccent,
-                            contentColor = Color.Black
+                            containerColor = actionSurface,
+                            contentColor = actionText
                         ),
                         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp)
                     ) {
