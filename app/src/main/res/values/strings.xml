@@ -1682,4 +1682,5 @@
     <string name="home_session_start_attribution">Listening time is grouped by the date each session started.</string>
     <string name="settings_clear_data_requesting">Resetting…</string>
     <string name="settings_clear_data_failed">Could not request an app reset. Try again or use Clear storage in Android app settings.</string>
+    <string name="desktop_scan_camera_unavailable">The camera is unavailable. Check camera access or try again.</string>
 </resources>

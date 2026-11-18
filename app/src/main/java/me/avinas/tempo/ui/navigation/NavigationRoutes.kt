@@ -1,5 +1,8 @@
 package me.avinas.tempo.ui.navigation
 
+import android.net.Uri
+import me.avinas.tempo.data.stats.TimeRange
+
 /** Stable route identifiers and builders shared by navigation callers. */
 sealed class Screen(
     val route: String,
@@ -69,10 +72,9 @@ sealed class Screen(
 
     data object YourData : Screen("your_data")
 
-    object ShareCanvas : Screen("share_canvas/{initialCardId}") {
-        fun createRoute(initialCardId: String) = "share_canvas/$initialCardId"
-
-        fun createRouteEmpty() = "share_canvas/_empty_"
+    object ShareCanvas : Screen("share_canvas/{initialCardId}?timeRange={timeRange}") {
+        fun createRoute(initialCardId: String, timeRange: TimeRange) =
+            "share_canvas/${Uri.encode(initialCardId)}?timeRange=${timeRange.name}"
     }
 
     object Profile : Screen("profile")

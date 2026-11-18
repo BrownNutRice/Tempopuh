@@ -77,7 +77,12 @@ fun SpotlightScreen(
     }
 
     val onShareCard: (SpotlightCardData) -> Unit = { card ->
-        navController.navigate(Screen.ShareCanvas.createRoute(card.id))
+        val snapshot = when (card) {
+            is SpotlightCardData.CosmicClock -> card.copy(hourlyLevels = ArrayList(card.hourlyLevels))
+            else -> card
+        }
+        navController.navigate(Screen.ShareCanvas.createRoute(card.id, uiState.selectedTimeRange))
+        navController.currentBackStackEntry?.savedStateHandle?.set("shareCardSnapshot", snapshot)
     }
 
     val periodLabel = remember(uiState.selectedTimeRange) {

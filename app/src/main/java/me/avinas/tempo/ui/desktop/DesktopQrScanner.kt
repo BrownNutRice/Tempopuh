@@ -1,14 +1,18 @@
 package me.avinas.tempo.ui.desktop
 
 import android.util.Log
-import android.view.ViewGroup
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -19,93 +23,94 @@ import com.google.zxing.PlanarYUVLuminanceSource
 import com.google.zxing.common.HybridBinarizer
 import java.util.concurrent.Executors
 
-/**
- * CameraX QR scanner. Each decoded frame invokes [onQrDetected] (no hasDetected
- * guard), so the caller owns resets, and it must verify CAMERA permission before
- * placing this in composition.
- */
+/** The caller must have CAMERA permission before adding this view to composition. */
 @Composable
 fun QrScannerView(
     modifier: Modifier = Modifier,
-    onQrDetected: (rawText: String) -> Unit
+    onCameraError: () -> Unit,
+    onQrDetected: (rawText: String) -> Unit,
 ) {
+    val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val executor = remember { Executors.newSingleThreadExecutor() }
-
-    DisposableEffect(Unit) {
-        onDispose { executor.shutdown() }
+    val onDetected = rememberUpdatedState(onQrDetected)
+    val onError = rememberUpdatedState(onCameraError)
+    val view = remember(context) {
+        PreviewView(context).apply { scaleType = PreviewView.ScaleType.FILL_CENTER }
     }
 
-    // key(lifecycleOwner) forces the factory to re-run if the LifecycleOwner changes
-    // (e.g. after a back-stack change), preventing the camera from binding to a stale owner.
-    key(lifecycleOwner) {
-    AndroidView(
-        factory = { ctx ->
-            val previewView = PreviewView(ctx).apply {
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                )
-                scaleType = PreviewView.ScaleType.FILL_CENTER
-            }
+    key(view) { AndroidView(factory = { view }, modifier = modifier) }
 
-            val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
-            cameraProviderFuture.addListener({
-                val cameraProvider = cameraProviderFuture.get()
+    DisposableEffect(view, lifecycleOwner) {
+        val mainExecutor = ContextCompat.getMainExecutor(context)
+        val executor = Executors.newSingleThreadExecutor()
+        val preview = Preview.Builder().build()
+        val analysis = ImageAnalysis.Builder()
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .build()
+        var provider: ProcessCameraProvider? = null
+        // Both disposal and provider/detection callbacks run on the main thread.
+        var disposed = false
+        var delivered = false
 
-                val preview = Preview.Builder().build().also {
-                    it.setSurfaceProvider(previewView.surfaceProvider)
-                }
+        fun release() {
+            disposed = true
+            analysis.clearAnalyzer()
+            provider?.unbind(preview, analysis)
+            preview.setSurfaceProvider(null)
+            executor.shutdown()
+        }
 
-                val imageAnalysis = ImageAnalysis.Builder()
-                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                    .build()
-                    .also { analysis ->
-                        analysis.setAnalyzer(executor) { imageProxy ->
-                            val planeBuffer = imageProxy.planes[0].buffer
-                            val bytes = ByteArray(planeBuffer.remaining())
-                            planeBuffer.get(bytes)
+        fun reportFailure(error: Exception) {
+            Log.e("QrScannerView", "Could not start the QR camera", error)
+            release()
+            onError.value()
+        }
 
-                            val source = PlanarYUVLuminanceSource(
-                                bytes,
-                                imageProxy.width,
-                                imageProxy.height,
-                                0, 0,
-                                imageProxy.width,
-                                imageProxy.height,
-                                false
-                            )
-
-                            try {
-                                val result = MultiFormatReader()
-                                    .decode(BinaryBitmap(HybridBinarizer(source)))
-                                onQrDetected(result.text)
-                            } catch (_: NotFoundException) {
-                                // No QR code in this frame — expected, keep scanning
-                            } catch (e: Exception) {
-                                Log.w("QrScannerView", "Decode error", e)
-                            } finally {
-                                imageProxy.close()
+        try {
+            val future = ProcessCameraProvider.getInstance(context)
+            future.addListener({
+                if (disposed) return@addListener
+                try {
+                    val camera = future.get()
+                    provider = camera
+                    preview.setSurfaceProvider(view.surfaceProvider)
+                    analysis.setAnalyzer(executor) { image ->
+                        try {
+                            val plane = image.planes[0]
+                            val buffer = plane.buffer
+                            val start = buffer.position()
+                            val bytes = ByteArray(image.width * image.height)
+                            for (row in 0 until image.height) {
+                                buffer.position(start + row * plane.rowStride)
+                                buffer.get(bytes, row * image.width, image.width)
                             }
+                            val source = PlanarYUVLuminanceSource(
+                                bytes, image.width, image.height,
+                                0, 0, image.width, image.height, false,
+                            )
+                            val result = MultiFormatReader().decode(BinaryBitmap(HybridBinarizer(source)))
+                            mainExecutor.execute {
+                                if (!disposed && !delivered) {
+                                    delivered = true
+                                    onDetected.value(result.text)
+                                }
+                            }
+                        } catch (_: NotFoundException) {
+                            // No QR code in this frame.
+                        } catch (error: Exception) {
+                            Log.w("QrScannerView", "Could not decode QR frame", error)
+                        } finally {
+                            image.close()
                         }
                     }
-
-                try {
-                    cameraProvider.unbindAll()
-                    cameraProvider.bindToLifecycle(
-                        lifecycleOwner,
-                        CameraSelector.DEFAULT_BACK_CAMERA,
-                        preview,
-                        imageAnalysis
-                    )
-                } catch (e: Exception) {
-                    Log.e("QrScannerView", "Failed to bind camera use cases", e)
+                    camera.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
+                } catch (error: Exception) {
+                    reportFailure(error)
                 }
-            }, ContextCompat.getMainExecutor(ctx))
-
-            previewView
-        },
-        modifier = modifier
-    )
-    } // end key(lifecycleOwner)
+            }, mainExecutor)
+        } catch (error: Exception) {
+            reportFailure(error)
+        }
+        onDispose { if (!disposed) release() }
+    }
 }

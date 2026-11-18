@@ -43,6 +43,7 @@ import me.avinas.tempo.ui.components.GlassCard
 import me.avinas.tempo.ui.components.GlassCardVariant
 import me.avinas.tempo.ui.components.CaptureWrapper
 import me.avinas.tempo.ui.components.rememberCaptureController
+import me.avinas.tempo.ui.spotlight.SpotlightPeriodFormatter
 import me.avinas.tempo.ui.spotlight.SpotlightCardData
 import me.avinas.tempo.ui.theme.*
 import me.avinas.tempo.data.analytics.TempoFeature
@@ -51,7 +52,7 @@ import me.avinas.tempo.utils.ShareUtils
 /** Composes shareable card collages on an Instagram Story 9:16 canvas (1080x1920). */
 @Composable
 fun ShareCanvasScreen(
-    initialCardId: String?,
+    snapshot: SpotlightCardData?,
     onClose: () -> Unit,
     viewModel: ShareCanvasViewModel = hiltViewModel()
 ) {
@@ -62,7 +63,11 @@ fun ShareCanvasScreen(
     val configuration = LocalConfiguration.current
     val density = LocalDensity.current
     
-    val allCards by viewModel.allCards.collectAsState()
+    val generatedCards by viewModel.allCards.collectAsState()
+    val allCards = remember(generatedCards, snapshot) {
+        if (snapshot == null) generatedCards
+        else listOf(snapshot) + generatedCards.filterNot { it.id == snapshot.id }
+    }
     val isLoading by viewModel.isLoading.collectAsState()
     
     val screenWidth = configuration.screenWidthDp.dp
@@ -83,9 +88,9 @@ fun ShareCanvasScreen(
     
     var canvasState by remember { mutableStateOf(CanvasState()) }
     
-    LaunchedEffect(allCards, isLoading) {
+    LaunchedEffect(allCards, isLoading, snapshot) {
         if (!isLoading && allCards.isNotEmpty() && canvasState.availableCards.isEmpty()) {
-                val initialCard = viewModel.getInitialCard()
+            val initialCard = snapshot ?: viewModel.getInitialCard()
             // Scale card to 50% canvas width (base 320dp)
             val targetCardWidthPx = with(density) { canvasWidth.toPx() * 0.5f }
             val baseCardWidthPx = with(density) { 320.dp.toPx() }
@@ -358,14 +363,20 @@ fun ShareCanvasScreen(
                 )
             }
             
-            // Clean Centered Title (No GlassCard)
-            Text(
-                text = "Share Story",
-                style = MaterialTheme.typography.titleMedium,
-                color = appearancePalette.onSurface.copy(alpha = 0.95f),
-                fontWeight = FontWeight.SemiBold
-            )
-            
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "Share Story",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = appearancePalette.onSurface,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = SpotlightPeriodFormatter.periodLabel(viewModel.timeRange),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = appearancePalette.mutedText,
+                )
+            }
+
             // Invisible Spacer to balance the Close button for perfect centering
             Spacer(modifier = Modifier.size(44.dp))
         }

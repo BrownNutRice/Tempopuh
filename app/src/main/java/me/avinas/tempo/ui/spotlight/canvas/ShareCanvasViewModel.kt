@@ -4,8 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,8 +26,10 @@ class ShareCanvasViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
     
-    val initialCardId: String? = savedStateHandle.get<String>("initialCardId")?.takeIf { it != "_empty_" }
-    
+    private val initialCardId = savedStateHandle.get<String>("initialCardId")
+    private val requestedRange = savedStateHandle.get<String>("timeRange")
+    val timeRange = TimeRange.entries.firstOrNull { it.name == requestedRange } ?: TimeRange.ALL_TIME
+
     // Card types that have Dashboard UI composables
     private val supportedCardTypes = setOf(
         "cosmic_clock",
@@ -50,30 +51,11 @@ class ShareCanvasViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                // Query all time ranges so the target card is found regardless of which range generated it
-                val timeRanges = listOf(TimeRange.ALL_TIME, TimeRange.THIS_MONTH, TimeRange.THIS_WEEK)
-                
-                val allCardsFromAllRanges = timeRanges.map { range ->
-                    async {
-                        try {
-                            insightCardGenerator.generateCards(range)
-                        } catch (e: Exception) {
-                            android.util.Log.w("ShareCanvasViewModel", "Failed to load cards for $range", e)
-                            emptyList()
-                        }
-                    }
-                }.awaitAll().flatten()
-                
-                // Deduplicate by card ID (prefer the first occurrence which is ALL_TIME)
-                val uniqueCards = allCardsFromAllRanges
-                    .distinctBy { it.id }
+                _allCards.value = insightCardGenerator.generateCards(timeRange)
                     .filter { it.id in supportedCardTypes }
-                
-                _allCards.value = uniqueCards
-                
-                android.util.Log.d("ShareCanvasViewModel", "Loaded ${uniqueCards.size} unique cards: ${uniqueCards.map { it.id }}")
-                android.util.Log.d("ShareCanvasViewModel", "Looking for initialCardId: $initialCardId")
-                
+                    .distinctBy { it.id }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (e: Exception) {
                 android.util.Log.e("ShareCanvasViewModel", "Failed to load cards", e)
                 _allCards.value = emptyList()
@@ -83,9 +65,5 @@ class ShareCanvasViewModel @Inject constructor(
         }
     }
     
-    fun getInitialCard(): SpotlightCardData? {
-        val card = _allCards.value.find { it.id == initialCardId }
-        android.util.Log.d("ShareCanvasViewModel", "getInitialCard(): found=${card != null}, id=$initialCardId")
-        return card
-    }
+    fun getInitialCard(): SpotlightCardData? = _allCards.value.firstOrNull { it.id == initialCardId }
 }

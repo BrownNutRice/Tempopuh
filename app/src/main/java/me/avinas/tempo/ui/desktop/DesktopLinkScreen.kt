@@ -9,6 +9,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateContentSize
@@ -383,17 +384,21 @@ private fun DesktopScanningScreen(
     onQrDetected: (String) -> Unit,
     onCancel: () -> Unit
 ) {
+    BackHandler(onBack = onCancel)
+    var cameraFailed by remember(scannerKey) { mutableStateOf(false) }
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(TempoDarkBackground)
     ) {
-        // Use key to force remount scanner when needed (for retry)
-        key(scannerKey) {
-            QrScannerView(
-                modifier = Modifier.fillMaxSize(),
-                onQrDetected = onQrDetected
-            )
+        if (!cameraFailed) {
+            key(scannerKey) {
+                QrScannerView(
+                    modifier = Modifier.fillMaxSize(),
+                    onCameraError = { cameraFailed = true },
+                    onQrDetected = onQrDetected,
+                )
+            }
         }
 
         // Dimmed border outside the scanning frame
@@ -418,11 +423,18 @@ private fun DesktopScanningScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = stringResource(R.string.desktop_scan_instruction),
+                    text = stringResource(
+                        if (cameraFailed) R.string.desktop_scan_camera_unavailable else R.string.desktop_scan_instruction
+                    ),
                     color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center
                 )
+                if (cameraFailed) {
+                    Button(onClick = { cameraFailed = false }) {
+                        Text(stringResource(R.string.common_retry))
+                    }
+                }
                 OutlinedButton(
                     onClick = onCancel,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),

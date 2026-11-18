@@ -1,13 +1,14 @@
 package me.avinas.tempo.ui.spotlight
 
 import androidx.compose.runtime.Immutable
+import java.io.Serializable
 
 /**
  * Sealed class representing different types of Spotlight insight cards.
  * All subclasses are marked @Immutable to optimize Compose recomposition.
  */
 @Immutable
-sealed class SpotlightCardData {
+sealed class SpotlightCardData : Serializable {
     abstract val id: String
     
     // 1. Cosmic Clock (Day vs Night) - Replaces basic time distribution

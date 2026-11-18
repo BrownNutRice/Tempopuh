@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -386,11 +387,17 @@ fun AppNavigation(
                                 androidx.navigation.navArgument("initialCardId") {
                                     type = androidx.navigation.NavType.StringType
                                 },
+                                androidx.navigation.navArgument("timeRange") {
+                                    type = androidx.navigation.NavType.StringType
+                                    defaultValue = me.avinas.tempo.data.stats.TimeRange.ALL_TIME.name
+                                },
                             ),
-                    ) { backStackEntry ->
-                        val initialCardId = backStackEntry.arguments?.getString("initialCardId")
+                    ) { entry ->
+                        val snapshot by entry.savedStateHandle
+                            .getStateFlow<me.avinas.tempo.ui.spotlight.SpotlightCardData?>("shareCardSnapshot", null)
+                            .collectAsState()
                         me.avinas.tempo.ui.spotlight.canvas.ShareCanvasScreen(
-                            initialCardId = initialCardId,
+                            snapshot = snapshot,
                             onClose = { navController.popBackStack() },
                         )
                     }

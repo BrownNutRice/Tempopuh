@@ -859,4 +859,5 @@
     <string name="settings_analytics_reset_id_desc">Módosítja a jövőbeli események azonosítóját. A szolgáltatáshoz már beérkezett eseményeket nem törli.</string>
     <string name="settings_clear_data_requesting">Visszaállítás…</string>
     <string name="settings_clear_data_failed">Nem sikerült kérni az alkalmazás alaphelyzetbe állítását. Próbáld újra, vagy töröld a tárhelyét az Android alkalmazásbeállításaiban.</string>
+    <string name="desktop_scan_camera_unavailable">A kamera nem érhető el. Ellenőrizd a kameraengedélyt, vagy próbáld újra.</string>
 </resources>
