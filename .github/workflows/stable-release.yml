@@ -81,6 +81,7 @@ jobs:
           test "${#apks[@]}" -eq 1
           apk="${apks[0]}"
           signer="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n1)/apksigner"
+          "$signer" verify --print-certs "$apk"
           if [[ "$PUBLISH_BETA" == true ]]; then
             bash .github/scripts/beta-signing.sh verify "$signer" "$apk"
           else
@@ -142,6 +143,15 @@ jobs:
           profile: pixel_6
           disable-animations: true
           script: ./gradlew :app:connectedDebugAndroidTest --stacktrace
+      - name: Retain Android test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-platform-test-results
+          path: |
+            app/build/reports/androidTests/
+            app/build/outputs/androidTest-results/
+          if-no-files-found: warn
 
   publish:
     name: Publish immutable GitHub release

@@ -4,7 +4,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import androidx.test.espresso.Espresso.pressBack
+import android.view.KeyEvent
+import androidx.test.platform.app.InstrumentationRegistry
 import me.avinas.tempo.ui.profile.ProfileModal
 import org.junit.Rule
 import org.junit.Test
@@ -30,11 +31,18 @@ class ProfileModalTest {
         }
 
         compose.onNodeWithText("Share content").assertExists()
-        pressBack()
+        pressSystemBack()
         compose.onNodeWithText("Share content").assertDoesNotExist()
         compose.onNodeWithText("Details content").assertExists()
-        pressBack()
+        pressSystemBack()
         compose.onNodeWithText("Details content").assertDoesNotExist()
         compose.onNodeWithText("Profile content").assertExists()
+    }
+
+    private fun pressSystemBack() {
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        check(automation.injectInputEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BACK), true))
+        check(automation.injectInputEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BACK), true))
+        compose.waitForIdle()
     }
 }
