@@ -54,6 +54,7 @@ export type SyncErrorKind =
   | 'network'
   | 'unreachable'
   | 'battery'
+  | 'permission_required'
   | 'unknown';
 
 export class SyncError extends Error {
@@ -233,12 +234,9 @@ export function getSyncStatus(queueCount: number): SyncStatus {
  * Safe to call from the service worker.
  */
 export async function hasHostPermission(origin: string): Promise<boolean> {
+  // Firefox does not support the port-specific permission patterns used by Chromium.
+  if (IS_FIREFOX) return true;
   try {
-    // Firefox: <all_urls> grants access to all origins, but permissions.contains()
-    // doesn't recognize this. Skip the check on Firefox.
-    if (IS_FIREFOX) {
-      return true;
-    }
     return await chrome.permissions.contains({
       origins: [origin]
     });
@@ -436,34 +434,43 @@ async function pingPhoneViaMdns(port: number, authToken?: string): Promise<strin
   }
 }
 
-/**
- * Probe the top connection-history IPs concurrently (≤5 pings in parallel).
- * Returns the highest-priority reachable IP plus every miss entry so the
- * failure bookkeeping can be coalesced into a single batched history rewrite.
- */
-async function probeConnectionHistory(pairing: PairingInfo): Promise<{ winner: string | null; misses: Array<{ ip: string; port: number }> }> {
-  const history = await storage.getConnectionHistory();
-  if (history.length === 0) return { winner: null, misses: [] };
+type PhoneEndpoint = { ip: string; port: number };
 
-  const sorted = [...history].sort((a, b) => b.successCount - a.successCount || b.lastSeen - a.lastSeen);
-  const candidates = sorted.slice(0, 5).filter(entry => entry.ip !== pairing.phoneIp);
-  if (candidates.length === 0) return { winner: null, misses: [] };
-
-  console.log(`[Tempo] Trying ${candidates.length} IPs from connection history`);
-
-  const results = await Promise.all(
-    candidates.map(async entry => ({
-      ip: entry.ip,
-      port: entry.port || pairing.phonePort,
-      reachable: (await pingPhone(entry.ip, entry.port || pairing.phonePort, pairing.authToken, 2_000)).ok,
-    })),
-  );
-
-  const winner = results.find(result => result.reachable) ?? null;
-  if (winner) {
-    console.log(`[Tempo] Found phone via connection history: ${winner.ip}`);
+async function requirePhonePermission({ ip, port }: PhoneEndpoint): Promise<void> {
+  if (!await hasHostPermission(`http://${ip}:${port}/*`)) {
+    throw new SyncError('Allow phone access in the extension to resume syncing.', 'permission_required');
   }
-  return { winner: winner ? winner.ip : null, misses: results.filter(r => !r.reachable) };
+}
+
+/** Probe up to five distinct history endpoints in priority order. */
+async function probeConnectionHistory(pairing: PairingInfo): Promise<{
+  winner: PhoneEndpoint | null;
+  misses: PhoneEndpoint[];
+}> {
+  const history = await storage.getConnectionHistory();
+  const sorted = [...history].sort((a, b) => b.successCount - a.successCount || b.lastSeen - a.lastSeen);
+  const seen = new Set([`${pairing.phoneIp}:${pairing.phonePort}`]);
+  const candidates: PhoneEndpoint[] = [];
+  for (const entry of sorted) {
+    const port = entry.port || pairing.phonePort;
+    const key = `${entry.ip}:${port}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    candidates.push({ ip: entry.ip, port });
+    if (candidates.length === 5) break;
+  }
+
+  const results = await Promise.all(candidates.map(async endpoint => {
+    const allowed = await hasHostPermission(`http://${endpoint.ip}:${endpoint.port}/*`);
+    if (!allowed) return { endpoint, reachable: null };
+    const result = await pingPhone(endpoint.ip, endpoint.port, pairing.authToken, 2_000);
+    return { endpoint, reachable: result.ok };
+  }));
+
+  return {
+    winner: results.find(result => result.reachable === true)?.endpoint ?? null,
+    misses: results.filter(result => result.reachable === false).map(result => result.endpoint),
+  };
 }
 
 /** Probe the well-known hotspot gateway IPs concurrently, priority order preserved. */
@@ -524,9 +531,10 @@ async function resolvePhoneAddress(pairing: PairingInfo, options: SyncOptions = 
   }
 
   if (historyProbe.winner) {
-    await storage.savePairing({ ...pairing, phoneIp: historyProbe.winner });
-    await storage.recordConnectionSuccess(historyProbe.winner, pairing.phonePort, fingerprint);
-    return { ip: historyProbe.winner, port: pairing.phonePort };
+    const { ip, port } = historyProbe.winner;
+    await storage.savePairing({ ...pairing, phoneIp: ip, phonePort: port });
+    await storage.recordConnectionSuccess(ip, port, fingerprint);
+    return { ip, port };
   }
 
   if (gatewayIp) {
@@ -607,6 +615,21 @@ export async function syncToPhone(options: SyncOptions = {}): Promise<number> {
       throw new SyncError('Auth token not available — please re-pair from the popup (session may have expired)', 'auth');
     }
 
+    // Check before queue mutations or discovery. A blocked alarm only rechecks the grant.
+    const pairedEndpoint = { ip: pairing.phoneIp, port: pairing.phonePort };
+    try {
+      await requirePhonePermission(pairedEndpoint);
+    } catch (error) {
+      if (_lastErrorKind === 'permission_required' && !options.forceDiscovery) return 0;
+      throw error;
+    }
+    if (_lastErrorKind === 'permission_required') {
+      _lastErrorKind = null;
+      _lastErrorStatus = null;
+      _lastFullRecoveryAt = 0;
+      await persistBackoffState();
+    }
+
     // 2. Retry any previously failed plays first
     const retried = await storage.retryFailedPlays();
     if (retried > 0) {
@@ -637,16 +660,7 @@ export async function syncToPhone(options: SyncOptions = {}): Promise<number> {
       pairing = { ...pairing, phoneIp: address.ip, phonePort: address.port };
     }
 
-    // 4b. Verify host permission exists for this origin
-    const origin = `http://${address.ip}:${address.port}/`;
-    const hasPermission = await hasHostPermission(origin);
-    if (!hasPermission) {
-      console.warn(`[Tempo] Missing host permission for ${origin} — re-pair from popup to grant it`);
-      throw new SyncError(
-        `Missing network permission for ${address.ip}. Open the extension popup and re-pair to grant access.`,
-        'unknown',
-      );
-    }
+    await requirePhonePermission(address);
 
     // 5. Check phone battery
     const batteryOk = await checkPhoneBattery(address.ip, address.port, pairing.authToken);
@@ -713,7 +727,7 @@ export async function syncToPhone(options: SyncOptions = {}): Promise<number> {
         retryCount: 0,
       });
 
-      const response = await sendWithRetry(url, payload, pairing.authToken);
+      const response = await sendWithRetry(url, payload, pairing.authToken, address);
 
       // Token rotation: if the phone sent a next_token, update stored pairing
       // Uses token lock to prevent race with concurrent refreshToken()
@@ -770,10 +784,13 @@ export async function syncToPhone(options: SyncOptions = {}): Promise<number> {
     _lastSyncTime = new Date().toISOString();
     _lastErrorKind = kind;
     _lastErrorStatus = httpStatus ?? null;
-    _consecutiveFailures++;
+    if (kind !== 'permission_required') _consecutiveFailures++;
 
     try {
-      if (kind === 'rate_limited') {
+      if (kind === 'permission_required') {
+        _nextRetryAt = null;
+        await chrome.alarms.clear(RETRY_ALARM_NAME);
+      } else if (kind === 'rate_limited') {
         // Honor Retry-After; default to 60s. Plays stay queued — this is a
         // "slow down" signal, not a failure.
         const cooldownMs = Math.max(
@@ -816,7 +833,7 @@ export async function syncToPhone(options: SyncOptions = {}): Promise<number> {
   }
 }
 
-async function sendWithRetry(url: string, payload: SyncPayload, authToken: string): Promise<SyncResponse | null> {
+async function sendWithRetry(url: string, payload: SyncPayload, authToken: string, endpoint: PhoneEndpoint): Promise<SyncResponse | null> {
   const payloadJson = JSON.stringify(payload);
   const encryptedBody = await encryptBody(payloadJson, authToken);
 
@@ -824,6 +841,7 @@ async function sendWithRetry(url: string, payload: SyncPayload, authToken: strin
   let lastError: SyncError | null = null;
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    await requirePhonePermission(endpoint);
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -905,6 +923,7 @@ async function sendWithRetry(url: string, payload: SyncPayload, authToken: strin
     } catch (e) {
       // Classified errors propagate immediately (no point retrying the same way).
       if (e instanceof SyncError) throw e;
+      await requirePhonePermission(endpoint);
 
       const msg = e instanceof Error ? e.message : String(e);
       const isAbort = msg.includes('abort') || msg.includes('TimeoutError');

@@ -455,6 +455,7 @@ const SYNC_ERROR_LABELS: Record<string, string> = {
   network: 'Network error',
   unreachable: 'Phone unreachable',
   battery: 'Phone battery critically low',
+  permission_required: 'Phone access required. Select Sync Now to grant access.',
   unknown: 'Sync failed',
 };
 
@@ -469,8 +470,11 @@ function formatCountdown(ms: number): string {
  * Render the sync status line with classified error detail, rate-limit
  * countdown, and next-retry time — instead of a raw error string.
  */
+let phonePermissionRequired = false;
+
 function renderSyncStatus(el: HTMLElement, status: SyncStatus | null | undefined): void {
   const now = Date.now();
+  phonePermissionRequired = status?.lastErrorKind === 'permission_required';
 
   if (status?.isSyncing) {
     el.textContent = 'Syncing…';
@@ -492,7 +496,7 @@ function renderSyncStatus(el: HTMLElement, status: SyncStatus | null | undefined
     const retry = typeof status.nextRetryAt === 'number' && status.nextRetryAt > now
       ? ` — retry in ${formatCountdown(status.nextRetryAt - now)}`
       : '';
-    const tone = kind === 'rate_limited' || kind === 'battery' ? 'warning' : 'error';
+    const tone = kind === 'rate_limited' || kind === 'battery' || kind === 'permission_required' ? 'warning' : 'error';
     el.textContent = `${label}${http}${retry}`;
     el.className = `sync-status ${tone}`;
     return;
@@ -596,14 +600,25 @@ document.getElementById('btn-sync-now')?.addEventListener('click', async () => {
   btn.disabled = true;
   btn.textContent = 'Syncing…';
   try {
+    // Request synchronously from this click so the browser retains user activation.
+    if (phonePermissionRequired && currentPairing) {
+      const { phoneIp, phonePort } = currentPairing;
+      const granted = await chrome.permissions.request({ origins: [`http://${phoneIp}:${phonePort}/*`] });
+      if (!granted) {
+        btn.textContent = 'Phone access was not granted';
+        return;
+      }
+    }
     const r = await send(MessageType.SyncNow);
     btn.textContent = r?.ok ? `✓ Synced ${r.synced ?? 0}` : `✗ ${r?.error ?? 'Failed'}`;
   } catch { btn.textContent = '✗ Error'; }
-  setTimeout(() => {
-    btn.disabled = false;
-    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0020 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 004 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg> Sync Now';
-    refreshQueue();
-  }, 2500);
+  finally {
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0020 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 004 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg> Sync Now';
+      refreshQueue();
+    }, 2500);
+  }
 });
 
 document.getElementById('btn-clear-queue')?.addEventListener('click', (e) => {
