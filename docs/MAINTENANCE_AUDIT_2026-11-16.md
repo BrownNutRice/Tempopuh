@@ -1,5 +1,20 @@
 # Tempo maintenance audit — 16 November 2026
 
+## Follow-up to issue #90
+
+| Follow-up | Local branch status |
+| --- | --- |
+| #86 | Library archive v10 includes applied Appearance Studio settings and saved looks. |
+| #87 | Data & diagnostics exposes quarantine status in a shareable preview and offers confirmed discard. |
+| #88 | GitHub builds point feedback to the maintained fork. Play review actions are opt-in. |
+| #89 | Playback accounting is extracted from the tracking service. Profile and DAO splits remain open. |
+
+GitHub shows the data-safety tickets #40–#44, signing ticket #49, and
+everyday UX tickets #52, #54 and #56–#58 as closed. The local branch
+still needs integration and the remaining device checks. Service shutdown
+handoff (#76), the broader Profile proposal (#74) and visual validation
+(#16) remain open.
+
 Scope: static inspection of the fork at `matchalattewithbanana/Tempo`, following
 the unbuilt tracking revisions. This document is an engineering handoff, not a
 claim of device, build, lint, migration or automated-test verification.

@@ -27,6 +27,11 @@ Data & diagnostics shows when unreadable offline records are quarantined
 (#87). The share preview contains only a recovery status. Discard requires
 confirmation and leaves queued and saved plays available.
 
+Full gamification refreshes use a durable SQLite revision and a date, zone
+and app version key (#81). The revision changes with listening history,
+artist links, enrichment, challenges, levels and badges. A refresh only
+records freshness if those inputs stay stable throughout the calculation.
+
 The closed implementation tickets retain their manual verification notes.
 
 These closed UI issues still have manual verification pending.

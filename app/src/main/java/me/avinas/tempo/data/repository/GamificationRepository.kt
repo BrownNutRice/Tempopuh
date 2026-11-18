@@ -1,6 +1,7 @@
 package me.avinas.tempo.data.repository
 
 import android.util.Log
+import me.avinas.tempo.BuildConfig
 import androidx.room.withTransaction
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
@@ -8,6 +9,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import me.avinas.tempo.data.local.AppDatabase
 import me.avinas.tempo.data.local.DeviceTimeZone
+import me.avinas.tempo.data.local.GamificationFreshness
 import me.avinas.tempo.data.local.dao.GamificationDao
 import me.avinas.tempo.data.local.entities.Badge
 import me.avinas.tempo.data.local.entities.UserLevel
@@ -33,6 +35,7 @@ class GamificationRepository
         }
 
         private val fullRefreshMutex = Mutex()
+        private var freshnessInstalled = false
 
         // Level & XP
 
@@ -299,14 +302,50 @@ class GamificationRepository
         suspend fun fullRefresh(): GamificationRefreshResult =
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                 fullRefreshMutex.withLock {
+                    val db = appDatabase.openHelper.writableDatabase
+                    val freshness = try {
+                        if (!freshnessInstalled) {
+                            appDatabase.withTransaction { GamificationFreshness.install(db) }
+                            freshnessInstalled = true
+                        }
+                        GamificationFreshness.read(db)
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (e: android.database.sqlite.SQLiteException) {
+                        Log.w(TAG, "Gamification freshness unavailable", e)
+                        null
+                    }
+                    val refreshKey = gamificationRefreshKey()
+                    if (freshness?.refreshedFor == refreshKey) {
+                        val level = gamificationDao.getUserLevel()
+                        if (level != null && GamificationFreshness.read(db) == freshness) {
+                            return@withLock GamificationRefreshResult(
+                                LevelUpResult(level.currentLevel, level.currentLevel, level.totalXp, false),
+                                emptyList(),
+                            )
+                        }
+                    }
                     val levelUpResult = recomputeXpAndLevel()
                     val newBadges = evaluateAllBadges()
+                    if (freshness != null && refreshKey == gamificationRefreshKey()) {
+                        try {
+                            GamificationFreshness.markFresh(db, freshness.revision, refreshKey)
+                        } catch (e: android.database.sqlite.SQLiteException) {
+                            Log.w(TAG, "Unable to record gamification freshness", e)
+                        }
+                    }
                     GamificationRefreshResult(
                         levelUpResult = levelUpResult,
                         newlyEarnedBadgeIds = newBadges,
                     )
                 }
             }
+
+        private suspend fun gamificationRefreshKey(): String {
+            val zone = java.time.ZoneId.systemDefault()
+            val date = DeviceTimeZone.todayIn(gamificationDao.getLatestListeningOffsetMinutes())
+            return "${BuildConfig.VERSION_CODE}:${AppDatabase.VERSION}:$zone:$date"
+        }
     }
 
 data class LevelUpResult(
