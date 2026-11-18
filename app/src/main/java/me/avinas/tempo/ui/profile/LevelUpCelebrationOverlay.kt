@@ -1,11 +1,11 @@
 package me.avinas.tempo.ui.profile
 
+import me.avinas.tempo.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -151,15 +151,12 @@ fun LevelUpCelebrationOverlay(
         }
     }
 
-    Box(
+    ProfileModal(
+        title = stringResource(R.string.profile_level_progress),
+        onDismiss = { dismissSmoothly() },
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF030508).copy(alpha = 0.94f * scrimAlpha.value))
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null
-            ) { dismissSmoothly() },
-        contentAlignment = Alignment.Center
+            .background(Color(0xFF030508).copy(alpha = 0.94f * scrimAlpha.value)),
     ) {
         // High-energy particle celebration burst
         CelebrationParticlesCanvas(
@@ -181,6 +178,7 @@ fun LevelUpCelebrationOverlay(
             modifier = Modifier
                 .align(Alignment.Center)
                 .fillMaxWidth()
+                .safeDrawingPadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 28.dp)
         ) {
@@ -581,18 +579,13 @@ fun LevelUpCelebrationOverlay(
                         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp)
                     ) {
                         Text(
-                            text = "Keep The Rhythm Going",
+                            text = stringResource(R.string.common_continue),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold
                         )
                     }
                 }
 
-                Text(
-                    text = "Tap anywhere to continue",
-                    style = CaptionSmall,
-                    color = TextTertiary
-                )
             }
         }
     }

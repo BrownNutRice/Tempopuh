@@ -1,5 +1,7 @@
 package me.avinas.tempo.ui.profile
 
+import me.avinas.tempo.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.*
 import androidx.compose.animation.fadeIn
@@ -9,8 +11,6 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -27,6 +27,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -60,15 +63,14 @@ fun BadgeCelebrationOverlay(
     userName: String = "Listener",
     profileImagePath: String? = null,
     onDismiss: () -> Unit,
-    onShareBadge: ((Badge) -> Unit)? = null
+    onShareBadge: ((Badge) -> Unit)? = null,
+    acknowledging: Boolean = false,
+    acknowledgementFailed: Boolean = false,
 ) {
     var currentIndex by remember { mutableIntStateOf(0) }
-    val badge = badges.getOrNull(currentIndex)
-
-    if (badge == null) {
-        LaunchedEffect(Unit) { onDismiss() }
-        return
-    }
+    if (badges.isEmpty()) return
+    val visibleIndex = currentIndex.coerceAtMost(badges.lastIndex)
+    val badge = badges[visibleIndex]
 
     val intrinsicColor = remember(badge.badgeId) { getUniqueBadgeColor(badge.badgeId) }
     val rarity = remember(badge.badgeId) { GamificationEngine.getRarity(badge.badgeId) }
@@ -78,10 +80,8 @@ fun BadgeCelebrationOverlay(
     }
 
     val reducedMotion = rememberReducedMotion()
-    val coroutineScope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
     val density = LocalDensity.current.density
-    var isClosing by remember { mutableStateOf(false) }
 
     // Spatial emergence physics
     val scrimAlpha = remember { Animatable(0f) }
@@ -93,29 +93,6 @@ fun BadgeCelebrationOverlay(
 
     // Sequential Star Stamping Animatable: 0f -> 1f triggers punchy stamp of current star
     val starStampAnim = remember(currentIndex) { Animatable(0f) }
-
-    // Dismissal coordinator: smoothly recedes back into surface
-    fun dismissSmoothly(onComplete: () -> Unit) {
-        if (isClosing) return
-        isClosing = true
-        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-        coroutineScope.launch {
-            launch {
-                contentAlpha.animateTo(0f, tween(150, easing = FastOutLinearInEasing))
-                contentOffsetY.animateTo(24f, tween(150, easing = FastOutLinearInEasing))
-            }
-            launch {
-                emblemScale.animateTo(if (reducedMotion) 0.80f else 0.35f, tween(180, easing = FastOutLinearInEasing))
-                emblemAlpha.animateTo(0f, tween(170, easing = FastOutLinearInEasing))
-                glowScale.animateTo(0.20f, tween(180, easing = FastOutLinearInEasing))
-            }
-            launch {
-                scrimAlpha.animateTo(0f, tween(200, easing = FastOutLinearInEasing))
-            }
-            delay(210)
-            onComplete()
-        }
-    }
 
     // Launch emergence on entry or badge step
     LaunchedEffect(badge.badgeId, currentIndex) {
@@ -168,21 +145,12 @@ fun BadgeCelebrationOverlay(
         }
     }
 
-    Box(
+    ProfileModal(
+        title = stringResource(R.string.profile_badges),
+        onDismiss = { if (!acknowledging) onDismiss() },
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF04060A).copy(alpha = 0.92f * scrimAlpha.value))
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null
-            ) {
-                if (currentIndex < badges.size - 1) {
-                    currentIndex++
-                } else {
-                    dismissSmoothly(onDismiss)
-                }
-            },
-        contentAlignment = Alignment.Center
+            .background(Color(0xFF04060A).copy(alpha = 0.92f * scrimAlpha.value)),
     ) {
         // High-energy particle celebration burst
         CelebrationParticlesCanvas(
@@ -204,6 +172,7 @@ fun BadgeCelebrationOverlay(
             modifier = Modifier
                 .align(Alignment.Center)
                 .fillMaxWidth()
+                .safeDrawingPadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 28.dp)
         ) {
@@ -457,7 +426,7 @@ fun BadgeCelebrationOverlay(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         badges.forEachIndexed { idx, _ ->
-                            val active = idx == currentIndex
+                            val active = idx == visibleIndex
                             Box(
                                 modifier = Modifier
                                     .size(if (active) 8.dp else 6.dp)
@@ -477,6 +446,7 @@ fun BadgeCelebrationOverlay(
                     // Share Button
                     if (onShareBadge != null) {
                         OutlinedButton(
+                            enabled = !acknowledging,
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 onShareBadge(badge)
@@ -509,12 +479,13 @@ fun BadgeCelebrationOverlay(
 
                     // Next or Continue Button
                     Button(
+                        enabled = !acknowledging,
                         onClick = {
-                            if (currentIndex < badges.size - 1) {
+                            if (!acknowledgementFailed && visibleIndex < badges.lastIndex) {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 currentIndex++
                             } else {
-                                dismissSmoothly(onDismiss)
+                                onDismiss()
                             }
                         },
                         modifier = Modifier.weight(1f),
@@ -525,12 +496,17 @@ fun BadgeCelebrationOverlay(
                         ),
                         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp)
                     ) {
+                        val action = when {
+                            acknowledgementFailed -> R.string.common_retry
+                            visibleIndex < badges.lastIndex -> R.string.how_it_works_next
+                            else -> R.string.common_done
+                        }
                         Text(
-                            text = if (currentIndex < badges.size - 1) "Next Trophy (${currentIndex + 1}/${badges.size})" else "Claim & Continue",
+                            text = stringResource(action),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold
                         )
-                        if (currentIndex < badges.size - 1) {
+                        if (!acknowledgementFailed && visibleIndex < badges.lastIndex) {
                             Spacer(modifier = Modifier.width(4.dp))
                             Icon(
                                 imageVector = Icons.Rounded.ChevronRight,
@@ -540,12 +516,20 @@ fun BadgeCelebrationOverlay(
                         }
                     }
                 }
+                if (visibleIndex < badges.lastIndex && !acknowledgementFailed) {
+                    TextButton(onClick = onDismiss, enabled = !acknowledging) {
+                        Text(stringResource(R.string.share_close), color = Color.White)
+                    }
+                }
+                if (acknowledgementFailed) {
+                    Text(
+                        text = stringResource(R.string.profile_acknowledgement_failed),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                    )
+                }
 
-                Text(
-                    text = "Tap anywhere to continue",
-                    style = CaptionSmall,
-                    color = TextTertiary
-                )
             }
         }
     }

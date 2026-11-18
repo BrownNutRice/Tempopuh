@@ -1710,4 +1710,6 @@
     <string name="spotlight_unmute">Unmute preview</string>
     <string name="spotlight_story_position">Page %1$d of %2$d</string>
     <string name="spotlight_share_failed">Could not share the story</string>
+    <string name="profile_load_failed">Could not update all Profile data. Try again.</string>
+    <string name="profile_acknowledgement_failed">Could not mark these badges as seen. Try again.</string>
 </resources>

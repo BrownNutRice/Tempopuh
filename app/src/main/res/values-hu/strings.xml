@@ -887,4 +887,6 @@
     <string name="spotlight_unmute">Előnézet hangjának visszaállítása</string>
     <string name="spotlight_story_position">%1$d. oldal, összesen %2$d</string>
     <string name="spotlight_share_failed">A történetet nem sikerült megosztani</string>
+    <string name="profile_load_failed">Nem sikerült frissíteni az összes profiladatot. Próbáld újra.</string>
+    <string name="profile_acknowledgement_failed">Nem sikerült megtekintettként megjelölni ezeket a jelvényeket. Próbáld újra.</string>
 </resources>

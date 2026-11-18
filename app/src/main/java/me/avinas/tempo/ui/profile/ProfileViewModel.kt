@@ -19,9 +19,14 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.CancellationException
 import android.content.Context
+import android.util.Log
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.retryWhen
 import me.avinas.tempo.data.repository.observeChallengeDays
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import me.avinas.tempo.data.analytics.AnalyticsTracker
@@ -43,6 +48,8 @@ class ProfileViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
     
+    private val retryRequests = MutableStateFlow(0L)
+
     init {
         observeData()
         refreshGamification()
@@ -50,52 +57,63 @@ class ProfileViewModel @Inject constructor(
     }
     
     suspend fun observeChallenges(context: Context) {
-        observeChallengeDays(context).collectLatest { day ->
+        observeChallengeDays(context).combine(retryRequests) { day, _ -> day }.collectLatest { day ->
             _uiState.update { state ->
-                if (state.challenges.any { it.date != day.date.toString() }) {
-                    state.copy(challenges = emptyList(), challengeXpTotal = 0)
+                val date = day.date.toString()
+                if (state.challengeDate != date) {
+                    state.copy(challenges = emptyList(), challengeXpTotal = 0, challengesLoaded = false, challengeDate = date)
                 } else state
             }
             try {
                 challengeRepository.generateDailyChallengesIfNeeded(day.date)
                 challengeRepository.refreshChallengeProgress(day)
+                setProblem(ProfileProblem.CHALLENGE_REFRESH, false)
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (failure: Exception) {
-                _uiState.update { it.copy(error = failure.message) }
+                reportProblem(ProfileProblem.CHALLENGE_REFRESH, failure)
             }
-            challengeRepository.observeChallenges(day.date).collect { challenges ->
+            challengeRepository.observeChallenges(day.date).collectProfile(ProfileProblem.CHALLENGES) { challenges ->
                 _uiState.update { state ->
-                    state.copy(challenges = challenges, challengeXpTotal = challenges.sumOf { it.xpReward })
+                    state.copy(
+                        challenges = challenges,
+                        challengeXpTotal = challenges.sumOf { it.xpReward },
+                        challengesLoaded = true,
+                    )
                 }
             }
         }
     }
 
+    private suspend fun <T> Flow<T>.collectProfile(problem: ProfileProblem, publish: suspend (T) -> Unit) {
+        onEach { value ->
+            publish(value)
+            setProblem(problem, false)
+        }.retryWhen { failure, _ ->
+            if (failure !is Exception || failure is CancellationException) throw failure
+            val request = retryRequests.value
+            reportProblem(problem, failure)
+            retryRequests.first { it != request }
+            true
+        }.collect {}
+    }
+
+    private fun setProblem(problem: ProfileProblem, failed: Boolean) {
+        _uiState.update { it.copy(problems = if (failed) it.problems + problem else it.problems - problem) }
+    }
+
+    private fun reportProblem(problem: ProfileProblem, failure: Exception) {
+        Log.w("ProfileViewModel", "Profile operation failed: $problem", failure)
+        setProblem(problem, true)
+    }
+
     private fun observeData() {
         viewModelScope.launch {
-            gamificationRepository.observeUserLevel().collect { level ->
-                val uniqueArtists = try {
-                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                        gamificationRepository.getUniqueArtistCount()
-                    }
-                } catch (e: Exception) { 0 }
-                
+            gamificationRepository.observeUserLevel().collectProfile(ProfileProblem.LEVEL) { level ->
+                val uniqueArtists = gamificationRepository.getUniqueArtistCount()
                 val calculatedTitle = GamificationEngine.computeTitle(level?.currentLevel ?: 0, uniqueArtists)
                 val currentLevel = level ?: UserLevel()
-
-                // Streak days are bucketed in the zone each play was recorded in, so the day the
-                // streak rolls over is that zone's midnight, not the phone's. After flying west the
-                // recorded day sits ahead of the phone's date, and comparing against the phone
-                // clock would flag a safe streak as at-risk (and print a countdown that disagrees
-                // with it). Both are therefore read in the streak's own zone.
-                val streakZone = try {
-                    gamificationRepository.getStreakAnchorZone()
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (failure: Exception) {
-                    null
-                }
+                val streakZone = gamificationRepository.getStreakAnchorZone()
 
                 _uiState.update { state ->
                     val challengeXpTotal = state.challenges.sumOf { it.xpReward }
@@ -105,7 +123,7 @@ class ProfileViewModel @Inject constructor(
 
                     state.copy(
                         userLevel = currentLevel,
-                        isLoading = false,
+                        levelLoaded = true,
                         showLevelUpCelebration = shouldCelebrate || state.showLevelUpCelebration,
                         userTitle = calculatedTitle,
                         streakAnchorZone = streakZone,
@@ -116,12 +134,13 @@ class ProfileViewModel @Inject constructor(
         }
         
         viewModelScope.launch {
-            gamificationRepository.observeAllBadges().collect { badges ->
+            gamificationRepository.observeAllBadges().collectProfile(ProfileProblem.BADGES) { badges ->
                 _uiState.update { state ->
                     val filteredBadges = if (state.selectedCategory == null) badges
                         else badges.filter { it.category == state.selectedCategory }
                     state.copy(
                         allBadges = badges,
+                        badgesLoaded = true,
                         filteredBadges = filteredBadges,
                         earnedCount = badges.count { it.isEarned },
                         totalCount = badges.size,
@@ -135,13 +154,13 @@ class ProfileViewModel @Inject constructor(
         }
         
         viewModelScope.launch {
-            gamificationRepository.observeUnacknowledgedBadges().collect { badges ->
+            gamificationRepository.observeUnacknowledgedBadges().collectProfile(ProfileProblem.CELEBRATIONS) { badges ->
                 _uiState.update { it.copy(unacknowledgedBadges = badges) }
             }
         }
         
         viewModelScope.launch {
-            profileIdentityManager.profileIdentity.collect { identity ->
+            profileIdentityManager.profileIdentity.collectProfile(ProfileProblem.IDENTITY) { identity ->
                 _uiState.update {
                     it.copy(
                         userName = identity.userName,
@@ -173,40 +192,41 @@ class ProfileViewModel @Inject constructor(
         try {
             challengeRepository.refreshChallengeProgress()
             gamificationRepository.fullRefresh()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (_: Exception) {
             // Silent — don't show errors for background refreshes
         }
     }
     
-    /** Pull-to-refresh handler. */
+    /** Pull-to-refresh also releases observers waiting to be retried. */
     suspend fun refresh() {
-        val startTime = System.currentTimeMillis()
+        if (_uiState.value.isRefreshing) return
         _uiState.update { it.copy(isRefreshing = true) }
         try {
-            challengeRepository.refreshChallengeProgress()
-            gamificationRepository.fullRefresh()
-        } catch (e: Exception) {
-            _uiState.update { it.copy(error = e.message) }
+            retryRequests.update { it + 1 }
+            refreshProfileData()
         } finally {
-            // Keep spinner visible for at least 600ms to prevent flicker
-            val elapsed = System.currentTimeMillis() - startTime
-            if (elapsed < 600) delay(600 - elapsed)
             _uiState.update { it.copy(isRefreshing = false) }
         }
     }
-    
+
     private fun refreshGamification() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            try {
-                challengeRepository.refreshChallengeProgress()
-                gamificationRepository.fullRefresh()
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.message) }
-            }
+        viewModelScope.launch { refreshProfileData() }
+    }
+
+    private suspend fun refreshProfileData() {
+        try {
+            challengeRepository.refreshChallengeProgress()
+            gamificationRepository.fullRefresh()
+            setProblem(ProfileProblem.REFRESH, false)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Exception) {
+            reportProblem(ProfileProblem.REFRESH, failure)
         }
     }
-    
+
     fun onCategorySelected(category: String?) {
         _uiState.update { state ->
             val filteredBadges = if (category == null) state.allBadges
@@ -220,19 +240,37 @@ class ProfileViewModel @Inject constructor(
     }
     
     fun acknowledgeBadges(badgeIds: List<String>) {
-        if (badgeIds.isEmpty()) return
-        tracker.track(FeatureFirstUsed(TempoFeature.GAMIFICATION_PROFILE))
+        if (badgeIds.isEmpty() || _uiState.value.acknowledgingBadges) return
+        _uiState.update { it.copy(acknowledgingBadges = true, problems = it.problems - ProfileProblem.ACKNOWLEDGEMENT) }
         viewModelScope.launch {
-            gamificationRepository.markBadgesAsAcknowledged(badgeIds)
+            try {
+                gamificationRepository.markBadgesAsAcknowledged(badgeIds)
+                _uiState.update { state ->
+                    state.copy(unacknowledgedBadges = state.unacknowledgedBadges.filterNot { it.badgeId in badgeIds })
+                }
+                runCatching { tracker.track(FeatureFirstUsed(TempoFeature.GAMIFICATION_PROFILE)) }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                reportProblem(ProfileProblem.ACKNOWLEDGEMENT, failure)
+            } finally {
+                _uiState.update { it.copy(acknowledgingBadges = false) }
+            }
         }
     }
 }
 
+enum class ProfileProblem { LEVEL, BADGES, IDENTITY, CELEBRATIONS, CHALLENGES, CHALLENGE_REFRESH, REFRESH, ACKNOWLEDGEMENT }
+
 @Immutable
 data class ProfileUiState(
-    val isLoading: Boolean = true,
+    val levelLoaded: Boolean = false,
+    val badgesLoaded: Boolean = false,
+    val challengesLoaded: Boolean = false,
+    val challengeDate: String? = null,
     val isRefreshing: Boolean = false,
-    val error: String? = null,
+    val problems: Set<ProfileProblem> = emptySet(),
+    val acknowledgingBadges: Boolean = false,
     val userLevel: UserLevel = UserLevel(),
     val userTitle: String = "Newcomer",
     val userName: String = "User",
@@ -252,6 +290,8 @@ data class ProfileUiState(
     val totalStars: Int = computeTotalStars(allBadges),
     val maxPossibleStars: Int = computeMaxPossibleStars(allBadges)
 ) {
+    val isLoading: Boolean get() = !levelLoaded && problems.isEmpty()
+
     companion object {
         fun computeAlmostUnlockedBadges(allBadges: List<Badge>): List<Badge> =
             allBadges.filter { !it.isMaxed && it.progressFraction >= 0.7f }

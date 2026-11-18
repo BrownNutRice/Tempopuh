@@ -1253,4 +1253,6 @@
     <string name="spotlight_unmute">Ton der Vorschau einschalten</string>
     <string name="spotlight_story_position">Seite %1$d von %2$d</string>
     <string name="spotlight_share_failed">Story konnte nicht geteilt werden</string>
+    <string name="profile_load_failed">Nicht alle Profildaten konnten aktualisiert werden. Versuche es erneut.</string>
+    <string name="profile_acknowledgement_failed">Diese Abzeichen konnten nicht als gesehen markiert werden. Versuche es erneut.</string>
 </resources>

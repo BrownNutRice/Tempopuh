@@ -1251,4 +1251,6 @@
     <string name="spotlight_unmute">Rétablir le son de l’extrait</string>
     <string name="spotlight_story_position">Page %1$d sur %2$d</string>
     <string name="spotlight_share_failed">Impossible de partager la story</string>
+    <string name="profile_load_failed">Impossible de mettre à jour toutes les données du profil. Réessayez.</string>
+    <string name="profile_acknowledgement_failed">Impossible de marquer ces badges comme vus. Réessayez.</string>
 </resources>

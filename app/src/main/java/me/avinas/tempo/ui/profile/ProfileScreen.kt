@@ -75,6 +75,9 @@ import java.time.Instant
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.LiveRegionMode
 import me.avinas.tempo.R
 import me.avinas.tempo.data.local.entities.Badge
 import me.avinas.tempo.data.local.entities.DailyChallenge
@@ -642,7 +645,6 @@ fun ProfileScreen(
     val scope = rememberCoroutineScope()
     var selectedTab by remember { mutableIntStateOf(0) }
     var selectedBadge by remember { mutableStateOf<Badge?>(null) }
-    var showBadgeDetails by remember { mutableStateOf(false) }
     var shareBadgeTarget by remember { mutableStateOf<Badge?>(null) }
     var showMilestoneShare by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
@@ -728,14 +730,22 @@ fun ProfileScreen(
                             item(key = "hero") {
                                 Column(modifier = contentModifier, horizontalAlignment = Alignment.CenterHorizontally) {
                                     Spacer(modifier = Modifier.height(heroTopClearance))
-                                    HeroProfileSection(
-                                        userLevel = uiState.userLevel,
-                                        userTitle = uiState.userTitle,
-                                        userName = uiState.userName,
-                                        profileImagePath = uiState.profileImagePath,
-                                        tierAccent = tierAccent,
-                                        compact = compact,
-                                    )
+                                    if (uiState.problems.any { it != ProfileProblem.ACKNOWLEDGEMENT }) {
+                                        ProfileRetryMessage(
+                                            onRetry = { scope.launch { viewModel.refresh() } },
+                                            retryEnabled = !uiState.isRefreshing,
+                                        )
+                                    }
+                                    if (uiState.levelLoaded) {
+                                        HeroProfileSection(
+                                            userLevel = uiState.userLevel,
+                                            userTitle = uiState.userTitle,
+                                            userName = uiState.userName,
+                                            profileImagePath = uiState.profileImagePath,
+                                            tierAccent = tierAccent,
+                                            compact = compact,
+                                        )
+                                    }
                                     Spacer(modifier = Modifier.height(20.dp))
                                 }
                             }
@@ -759,18 +769,20 @@ fun ProfileScreen(
                                         )
                                     }
 
-                                    MasterStatMasthead(
-                                        userLevel = uiState.userLevel,
-                                        earnedCount = uiState.earnedCount,
-                                        totalCount = uiState.totalCount,
-                                        totalStars = uiState.totalStars,
-                                        currentStreak = streak.days,
-                                        streakAtRisk = streakMinutes != null,
-                                        timeRemaining = streakTimeRemaining,
-                                        tierAccent = tierAccent,
-                                        compact = compact,
-                                        hideStreaks = hideStreaks,
-                                    )
+                                    if (uiState.levelLoaded && uiState.badgesLoaded) {
+                                        MasterStatMasthead(
+                                            userLevel = uiState.userLevel,
+                                            earnedCount = uiState.earnedCount,
+                                            totalCount = uiState.totalCount,
+                                            totalStars = uiState.totalStars,
+                                            currentStreak = streak.days,
+                                            streakAtRisk = streakMinutes != null,
+                                            timeRemaining = streakTimeRemaining,
+                                            tierAccent = tierAccent,
+                                            compact = compact,
+                                            hideStreaks = hideStreaks,
+                                        )
+                                    }
 
                                     TabSwitcher(
                                         tabs = tabs,
@@ -787,7 +799,9 @@ fun ProfileScreen(
                                         totalXpAvailable = uiState.challengeXpTotal,
                                         contentModifier = contentModifier,
                                     )
-                                } else {
+                                } else if (uiState.challengesLoaded &&
+                                    ProfileProblem.CHALLENGE_REFRESH !in uiState.problems
+                                ) {
                                     item(key = "empty_challenges") {
                                         Column(modifier = contentModifier) {
                                             Spacer(modifier = Modifier.height(24.dp))
@@ -795,7 +809,7 @@ fun ProfileScreen(
                                         }
                                     }
                                 }
-                            } else {
+                            } else if (uiState.badgesLoaded) {
                                 badgeSection(
                                     filteredBadges = uiState.filteredBadges,
                                     categories = uiState.categories,
@@ -803,7 +817,6 @@ fun ProfileScreen(
                                     onCategorySelected = viewModel::onCategorySelected,
                                     onBadgeClick = { badge ->
                                         selectedBadge = badge
-                                        showBadgeDetails = true
                                     },
                                     contentModifier = contentModifier,
                                     badgeColumns = badgeColumns,
@@ -846,7 +859,7 @@ fun ProfileScreen(
                 }
             }
 
-            if (uiState.showLevelUpCelebration) {
+            if (selectedBadge == null && shareBadgeTarget == null && uiState.showLevelUpCelebration) {
                 LevelUpCelebrationOverlay(
                     level = uiState.userLevel.currentLevel,
                     title = uiState.userTitle,
@@ -859,23 +872,26 @@ fun ProfileScreen(
                 )
             }
 
-            if (uiState.unacknowledgedBadges.isNotEmpty() && !uiState.showLevelUpCelebration) {
+            if (selectedBadge == null && uiState.unacknowledgedBadges.isNotEmpty() &&
+                (!uiState.showLevelUpCelebration || shareBadgeTarget != null)
+            ) {
                 BadgeCelebrationOverlay(
                     badges = uiState.unacknowledgedBadges,
                     userName = uiState.userName,
                     profileImagePath = uiState.profileImagePath,
                     onDismiss = { viewModel.acknowledgeBadges(uiState.unacknowledgedBadges.map { it.badgeId }) },
                     onShareBadge = { badgeToShare -> shareBadgeTarget = badgeToShare },
+                    acknowledging = uiState.acknowledgingBadges,
+                    acknowledgementFailed = ProfileProblem.ACKNOWLEDGEMENT in uiState.problems,
                 )
             }
 
-            if (showBadgeDetails && selectedBadge != null) {
+            if (selectedBadge != null) {
                 val badge = selectedBadge!!
                 val liveBadge = uiState.allBadges.firstOrNull { it.badgeId == badge.badgeId } ?: badge
                 BadgeDetailsOverlay(
                     badge = liveBadge,
                     onDismiss = {
-                        showBadgeDetails = false
                         selectedBadge = null
                     },
                     onShareBadge = { badgeToShare -> shareBadgeTarget = badgeToShare },
@@ -893,9 +909,7 @@ fun ProfileScreen(
                         theme = theme,
                     )
                 }
-            }
-
-            if (showMilestoneShare) {
+            } else if (showMilestoneShare) {
                 SharePreviewDialog(
                     onDismiss = { showMilestoneShare = false },
                 ) { theme ->
@@ -910,6 +924,21 @@ fun ProfileScreen(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ProfileRetryMessage(onRetry: () -> Unit, retryEnabled: Boolean) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+        Text(
+            text = stringResource(R.string.profile_load_failed),
+            color = LocalTempoPalette.current.onSurface,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+        )
+        TextButton(onClick = onRetry, enabled = retryEnabled) {
+            Text(stringResource(R.string.common_retry))
         }
     }
 }
@@ -2522,20 +2551,15 @@ fun BadgeDetailsOverlay(
         }
     }
 
-    Box(
+    ProfileModal(
+        title = badge.name,
+        onDismiss = { dismissSmoothly() },
         modifier =
             Modifier
                 .fillMaxSize()
                 .drawBehind {
                     drawRect(Color.Black.copy(alpha = 0.88f * scrimAlpha.value))
-                }.clickable(
-                    interactionSource =
-                        remember {
-                            androidx.compose.foundation.interaction
-                                .MutableInteractionSource()
-                        },
-                    indication = null,
-                ) { dismissSmoothly() },
+                },
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -2544,6 +2568,7 @@ fun BadgeDetailsOverlay(
                 Modifier
                     .align(Alignment.Center)
                     .fillMaxWidth()
+                    .safeDrawingPadding()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 24.dp, vertical = 32.dp),
         ) {
@@ -2815,7 +2840,7 @@ fun BadgeDetailsOverlay(
                     modifier = Modifier.size(14.dp),
                 )
                 Text(
-                    text = "Close",
+                    text = stringResource(R.string.share_close),
                     style = CaptionSmall,
                     color = appearancePalette.mutedText,
                     fontWeight = FontWeight.Medium,

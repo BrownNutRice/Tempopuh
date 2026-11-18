@@ -1479,4 +1479,6 @@
     <string name="spotlight_unmute">Включить звук отрывка</string>
     <string name="spotlight_story_position">Страница %1$d из %2$d</string>
     <string name="spotlight_share_failed">Не удалось поделиться историей</string>
+    <string name="profile_load_failed">Не удалось обновить все данные профиля. Повторите попытку.</string>
+    <string name="profile_acknowledgement_failed">Не удалось отметить эти значки как просмотренные. Повторите попытку.</string>
 </resources>
