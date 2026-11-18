@@ -91,6 +91,14 @@ fun HistoryScreen(
         }
     }
     
+    val mutationError = uiState.mutationError?.let { stringResource(it) }
+    LaunchedEffect(mutationError) {
+        if (mutationError != null) {
+            snackbarHostState.showSnackbar(mutationError, duration = SnackbarDuration.Short)
+            viewModel.clearMutationError()
+        }
+    }
+
     // Pagination — prefetch 4 items before end to prevent scrolling stalls and avoid per-pixel offset recalculation
     val isAtBottom by remember(listState) {
         derivedStateOf {
@@ -162,9 +170,12 @@ fun HistoryScreen(
                     groupedItems = uiState.groupedItems,
                     isLoading = uiState.isLoading,
                     isLoadingMore = uiState.isLoadingMore,
+                    loadFailed = uiState.loadFailed,
+                    pageFailed = uiState.pageFailed,
+                    lastFmFailed = uiState.lastFmFailedPage != null,
+                    onRetryLoad = { scope.launch { viewModel.refresh() } },
                     showCoachMark = uiState.showCoachMark,
                     listState = listState,
-                    onLoadMore = viewModel::loadMore,
                     viewModel = viewModel,
                     onNavigateToTrack = onNavigateToTrack,
                     onDismissCoachMark = viewModel::dismissCoachMark,
@@ -787,9 +798,12 @@ fun HistoryListContent(
     groupedItems: Map<String, List<HistoryItem>>,
     isLoading: Boolean,
     isLoadingMore: Boolean,
+    loadFailed: Boolean,
+    pageFailed: Boolean,
+    lastFmFailed: Boolean,
+    onRetryLoad: () -> Unit,
     showCoachMark: Boolean,
     listState: LazyListState,
-    onLoadMore: () -> Unit,
     viewModel: HistoryViewModel,
     onNavigateToTrack: (Long) -> Unit,
     onDismissCoachMark: () -> Unit,
@@ -835,7 +849,15 @@ fun HistoryListContent(
             
             // Empty State
             val allEmpty = groupedItems.isEmpty() && lastFmGroupedItems.isEmpty() && archiveItems.isEmpty()
-            if (!isLoading && allEmpty) {
+            if (!isLoading && loadFailed) {
+                item(key = "history_load_error") {
+                    me.avinas.tempo.ui.components.LoadErrorNotice(
+                        stringResource(if (allEmpty) R.string.history_load_failed else R.string.listen_refresh_failed),
+                        onRetryLoad,
+                    )
+                }
+            }
+            if (!isLoading && allEmpty && !loadFailed && !lastFmFailed && !isLoadingMoreLastFm) {
                 item(key = "empty_state") {
                     if (searchQuery.isNotBlank()) {
                         SearchEmptyState(
@@ -931,8 +953,17 @@ fun HistoryListContent(
                 }
             }
             
+            if (!isLoading && pageFailed) {
+                item(key = "history_page_error") {
+                    me.avinas.tempo.ui.components.LoadErrorNotice(
+                        stringResource(R.string.history_page_failed),
+                        viewModel::retryNextPage,
+                    )
+                }
+            }
+
             // SECTION 2: Last.fm History (only in SEPARATED mode)
-            if (viewMode == HistoryViewMode.SEPARATED && (lastFmGroupedItems.isNotEmpty() || archiveItems.isNotEmpty())) {
+            if (viewMode == HistoryViewMode.SEPARATED && (lastFmGroupedItems.isNotEmpty() || archiveItems.isNotEmpty() || lastFmFailed || isLoadingMoreLastFm)) {
                 // Section header for Last.fm History
                 item(key = "lastfm_history_header") {
                     SectionDividerHeader(
@@ -985,6 +1016,21 @@ fun HistoryListContent(
                     }
                 }
                 
+                if (!isLoading && lastFmFailed) {
+                    item(key = "lastfm_load_error") {
+                        me.avinas.tempo.ui.components.LoadErrorNotice(
+                            stringResource(R.string.history_lastfm_load_failed),
+                            viewModel::retryLastFm,
+                        )
+                    }
+                } else if (!isLoading && !isLoadingMoreLastFm && !loadFailed && hasMoreLastFm && lastFmGroupedItems.isNotEmpty()) {
+                    item(key = "lastfm_load_more") {
+                        TextButton(onClick = onLoadMoreLastFm, modifier = Modifier.fillMaxWidth()) {
+                            Text(stringResource(R.string.history_load_more))
+                        }
+                    }
+                }
+
                 // Archive items (long-tail tracks)
                 if (archiveItems.isNotEmpty()) {
                     item(key = "archive_sub_header") {

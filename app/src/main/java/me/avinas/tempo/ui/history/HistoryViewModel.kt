@@ -3,6 +3,7 @@ package me.avinas.tempo.ui.history
 import me.avinas.tempo.data.local.entities.ManualContentRuleResolver
 import me.avinas.tempo.data.local.DatabaseTransactionRunner
 import android.util.Log
+import me.avinas.tempo.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import me.avinas.tempo.data.local.dao.HistoryItem
@@ -107,6 +108,8 @@ class HistoryViewModel @Inject constructor(
     // Cached import boundary (calculated once on init)
     private var importBoundaryTimestamp: Long? = null
     private var hasLastFmImport: Boolean = false
+    private var viewModeInitialized = false
+    private var viewModeInitJob: kotlinx.coroutines.Job? = null
 
     init {
         initializeViewMode()
@@ -119,52 +122,52 @@ class HistoryViewModel @Inject constructor(
      * Otherwise, use UNIFIED mode showing all history together.
      */
     private fun initializeViewMode() {
-        viewModelScope.launch {
-            // Check for completed Last.fm import
-            val lastImport = lastFmImportMetadataDao.getLatestCompleted()
-            
-            if (lastImport != null) {
-                hasLastFmImport = true
-                importBoundaryTimestamp = lastImport.importStartedAt
-                
-                // Check archive size for UI hints
-                val archiveCount = scrobbleArchiveDao.getTotalCount()
-                val archivePlays = scrobbleArchiveDao.getTotalPlayCount()
-                
-                _uiState.update { it.copy(
-                    viewMode = HistoryViewMode.SEPARATED,
-                    hasArchiveData = archiveCount > 0,
-                    archiveTrackCount = archiveCount,
-                    archiveTotalPlays = archivePlays,
-                    recentBoundaryDate = importBoundaryTimestamp
-                ) }
-                
-                Log.d(TAG, "Last.fm import found. Using SEPARATED mode. " +
-                        "Archive: $archiveCount tracks, $archivePlays plays")
-            } else {
-                // No import - use unified mode
-                hasLastFmImport = false
-                importBoundaryTimestamp = null
-                _uiState.update { it.copy(
-                    viewMode = HistoryViewMode.UNIFIED,
-                    hasArchiveData = false
-                ) }
+        if (viewModeInitJob?.isActive == true) return
+        viewModeInitJob = viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                // Check for completed Last.fm import
+                val lastImport = lastFmImportMetadataDao.getLatestCompleted()
+
+                if (lastImport != null) {
+                    hasLastFmImport = true
+                    importBoundaryTimestamp = lastImport.importStartedAt
+
+                    // Check archive size for UI hints
+                    val archiveCount = scrobbleArchiveDao.getTotalCount()
+                    val archivePlays = scrobbleArchiveDao.getTotalPlayCount()
+
+                    _uiState.update { it.copy(
+                        viewMode = HistoryViewMode.SEPARATED,
+                        hasArchiveData = archiveCount > 0,
+                        archiveTrackCount = archiveCount,
+                        archiveTotalPlays = archivePlays,
+                        recentBoundaryDate = importBoundaryTimestamp
+                    ) }
+
+                    Log.d(TAG, "Last.fm import found. Using SEPARATED mode. " +
+                            "Archive: $archiveCount tracks, $archivePlays plays")
+                } else {
+                    // No import - use unified mode
+                    hasLastFmImport = false
+                    importBoundaryTimestamp = null
+                    _uiState.update { it.copy(
+                        viewMode = HistoryViewMode.UNIFIED,
+                        hasArchiveData = false
+                    ) }
+                }
+
+                viewModeInitialized = true
+                loadHistory()
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                Log.e(TAG, "Error initializing history", failure)
+                _uiState.update { it.copy(isLoading = false, loadFailed = true) }
             }
-            
-            loadHistory()
         }
     }
-    
-    /**
-     * A one-row Room invalidation signal is much cheaper than recalculating the
-     * ALL_TIME listening overview (including the longest session) solely to
-     * discover that a new event arrived.
-     *
-     * Live tracking also sends a refresh notification after its Room commit.
-     * Merge both sources into one short debounce to avoid running two expensive
-     * history queries for the same song.
-     */
-    @OptIn(kotlinx.coroutines.FlowPreview::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+
     private fun observeDataChanges() {
         viewModelScope.launch {
             merge(
@@ -182,23 +185,18 @@ class HistoryViewModel @Inject constructor(
 
     /** Pull-to-refresh handler. */
     suspend fun refresh() {
+        if (!viewModeInitialized) {
+            initializeViewMode()
+            viewModeInitJob?.join()
+            return
+        }
         searchJob?.cancel()
         invalidateHistoryLoads()
         val generation = loadGeneration
         _uiState.update { it.copy(isRefreshing = true) }
         val startTime = System.currentTimeMillis()
         try {
-            _uiState.update { it.copy(
-                page = 0,
-                rawItems = emptyList(),
-                groupedItems = emptyMap(),
-                lastFmItems = emptyList(),
-                lastFmGroupedItems = emptyMap(),
-                lastFmPage = 0,
-                hasMoreLastFm = true,
-                archiveItems = emptyList(),
-                isLoading = true
-            ) }
+            _uiState.update { it.copy(isLoading = true) }
             // Fetch data inline so we actually wait for it before clearing isRefreshing
             fetchHistoryForRefresh(generation)
         } finally {
@@ -216,6 +214,7 @@ class HistoryViewModel @Inject constructor(
      * Mirrors the logic in loadHistory() / loadLastFmHistory() but runs sequentially.
      */
     private suspend fun fetchHistoryForRefresh(generation: Long) {
+        var loadingLastFm = false
         try {
             val currentState = _uiState.value
             val prefs = userPreferencesDao.getSync() ?: me.avinas.tempo.data.local.entities.UserPreferences()
@@ -242,13 +241,15 @@ class HistoryViewModel @Inject constructor(
                         groupedItems = groupHistoryItems(result.items),
                         isLoading = false,
                         isLoadingMore = false,
+                        loadFailed = false,
+                        pageFailed = false,
                         page = 0,
                         hasMore = result.hasMore,
                         showCoachMark = shouldShowCoachMark
                     )
                 }
 
-                // Also load Last.fm section
+                loadingLastFm = true
                 val lastFmResult = statsRepository.getHistoryLastFmOnly(
                     searchQuery = searchQuery,
                     startTime = currentState.startDate,
@@ -272,6 +273,7 @@ class HistoryViewModel @Inject constructor(
                         lastFmGroupedItems = groupHistoryItems(lastFmResult.items),
                         archiveItems = archiveItems,
                         isLoadingMoreLastFm = false,
+                        lastFmFailedPage = null,
                         lastFmPage = 0,
                         hasMoreLastFm = lastFmResult.hasMore
                     )
@@ -296,6 +298,8 @@ class HistoryViewModel @Inject constructor(
                         groupedItems = groupHistoryItems(result.items),
                         isLoading = false,
                         isLoadingMore = false,
+                        loadFailed = false,
+                        pageFailed = false,
                         page = 0,
                         hasMore = result.hasMore,
                         showCoachMark = shouldShowCoachMark
@@ -306,7 +310,10 @@ class HistoryViewModel @Inject constructor(
             if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e(TAG, "Error during pull-to-refresh", e)
             if (generation == loadGeneration) {
-                _uiState.update { it.copy(isLoading = false, isLoadingMore = false, error = e.message) }
+                _uiState.update {
+                    if (loadingLastFm) it.copy(isLoading = false, lastFmFailedPage = 0)
+                    else it.copy(isLoading = false, isLoadingMore = false, loadFailed = true)
+                }
             }
         }
     }
@@ -322,6 +329,9 @@ class HistoryViewModel @Inject constructor(
                 page = 0,
                 rawItems = emptyList(),
                 groupedItems = emptyMap(),
+                loadFailed = false,
+                pageFailed = false,
+                lastFmFailedPage = null,
                 // Reset Last.fm section too
                 lastFmItems = emptyList(),
                 lastFmGroupedItems = emptyMap(),
@@ -345,6 +355,9 @@ class HistoryViewModel @Inject constructor(
             page = 0,
             rawItems = emptyList(),
             groupedItems = emptyMap(),
+            loadFailed = false,
+            pageFailed = false,
+            lastFmFailedPage = null,
             // Reset Last.fm section too
             lastFmItems = emptyList(),
             lastFmGroupedItems = emptyMap(),
@@ -369,6 +382,9 @@ class HistoryViewModel @Inject constructor(
             page = 0,
             rawItems = emptyList(),
             groupedItems = emptyMap(),
+            loadFailed = false,
+            pageFailed = false,
+            lastFmFailedPage = null,
             // Reset Last.fm section too
             lastFmItems = emptyList(),
             lastFmGroupedItems = emptyMap(),
@@ -381,16 +397,29 @@ class HistoryViewModel @Inject constructor(
     }
 
     fun loadMore() {
-        if (_uiState.value.isLoading || _uiState.value.isLoadingMore || !_uiState.value.hasMore) return
+        if (_uiState.value.let { it.isLoading || it.isLoadingMore || it.loadFailed || it.pageFailed || !it.hasMore }) return
         _uiState.update { it.copy(isLoadingMore = true) }
         loadHistory(isLoadMore = true)
     }
     
+    fun retryNextPage() {
+        if (_uiState.value.isLoading || !_uiState.value.pageFailed) return
+        _uiState.update { it.copy(pageFailed = false) }
+        loadMore()
+    }
+
+    fun retryLastFm() {
+        if (_uiState.value.isLoading || _uiState.value.isRefreshing) return
+        val page = _uiState.value.lastFmFailedPage ?: return
+        _uiState.update { it.copy(lastFmFailedPage = null, isLoadingMoreLastFm = true) }
+        loadLastFmHistory(isLoadMore = page > 0)
+    }
+
     /**
      * Load more items for the Last.fm history section (separate pagination).
      */
     fun loadMoreLastFmHistory() {
-        if (_uiState.value.isLoading || _uiState.value.isLoadingMoreLastFm || !_uiState.value.hasMoreLastFm) return
+        if (_uiState.value.isLoading || _uiState.value.isLoadingMoreLastFm || !_uiState.value.hasMoreLastFm || _uiState.value.lastFmFailedPage != null) return
         _uiState.update { it.copy(isLoadingMoreLastFm = true) }
         loadLastFmHistory(isLoadMore = true)
     }
@@ -444,6 +473,8 @@ class HistoryViewModel @Inject constructor(
                             groupedItems = grouped,
                             isLoading = false,
                             isLoadingMore = false,
+                            loadFailed = false,
+                            pageFailed = false,
                             page = page,
                             hasMore = result.hasMore,
                             showCoachMark = shouldShowCoachMark
@@ -482,6 +513,8 @@ class HistoryViewModel @Inject constructor(
                             groupedItems = grouped,
                             isLoading = false,
                             isLoadingMore = false,
+                            loadFailed = false,
+                            pageFailed = false,
                             page = page,
                             hasMore = result.hasMore,
                             showCoachMark = shouldShowCoachMark
@@ -497,7 +530,8 @@ class HistoryViewModel @Inject constructor(
                     it.copy(
                         isLoading = false,
                         isLoadingMore = false,
-                        error = e.message
+                        loadFailed = !isLoadMore,
+                        pageFailed = isLoadMore,
                     ) 
                 }
             }
@@ -555,6 +589,7 @@ class HistoryViewModel @Inject constructor(
                         lastFmGroupedItems = groupedLastFm,
                         archiveItems = archiveItems,
                         isLoadingMoreLastFm = false,
+                        lastFmFailedPage = null,
                         lastFmPage = page,
                         hasMoreLastFm = result.hasMore
                     )
@@ -563,7 +598,10 @@ class HistoryViewModel @Inject constructor(
                 if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.e(TAG, "Error loading Last.fm history", e)
                 if (generation == loadGeneration) {
-                    _uiState.update { it.copy(isLoadingMoreLastFm = false, error = e.message) }
+                    _uiState.update { it.copy(
+                        isLoadingMoreLastFm = false,
+                        lastFmFailedPage = if (isLoadMore) it.lastFmPage + 1 else 0,
+                    ) }
                 }
             }
         }
@@ -622,95 +660,58 @@ class HistoryViewModel @Inject constructor(
     private val pendingDeletes = mutableSetOf<Long>()
     
     // Suppress observer-triggered refresh during delete operations
-    // This prevents race conditions where loadHistory() from observer
-    // would override our optimistic UI updates
+    // Deletion updates the visible rows directly after the write succeeds.
     @Volatile
     private var suppressObserverRefresh = false
 
     /**
      * Delete a listening event from the database.
      * Also deletes the associated track if it has no other listening events.
-     * Updates UI immediately for instant feedback (optimistic update).
      */
     fun deleteListeningEvent(id: Long) {
-        // Prevent duplicate delete attempts (e.g., user tapping multiple times quickly)
-        if (pendingDeletes.contains(id)) {
-            Log.d(TAG, "Delete already in progress for event $id, ignoring duplicate request")
-            return
-        }
-        
+        if (!pendingDeletes.add(id)) return
+        suppressObserverRefresh = true
         viewModelScope.launch {
             try {
-                // Mark as pending and suppress observer refresh
-                pendingDeletes.add(id)
-                suppressObserverRefresh = true
-                
-                // Get track_id and item info before deleting
-                val historyItem = _uiState.value.rawItems.find { it.id == id }
-                val trackId = historyItem?.track_id
-                
-                if (trackId == null) {
-                    Log.w(TAG, "Could not find track_id for listening event $id")
-                    _uiState.update { it.copy(error = "Could not find item to delete") }
-                    pendingDeletes.remove(id)
-                    suppressObserverRefresh = false
+                val state = _uiState.value
+                val item = (state.rawItems + state.lastFmItems).firstOrNull { it.id == id }
+                if (item == null || listeningRepository.deleteById(id) <= 0) {
+                    _uiState.update { it.copy(mutationError = R.string.history_delete_failed) }
                     return@launch
                 }
-                
-                // OPTIMISTIC UPDATE: Remove from UI immediately for instant feedback
-                val previousState = _uiState.value
-                _uiState.update { state ->
-                    val updatedItems = state.rawItems.filter { it.id != id }
-                    val grouped = groupHistoryItems(updatedItems)
-                    state.copy(
-                        rawItems = updatedItems,
-                        groupedItems = grouped,
-                        error = null
+
+                if (historyLoadJob?.isActive == true || archiveLoadJob?.isActive == true || _uiState.value.isRefreshing) {
+                    invalidateHistoryLoads()
+                    _uiState.update { it.copy(isLoading = false) }
+                }
+                _uiState.update { current ->
+                    val recent = current.rawItems.filterNot { it.id == id }
+                    val lastFm = current.lastFmItems.filterNot { it.id == id }
+                    current.copy(
+                        rawItems = recent,
+                        groupedItems = groupHistoryItems(recent),
+                        lastFmItems = lastFm,
+                        lastFmGroupedItems = groupHistoryItems(lastFm),
                     )
                 }
-                
-                // Now perform database deletion in the background
-                val deletedRows = listeningRepository.deleteById(id)
-                
-                if (deletedRows > 0) {
-                    Log.d(TAG, "Successfully deleted listening event $id (deleted $deletedRows row)")
-                    
-                    // Check if the track has any other listening events
-                    val remainingEvents = listeningRepository.getEventsForTrack(trackId)
-                    
-                    if (remainingEvents.isEmpty()) {
-                        // Track is orphaned, delete it
-                        val deletedTrackRows = trackRepository.deleteById(trackId)
-                        Log.d(TAG, "Deleted orphaned track $trackId (deleted $deletedTrackRows row)")
-                    } else {
-                        Log.d(TAG, "Track $trackId still has ${remainingEvents.size} listening event(s), keeping it")
+                statsRepository.invalidateCache()
+                try {
+                    if (listeningRepository.getEventsForTrack(item.track_id).isEmpty()) {
+                        trackRepository.deleteById(item.track_id)
                     }
-                    
-                    // Keep suppress flag on briefly to let DB changes propagate
-                    // then allow observer refreshes again
-                    kotlinx.coroutines.delay(500)
-                } else {
-                    // Database reports 0 rows affected
-                    // This could mean: already deleted (by another process), or error
-                    // Check if item was already removed from our UI state (already deleted)
-                    if (!previousState.rawItems.any { it.id == id }) {
-                        // Item wasn't even in our list - already deleted, no rollback needed
-                        Log.d(TAG, "Event $id was already deleted (not in previous state)")
-                    } else {
-                        // Rollback: Database deletion failed, restore previous state
-                        Log.w(TAG, "Failed to delete listening event $id - no rows affected, rolling back UI")
-                        _uiState.update { previousState.copy(error = "Failed to delete: No rows affected") }
-                    }
+                } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                    throw cancelled
+                } catch (failure: Exception) {
+                    Log.w(TAG, "Orphan cleanup failed after deleting history entry", failure)
                 }
-            } catch (e: Exception) {
-                // On error, reload the history to get the correct state
-                Log.e(TAG, "Error deleting listening event $id", e)
-                _uiState.update { it.copy(error = "Failed to delete: ${e.message}") }
-                loadHistory() // Resync UI with database after delete failure
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                Log.e(TAG, "Error deleting listening event", failure)
+                _uiState.update { it.copy(mutationError = R.string.history_delete_failed) }
             } finally {
-                // Always remove from pending set and re-enable observer
                 pendingDeletes.remove(id)
-                suppressObserverRefresh = false
+                suppressObserverRefresh = pendingDeletes.isNotEmpty()
             }
         }
     }
@@ -722,7 +723,7 @@ class HistoryViewModel @Inject constructor(
             _uiState.update { it.copy(isMarking = true) }
             try {
                 val track = trackRepository.getById(trackId).first() ?: run {
-                    _uiState.update { it.copy(isMarking = false) }
+                    _uiState.update { it.copy(isMarking = false, mutationError = R.string.history_correction_failed) }
                     return@launch
                 }
                 
@@ -787,8 +788,9 @@ class HistoryViewModel @Inject constructor(
                 loadHistory()
 
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.e(TAG, "Error marking content", e)
-                _uiState.update { it.copy(error = "Failed to block content: ${e.message}", isMarking = false) }
+                _uiState.update { it.copy(mutationError = R.string.history_correction_failed, isMarking = false) }
             }
         }
     }
@@ -800,7 +802,7 @@ class HistoryViewModel @Inject constructor(
             _uiState.update { it.copy(isMarking = true) }
             try {
                 val track = trackRepository.getById(trackId).first() ?: run {
-                    _uiState.update { it.copy(isMarking = false) }
+                    _uiState.update { it.copy(isMarking = false, mutationError = R.string.history_correction_failed) }
                     return@launch
                 }
                 
@@ -897,8 +899,9 @@ class HistoryViewModel @Inject constructor(
                 loadHistory()
 
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.e(TAG, "Error blocking artist", e)
-                _uiState.update { it.copy(error = "Failed to block artist: ${e.message}", isMarking = false) }
+                _uiState.update { it.copy(mutationError = R.string.history_correction_failed, isMarking = false) }
             }
         }
     }
@@ -933,6 +936,10 @@ class HistoryViewModel @Inject constructor(
         }
     }
 
+    fun clearMutationError() {
+        _uiState.update { it.copy(mutationError = null) }
+    }
+
     fun clearFeedbackMessage() {
         _uiState.update { it.copy(feedbackMessage = null) }
     }
@@ -949,7 +956,10 @@ data class HistoryUiState(
     val isLoadingMore: Boolean = false,
     val isRefreshing: Boolean = false,
     val isMarking: Boolean = false, // True when marking content in progress
-    val error: String? = null,
+    val loadFailed: Boolean = false,
+    val pageFailed: Boolean = false,
+    val lastFmFailedPage: Int? = null,
+    val mutationError: Int? = null,
     
     // Recent Activity Section (non-Last.fm events)
     val rawItems: List<HistoryItem> = emptyList(),

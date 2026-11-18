@@ -200,6 +200,17 @@ fun HomeScreen(
                         )
                     }
 
+                    if (uiState.loadFailed && !flags.isLoading) {
+                        item(key = "load_error") {
+                            me.avinas.tempo.ui.components.LoadErrorNotice(
+                                message = stringResource(
+                                    if (uiState.hasData) R.string.listen_refresh_failed else R.string.home_load_failed
+                                ),
+                                onRetry = { scope.launch { viewModel.refresh() } },
+                            )
+                        }
+                    }
+
                     if (uiState.hasData) {
                         item(key = "insights_toggle") {
                             Row(
@@ -219,7 +230,7 @@ fun HomeScreen(
                                 }
                             }
                         }
-                    } else if (!flags.isLoading) {
+                    } else if (!flags.isLoading && !uiState.loadFailed) {
                         item(key = "empty") {
                             me.avinas.tempo.ui.components.EmptyState(
                                 modifier = Modifier

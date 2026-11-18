@@ -1226,4 +1226,12 @@
     <string name="settings_clear_data_requesting">Wird zurückgesetzt…</string>
     <string name="settings_clear_data_failed">Das Zurücksetzen konnte nicht angefordert werden. Versuche es erneut oder lösche den Speicher in den Android-App-Einstellungen.</string>
     <string name="desktop_scan_camera_unavailable">Die Kamera ist nicht verfügbar. Prüfe den Kamerazugriff oder versuche es erneut.</string>
+    <string name="home_load_failed">Die Hörübersicht konnte nicht geladen werden.</string>
+    <string name="listen_refresh_failed">Aktualisierung fehlgeschlagen. Die zuletzt geladenen Daten werden angezeigt.</string>
+    <string name="history_load_failed">Der Hörverlauf konnte nicht geladen werden.</string>
+    <string name="history_page_failed">Weitere Einträge konnten nicht geladen werden.</string>
+    <string name="history_lastfm_load_failed">Der Last.fm-Verlauf konnte nicht geladen werden.</string>
+    <string name="history_delete_failed">Der Eintrag konnte nicht gelöscht werden.</string>
+    <string name="history_correction_failed">Die Korrektur konnte nicht gespeichert werden.</string>
+    <string name="history_load_more">Mehr laden</string>
 </resources>

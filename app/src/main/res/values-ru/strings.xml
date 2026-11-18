@@ -1452,4 +1452,12 @@
     <string name="settings_clear_data_requesting">Сброс…</string>
     <string name="settings_clear_data_failed">Не удалось запросить сброс приложения. Повторите попытку или очистите хранилище в настройках приложения Android.</string>
     <string name="desktop_scan_camera_unavailable">Камера недоступна. Проверьте разрешение на доступ к камере или попробуйте ещё раз.</string>
+    <string name="home_load_failed">Не удалось загрузить обзор прослушиваний.</string>
+    <string name="listen_refresh_failed">Не удалось обновить данные. Показаны последние загруженные данные.</string>
+    <string name="history_load_failed">Не удалось загрузить историю прослушиваний.</string>
+    <string name="history_page_failed">Не удалось загрузить следующие записи.</string>
+    <string name="history_lastfm_load_failed">Не удалось загрузить историю Last.fm.</string>
+    <string name="history_delete_failed">Не удалось удалить запись.</string>
+    <string name="history_correction_failed">Не удалось сохранить исправление.</string>
+    <string name="history_load_more">Загрузить ещё</string>
 </resources>

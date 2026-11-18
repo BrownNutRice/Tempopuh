@@ -18,6 +18,10 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HistoryContentCorrectionTest {
+    private var failPage: Int? = null
+    private var historyRows = emptyList<HistoryItem>()
+    private var failDelete = false
+    private val requestedPages = mutableListOf<Int>()
     private val tracks = mutableMapOf<Long, Track>()
     private val marks = mutableListOf<ManualContentMark>()
     private val deletedPlays = mutableListOf<Long>()
@@ -31,13 +35,19 @@ class HistoryContentCorrectionTest {
         albumArtUrl = null, spotifyId = null, musicbrainzId = null, contentType = "PODCAST"
     )
     private fun viewModel() = HistoryViewModel(
-        fake<StatsRepository> { name, _ -> when (name) {
+        fake<StatsRepository> { name, args -> when (name) {
             "observeListeningOverview" -> emptyFlow<Any>()
-            "getHistory" -> PaginatedResult<HistoryItem>(emptyList(), 0, 0, 20, false)
+            "getHistory" -> {
+                val page = args[7] as Int
+                requestedPages.add(page)
+                check(page != failPage) { "History query failed" }
+                PaginatedResult(if (page == 0) historyRows else emptyList(), historyRows.size, page, 20, page == 0 && historyRows.isNotEmpty())
+            }
             "invalidateCache" -> Unit
             else -> error(name)
         } },
         fake<ListeningRepository> { name, args -> when (name) {
+            "deleteById" -> { check(!failDelete) { "Delete failed" }; 1 }
             "deleteByTrackId" -> { deletedPlays.add(args[0] as Long); Unit }
             // History now observes one Room row as its inexpensive invalidation
             // signal. Keep the test double aligned with that dependency rather
@@ -78,7 +88,6 @@ class HistoryContentCorrectionTest {
         try {
             runCurrent()
             block(model)
-            assertNull(model.uiState.value.error)
         } finally {
             store.clear()
             Dispatchers.resetMain()
@@ -93,6 +102,7 @@ class HistoryContentCorrectionTest {
         assertEquals("ALWAYS_MUSIC", marks.single().contentType)
         assertTrue(deletedPlays.isEmpty())
         assertTrue(deletedTracks.isEmpty())
+        assertNull(model.uiState.value.mutationError)
     }
 
     @Test fun `video correction removes all matching plays but keeps rule and track`() = checkCorrection { model ->
@@ -104,6 +114,7 @@ class HistoryContentCorrectionTest {
         assertEquals(setOf(1L, 2L), deletedPlays.toSet())
         assertEquals("NON_MUSIC", marks.single().contentType)
         assertTrue(deletedTracks.isEmpty())
+        assertNull(model.uiState.value.mutationError)
     }
 
     @Test fun `artist block preserves specific always music exception`() = checkCorrection { model ->
@@ -116,6 +127,7 @@ class HistoryContentCorrectionTest {
         assertEquals(listOf(2L), deletedPlays)
         assertEquals("MUSIC", tracks[1]?.contentType)
         assertTrue(deletedTracks.isEmpty())
+        assertNull(model.uiState.value.mutationError)
     }
 
     @Test fun `artist always music retains listening history`() = checkCorrection { model ->
@@ -125,5 +137,50 @@ class HistoryContentCorrectionTest {
         runCurrent()
         assertTrue(tracks.values.all { it.contentType == "MUSIC" })
         assertTrue(deletedPlays.isEmpty())
+    }
+
+    @Test fun `failed page stays queued for explicit retry and preserves current rows`() = checkCorrection { model ->
+        val row = HistoryItem(1, 1, 1_700_000_000_000, 30_000, 50, "Song", "Artist", null, album_art_url = null)
+        historyRows = listOf(row)
+        model.refresh()
+        failPage = 1
+        model.loadMore()
+        runCurrent()
+        assertTrue(model.uiState.value.pageFailed)
+        assertEquals(listOf(row), model.uiState.value.rawItems)
+        model.loadMore()
+        runCurrent()
+        assertEquals(1, requestedPages.count { it == 1 })
+
+        failPage = null
+        model.retryNextPage()
+        runCurrent()
+        assertFalse(model.uiState.value.pageFailed)
+        assertEquals(2, requestedPages.count { it == 1 })
+        assertEquals(listOf(row), model.uiState.value.rawItems)
+    }
+
+    @Test fun `failed refresh and deletion preserve rows and the search query`() = checkCorrection { model ->
+        val row = HistoryItem(1, 1, 1_700_000_000_000, 30_000, 50, "Song", "Artist", null, album_art_url = null)
+        historyRows = listOf(row)
+        model.onSearchQueryChanged("Song")
+        advanceTimeBy(500)
+        runCurrent()
+        failPage = 0
+        model.refresh()
+        assertTrue(model.uiState.value.loadFailed)
+
+        failDelete = true
+        model.deleteListeningEvent(row.id)
+        runCurrent()
+        assertEquals(me.avinas.tempo.R.string.history_delete_failed, model.uiState.value.mutationError)
+        assertEquals(listOf(row), model.uiState.value.rawItems)
+        assertEquals("Song", model.uiState.value.searchQuery)
+        model.clearMutationError()
+        assertNull(model.uiState.value.mutationError)
+
+        failPage = null
+        model.refresh()
+        assertFalse(model.uiState.value.loadFailed)
     }
 }

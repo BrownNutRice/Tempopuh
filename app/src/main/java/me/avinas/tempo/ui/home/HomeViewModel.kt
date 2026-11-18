@@ -201,7 +201,7 @@ class HomeViewModel @Inject constructor(
         val startTime = System.currentTimeMillis()
         _flagsState.update { it.copy(isRefreshing = true, isLoading = true) }
         try {
-            fetchData()
+            loadData().join()
         } finally {
             // Keep spinner visible for at least 600ms to prevent flicker
             val elapsed = System.currentTimeMillis() - startTime
@@ -215,11 +215,9 @@ class HomeViewModel @Inject constructor(
         loadData()
     }
 
-    private fun loadData() {
+    private fun loadData(): kotlinx.coroutines.Job {
         loadJob?.cancel()
-        loadJob = viewModelScope.launch {
-            fetchData()
-        }
+        return viewModelScope.launch { fetchData() }.also { loadJob = it }
     }
 
     private suspend fun fetchData() {
@@ -381,6 +379,7 @@ class HomeViewModel @Inject constructor(
                         userName = userName,
                         profileImagePath = profileIdentity.profileImagePath,
                         hasData = hasData,
+                        loadFailed = false,
                         isNewUser = isNewUser,
                         isGamificationEnabled = isGamificationEnabled,
                         todayOverview = todayOverview,
@@ -404,7 +403,7 @@ class HomeViewModel @Inject constructor(
             }
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            _uiState.update { it.copy(error = e.message) }
+            _uiState.update { it.copy(loadFailed = true) }
             _flagsState.update { it.copy(isLoading = false) }
         }
     }
@@ -959,7 +958,7 @@ class HomeViewModel @Inject constructor(
 
 @Immutable
 data class HomeUiState(
-    val error: String? = null,
+    val loadFailed: Boolean = false,
     val selectedTimeRange: TimeRange = TimeRange.THIS_WEEK,
     val hasData: Boolean = false,
     val isNewUser: Boolean = false,

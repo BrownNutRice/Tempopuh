@@ -860,4 +860,12 @@
     <string name="settings_clear_data_requesting">Visszaállítás…</string>
     <string name="settings_clear_data_failed">Nem sikerült kérni az alkalmazás alaphelyzetbe állítását. Próbáld újra, vagy töröld a tárhelyét az Android alkalmazásbeállításaiban.</string>
     <string name="desktop_scan_camera_unavailable">A kamera nem érhető el. Ellenőrizd a kameraengedélyt, vagy próbáld újra.</string>
+    <string name="home_load_failed">Nem sikerült betölteni a hallgatási összesítést.</string>
+    <string name="listen_refresh_failed">Nem sikerült frissíteni. Az utoljára betöltött adatok láthatók.</string>
+    <string name="history_load_failed">Nem sikerült betölteni a hallgatási előzményeket.</string>
+    <string name="history_page_failed">Nem sikerült több bejegyzést betölteni.</string>
+    <string name="history_lastfm_load_failed">Nem sikerült betölteni a Last.fm előzményeket.</string>
+    <string name="history_delete_failed">Nem sikerült törölni a bejegyzést.</string>
+    <string name="history_correction_failed">Nem sikerült menteni a javítást.</string>
+    <string name="history_load_more">Továbbiak betöltése</string>
 </resources>

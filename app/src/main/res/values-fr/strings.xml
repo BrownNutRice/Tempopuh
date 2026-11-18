@@ -1224,4 +1224,12 @@
     <string name="settings_clear_data_requesting">Réinitialisation…</string>
     <string name="settings_clear_data_failed">Impossible de demander la réinitialisation. Réessayez ou effacez le stockage dans les paramètres Android de l’application.</string>
     <string name="desktop_scan_camera_unavailable">La caméra est indisponible. Vérifiez son accès ou réessayez.</string>
+    <string name="home_load_failed">Impossible de charger le résumé des écoutes.</string>
+    <string name="listen_refresh_failed">Actualisation impossible. Les dernières données chargées sont affichées.</string>
+    <string name="history_load_failed">Impossible de charger l’historique des écoutes.</string>
+    <string name="history_page_failed">Impossible de charger plus d’entrées.</string>
+    <string name="history_lastfm_load_failed">Impossible de charger l’historique Last.fm.</string>
+    <string name="history_delete_failed">Impossible de supprimer cette écoute.</string>
+    <string name="history_correction_failed">Impossible d’enregistrer la correction.</string>
+    <string name="history_load_more">Charger plus</string>
 </resources>
