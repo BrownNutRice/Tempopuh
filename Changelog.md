@@ -4,6 +4,21 @@ Fork-specific changes. Published tags and artifacts are listed in the [release c
 
 ## Unreleased
 
+## [4.9.0] — 2026-11-18
+
+### Fixed
+
+- Improved Daily Listening contrast for Light, Dark and System appearance settings.
+- Added Appearance Studio settings and saved looks to library backups.
+- Checkpointed offline listening events incrementally and surfaced quarantined records in diagnostics.
+- Routed GitHub build feedback to the maintained fork, reduced redundant statistics and gamification work, and improved screen lifecycle handling.
+- Preserved local data during restore, reset, account disconnect and backup retention operations.
+
+### Validation
+
+- The release workflow records Android unit, lint, emulator and browser companion checks for the release source.
+- Physical-device visual, accessibility, tracking and battery checks remain to be completed.
+
 ### Fixed
 
 - Clear all data now requests Android’s full app-data reset, replacing partial database/preference deletion while producers remain alive. Confirmation explains closure and scope in all six locales; rejected requests show an error without navigating to onboarding.

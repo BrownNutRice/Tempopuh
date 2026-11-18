@@ -79,6 +79,7 @@ import me.avinas.tempo.ui.components.GlassCard
 import me.avinas.tempo.ui.components.GlassCardVariant
 import me.avinas.tempo.ui.components.SectionCatalogKicker
 import me.avinas.tempo.ui.details.conditionedAccent
+import me.avinas.tempo.ui.profile.readableProfileColor
 import me.avinas.tempo.ui.stats.StatsShareDialog
 import me.avinas.tempo.ui.stats.StatsTab
 import me.avinas.tempo.ui.theme.*
@@ -88,6 +89,13 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
+
+@Composable
+private fun todayMutedText(): Color {
+    val palette = LocalTempoPalette.current
+    val surface = if (palette.isDark) palette.elevatedSurface else palette.surfaceSunken
+    return readableProfileColor(palette.mutedText, surface, 4.5f)
+}
 
 /* Rank medal accents — shared by podium rows on the overview. */
 private val RankGold = Color(0xFFFFD479)
@@ -149,7 +157,10 @@ fun TodaysOverviewOverlay(
         topTracks.firstOrNull()?.albumArtUrl?.takeIf { it.isNotBlank() }
             ?: topArtists.firstOrNull()?.imageUrl?.takeIf { it.isNotBlank() }
     }
-    val accent = rememberTodayAccentColor(topArtUrl)
+    val palette = LocalTempoPalette.current
+    val artworkAccent = rememberTodayAccentColor(topArtUrl)
+    val contrastSurface = if (palette.isDark) palette.elevatedSurface else palette.surfaceSunken
+    val accent = readableProfileColor(artworkAccent, contrastSurface, 4.5f)
     val scrollState = rememberScrollState()
 
     val dateLabel = remember {
@@ -201,7 +212,7 @@ fun TodaysOverviewOverlay(
                 modifier = Modifier
                     .fillMaxSize()
                     .graphicsLayer { alpha = progress.value }
-                    .background(TempoDarkBackground.copy(alpha = 0.94f))
+                    .background(LocalTempoPalette.current.background.copy(alpha = 0.94f))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -216,12 +227,18 @@ fun TodaysOverviewOverlay(
                         translationY = (1f - progress.value) * size.height
                         alpha = progress.value
                     }
-                    .background(TempoDarkBackground)
+                    .background(LocalTempoPalette.current.background)
             ) {
                 // Ambient album art background layer tinted with extracted accent
                 ArtAtmosphereLayer(
                     artUrl = topArtUrl,
                     tint = accent
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(palette.background.copy(alpha = 0.90f))
                 )
 
                 // Top gradient scrim for scroll readability
@@ -234,8 +251,8 @@ fun TodaysOverviewOverlay(
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
-                                    TempoDarkBackground.copy(alpha = 0.95f),
-                                    TempoDarkBackground.copy(alpha = 0.65f),
+                                    LocalTempoPalette.current.background.copy(alpha = 0.95f),
+                                    LocalTempoPalette.current.background.copy(alpha = 0.65f),
                                     Color.Transparent
                                 )
                             )
@@ -250,7 +267,7 @@ fun TodaysOverviewOverlay(
                         .fillMaxHeight(0.20f)
                         .background(
                             Brush.verticalGradient(
-                                listOf(Color.Transparent, TempoDarkBackground.copy(alpha = 0.88f))
+                                listOf(Color.Transparent, LocalTempoPalette.current.background.copy(alpha = 0.88f))
                             )
                         )
                 )
@@ -404,7 +421,7 @@ private fun TodaysTopBarNavigation(
             icon = Icons.Default.Close,
             contentDescription = "Close today's overview",
             onClick = onClose,
-            iconTint = TextPrimary
+            iconTint = LocalTempoPalette.current.onSurface
         )
 
         AnimatedVisibility(
@@ -429,7 +446,7 @@ private fun TodaysTopBarNavigation(
                     text = "Daily Listening",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
+                    color = LocalTempoPalette.current.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center
@@ -441,7 +458,7 @@ private fun TodaysTopBarNavigation(
             icon = Icons.Default.Share,
             contentDescription = "Share today's listening",
             onClick = onShare,
-            iconTint = TextPrimary
+            iconTint = LocalTempoPalette.current.onSurface
         )
     }
 }
@@ -487,7 +504,7 @@ private fun TodaysEditorialHeader(
             fontSize = 32.sp,
             lineHeight = 36.sp,
             letterSpacing = (-0.5).sp,
-            color = TextPrimary
+            color = LocalTempoPalette.current.onSurface
         )
         Spacer(modifier = Modifier.height(6.dp))
         Box(
@@ -615,7 +632,7 @@ private fun TodaysAnthemHeroCard(
                     fontWeight = FontWeight.Bold,
                     fontSize = 17.sp,
                     lineHeight = 21.sp,
-                    color = TextPrimary,
+                    color = LocalTempoPalette.current.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -624,7 +641,7 @@ private fun TodaysAnthemHeroCard(
                     text = track.artist,
                     style = MaterialTheme.typography.bodySmall,
                     fontSize = 12.5.sp,
-                    color = TextSecondary,
+                    color = todayMutedText(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -646,7 +663,7 @@ private fun TodaysAnthemHeroCard(
                     fontSize = 9.5.sp,
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 0.6.sp,
-                    color = TextTertiary,
+                    color = todayMutedText(),
                     maxLines = 1
                 )
             }
@@ -654,7 +671,7 @@ private fun TodaysAnthemHeroCard(
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.ArrowForwardIos,
                 contentDescription = null,
-                tint = TextTertiary,
+                tint = todayMutedText(),
                 modifier = Modifier.size(13.dp)
             )
         }
@@ -704,7 +721,7 @@ private fun HeroListeningCard(
                         Text(
                             text = "TOTAL LISTENING TIME",
                             style = KickerSmall,
-                            color = TextTertiary
+                            color = todayMutedText()
                         )
                     }
 
@@ -720,7 +737,7 @@ private fun HeroListeningCard(
                     fontSize = 44.sp,
                     lineHeight = 48.sp,
                     letterSpacing = (-1).sp,
-                    color = TextPrimary,
+                    color = LocalTempoPalette.current.onSurface,
                     maxLines = 1,
                     softWrap = false
                 )
@@ -730,7 +747,7 @@ private fun HeroListeningCard(
                 Text(
                     text = "${overview.totalPlayCount} ${if (overview.totalPlayCount == 1) "play" else "plays"} recorded across today",
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary,
+                    color = todayMutedText(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -819,13 +836,14 @@ private fun MastheadSecondaryStat(
     value: String,
     subtext: String,
     modifier: Modifier = Modifier,
-    valueColor: Color = TextPrimary
+    valueColor: Color = LocalTempoPalette.current.onSurface
 ) {
+    val mutedText = todayMutedText()
     Column(modifier = modifier.padding(horizontal = 10.dp)) {
         Text(
             text = label,
             style = KickerSmall,
-            color = TextTertiary
+            color = todayMutedText()
         )
         Spacer(modifier = Modifier.height(3.dp))
         Text(
@@ -836,7 +854,7 @@ private fun MastheadSecondaryStat(
                     SpanStyle(
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
-                        color = TextTertiary
+                        color = mutedText
                     )
                 ) {
                     append(subtext)
@@ -917,7 +935,7 @@ private fun TodayVsYesterdayBar(
                 fontSize = 8.5.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 0.7.sp,
-                color = TextQuaternary
+                color = todayMutedText()
             )
         }
     }
@@ -938,12 +956,12 @@ private fun DayOverDayChip(
         change < -0.5 -> TrendChip(
             iconVector = Icons.AutoMirrored.Rounded.TrendingDown,
             text = "-${abs(change.roundToInt())}% vs yesterday",
-            color = TextSecondary
+            color = todayMutedText()
         )
         else -> TrendChip(
             iconVector = Icons.AutoMirrored.Rounded.TrendingFlat,
             text = "Same as yesterday",
-            color = TextSecondary
+            color = todayMutedText()
         )
     }
 }
@@ -1116,7 +1134,7 @@ private fun TodaysHoursChart(
                     style = KickerSmall,
                     fontSize = 8.5.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextQuaternary,
+                    color = todayMutedText(),
                     letterSpacing = 0.4.sp,
                     textAlign = if (index == 0) TextAlign.Start else TextAlign.End,
                     maxLines = 1,
@@ -1172,7 +1190,7 @@ private fun DayQuadrantRow(
                     style = KickerSmall,
                     fontSize = 7.5.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextQuaternary
+                    color = todayMutedText()
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
@@ -1180,7 +1198,7 @@ private fun DayQuadrantRow(
                     style = MaterialTheme.typography.titleSmall.copy(fontFamily = DisplayFontFamily),
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp,
-                    color = if (q.plays > 0) TextPrimary else TextQuaternary
+                    color = if (q.plays > 0) LocalTempoPalette.current.onSurface else todayMutedText()
                 )
             }
         }
@@ -1225,7 +1243,7 @@ private fun TopTracksSection(
                     text = "${tracks.size} ${if (tracks.size == 1) "track" else "tracks"}",
                     style = MaterialTheme.typography.labelSmall,
                     fontSize = 10.sp,
-                    color = TextTertiary
+                    color = todayMutedText()
                 )
             }
 
@@ -1311,7 +1329,7 @@ private fun TrackRankRow(
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 13.5.sp,
-                color = TextPrimary,
+                color = LocalTempoPalette.current.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1319,7 +1337,7 @@ private fun TrackRankRow(
                 text = track.artist,
                 style = CaptionSmall,
                 fontSize = 11.5.sp,
-                color = TextTertiary,
+                color = todayMutedText(),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1335,20 +1353,20 @@ private fun TrackRankRow(
                 style = MaterialTheme.typography.titleSmall.copy(fontFamily = DisplayFontFamily),
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp,
-                color = if (rank == 1) accent else TextPrimary
+                color = if (rank == 1) accent else LocalTempoPalette.current.onSurface
             )
             Text(
                 text = formatTrackDuration(track.totalTimeMs),
                 style = CaptionSmall,
                 fontSize = 10.sp,
-                color = TextTertiary
+                color = todayMutedText()
             )
         }
 
         Icon(
             imageVector = Icons.AutoMirrored.Rounded.ArrowForwardIos,
             contentDescription = null,
-            tint = TextQuaternary,
+            tint = todayMutedText(),
             modifier = Modifier.size(11.dp)
         )
     }
@@ -1390,7 +1408,7 @@ private fun TopArtistsSection(
                     text = "${artists.size} ${if (artists.size == 1) "artist" else "artists"}",
                     style = MaterialTheme.typography.labelSmall,
                     fontSize = 10.sp,
-                    color = TextTertiary
+                    color = todayMutedText()
                 )
             }
 
@@ -1477,7 +1495,7 @@ private fun ArtistRankRow(
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 13.5.sp,
-                color = TextPrimary,
+                color = LocalTempoPalette.current.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1485,7 +1503,7 @@ private fun ArtistRankRow(
                 text = "${artist.uniqueTracks} ${if (artist.uniqueTracks == 1) "track" else "tracks"} today",
                 style = CaptionSmall,
                 fontSize = 11.5.sp,
-                color = TextTertiary,
+                color = todayMutedText(),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1501,21 +1519,21 @@ private fun ArtistRankRow(
                 style = MaterialTheme.typography.titleSmall.copy(fontFamily = DisplayFontFamily),
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp,
-                color = if (rank == 1) accent else TextPrimary
+                color = if (rank == 1) accent else LocalTempoPalette.current.onSurface
             )
             Text(
                 text = "${artist.playCount} PLAYS",
                 style = CaptionSmall,
                 fontSize = 9.sp,
                 letterSpacing = 0.5.sp,
-                color = TextTertiary
+                color = todayMutedText()
             )
         }
 
         Icon(
             imageVector = Icons.AutoMirrored.Rounded.ArrowForwardIos,
             contentDescription = null,
-            tint = TextQuaternary,
+            tint = todayMutedText(),
             modifier = Modifier.size(11.dp)
         )
     }
@@ -1550,7 +1568,7 @@ private fun RankMedalOrNumeral(rank: Int, accent: Color) {
             style = MaterialTheme.typography.titleSmall.copy(fontFamily = DisplayFontFamily),
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
-            color = TextQuaternary,
+            color = todayMutedText(),
             textAlign = TextAlign.Center,
             modifier = Modifier.width(22.dp)
         )
@@ -1576,11 +1594,7 @@ private fun FooterActions(
                 .height(50.dp)
                 .shadow(10.dp, RoundedCornerShape(25.dp), ambientColor = Color.Black.copy(alpha = 0.35f))
                 .clip(RoundedCornerShape(25.dp))
-                .background(
-                    Brush.horizontalGradient(
-                        listOf(accent, TempoPrimary)
-                    )
-                )
+                .background(accent)
                 .premiumClickable(onClick = onViewAllStats)
         ) {
             Text(
@@ -1588,13 +1602,13 @@ private fun FooterActions(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp,
-                color = TextOnAccent
+                color = readableProfileColor(LocalTempoPalette.current.onAccent, accent, 4.5f)
             )
             Spacer(modifier = Modifier.width(6.dp))
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.ArrowForwardIos,
                 contentDescription = null,
-                tint = TextOnAccent.copy(alpha = 0.85f),
+                tint = readableProfileColor(LocalTempoPalette.current.onAccent, accent, 4.5f),
                 modifier = Modifier.size(11.dp)
             )
         }
@@ -1613,7 +1627,7 @@ private fun FooterActions(
             Icon(
                 imageVector = Icons.Default.Close,
                 contentDescription = null,
-                tint = TextSecondary,
+                tint = todayMutedText(),
                 modifier = Modifier.size(14.dp)
             )
             Spacer(modifier = Modifier.width(5.dp))
@@ -1622,7 +1636,7 @@ private fun FooterActions(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium,
                 fontSize = 14.sp,
-                color = TextSecondary
+                color = todayMutedText()
             )
         }
     }
@@ -1644,7 +1658,7 @@ private fun TodaysOverviewFooter() {
         Text(
             text = "TEMPO · TODAY'S OVERVIEW",
             style = KickerSmall,
-            color = TextTertiary,
+            color = todayMutedText(),
             letterSpacing = 2.sp
         )
     }
