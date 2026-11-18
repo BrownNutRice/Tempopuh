@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 /**
  * Interactive trend line chart with drag/tap scrubbing.
@@ -36,7 +37,6 @@ fun InteractiveTrendLine(
     lineColor: Color = MaterialTheme.colorScheme.primary,
     fillColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
     strokeWidth: androidx.compose.ui.unit.Dp = 3.dp,
-    formatValue: (Float) -> String = { "${it.toInt()}m" },
     onValueSelected: ((Float, String) -> Unit)? = null,
     onSelectionCleared: (() -> Unit)? = null
 ) {
@@ -46,7 +46,12 @@ fun InteractiveTrendLine(
         "Labels size (${labels.size}) must match dataPoints size (${dataPoints.size})" 
     }
 
-    // Key on labels to reset state when dataset changes even if point count matches
+    val currentPoints by rememberUpdatedState(dataPoints)
+    val currentLabels by rememberUpdatedState(labels)
+    val currentOnValueSelected by rememberUpdatedState(onValueSelected)
+    val currentOnSelectionCleared by rememberUpdatedState(onSelectionCleared)
+
+    // The labels define the point positions. Value-only refreshes preserve selection.
     var selectedIndex by remember(labels) { mutableStateOf<Int?>(null) }
     var isDragging by remember(labels) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -58,32 +63,36 @@ fun InteractiveTrendLine(
     LaunchedEffect(labels) {
         pendingClearJob?.cancel()
         pendingClearJob = null
-        onSelectionCleared?.invoke()
+        currentOnSelectionCleared?.invoke()
     }
     
+    LaunchedEffect(labels, dataPoints) {
+        selectedIndex?.let { index -> currentOnValueSelected?.invoke(dataPoints[index], labels[index]) }
+    }
+
     DisposableEffect(labels) {
         onDispose {
             pendingClearJob?.cancel()
         }
     }
 
-    fun calculateNearestIndex(xPos: Float, width: Float): Int {
-        if (dataPoints.size <= 1) return 0
-        
-        val fraction = (xPos / width).coerceIn(0f, 1f)
-        
-        val exactIndex = fraction * (dataPoints.size - 1)
-        
-        return exactIndex.toInt().coerceIn(0, dataPoints.size - 1)
+    fun selectPoint(x: Float, width: Float, force: Boolean = false) {
+        if (currentLabels != labels) return
+        val points = currentPoints
+        val fraction = if (width > 0f) (x / width).coerceIn(0f, 1f) else 0f
+        val index = (fraction * points.lastIndex).roundToInt()
+        if (!force && selectedIndex == index) return
+        selectedIndex = index
+        currentOnValueSelected?.invoke(points[index], labels[index])
     }
-    
+
     fun clearSelectionWithDelay(delayMs: Long) {
         pendingClearJob?.cancel()
         pendingClearJob = scope.launch {
             delay(delayMs)
             isDragging = false
             selectedIndex = null
-            onSelectionCleared?.invoke()
+            currentOnSelectionCleared?.invoke()
         }
     }
     
@@ -103,30 +112,11 @@ fun InteractiveTrendLine(
                             
                             isDragging = true
                             
-                            val width = size.width.toFloat()
-                            val nearestIndex = calculateNearestIndex(offset.x, width)
-                            
-                            selectedIndex = nearestIndex
-                            onValueSelected?.invoke(
-                                dataPoints[nearestIndex],
-                                labels[nearestIndex]
-                            )
+                            selectPoint(offset.x, size.width.toFloat(), force = true)
                         },
                         onDrag = { change, _ ->
                             change.consume()
-                            val offset = change.position
-                            
-                            val width = size.width.toFloat()
-                            val clampedX = offset.x.coerceIn(0f, width)
-                            val nearestIndex = calculateNearestIndex(clampedX, width)
-                            
-                            if (nearestIndex != selectedIndex) {
-                                selectedIndex = nearestIndex
-                                onValueSelected?.invoke(
-                                    dataPoints[nearestIndex],
-                                    labels[nearestIndex]
-                                )
-                            }
+                            selectPoint(change.position.x, size.width.toFloat())
                         },
                         onDragEnd = {
                             clearSelectionWithDelay(DRAG_END_DELAY_MS)
@@ -136,7 +126,7 @@ fun InteractiveTrendLine(
                             selectedIndex = null
                             pendingClearJob?.cancel()
                             pendingClearJob = null
-                            onSelectionCleared?.invoke()
+                            currentOnSelectionCleared?.invoke()
                         }
                     )
                 }
@@ -147,15 +137,8 @@ fun InteractiveTrendLine(
                         
                         isDragging = true
                         
-                        val width = size.width.toFloat()
-                        val nearestIndex = calculateNearestIndex(offset.x, width)
-                        
-                        selectedIndex = nearestIndex
-                        onValueSelected?.invoke(
-                            dataPoints[nearestIndex],
-                            labels[nearestIndex]
-                        )
-                        
+                        selectPoint(offset.x, size.width.toFloat(), force = true)
+
                         clearSelectionWithDelay(TAP_DISPLAY_DURATION_MS)
                     }
                 }

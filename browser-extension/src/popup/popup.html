@@ -463,17 +463,19 @@
       <!-- ═══════════════ ARTISTS ═══════════════ -->
       <section id="tab-artists" class="tab-panel" role="tabpanel" aria-labelledby="tabbtn-artists">
         <h3 class="section-title">Known Artists</h3>
-        <p class="text-muted text-sm">Allow tracking on ambiguous pages for these artists.</p>
+        <p class="text-muted text-sm" id="artist-help">Allow tracking on ambiguous pages for these artists.</p>
+        <label class="list-input-label" for="new-artist">Artist name</label>
         <div class="list-input">
-          <input type="text" id="new-artist" placeholder="Artist name" maxlength="100">
+          <input type="text" id="new-artist" aria-describedby="artist-help" maxlength="100">
           <button class="btn btn-primary btn-sm" id="btn-add-artist">Add</button>
         </div>
         <div class="tag-list" id="artist-list"></div>
 
         <h3 class="section-title" style="margin-top:20px;">YouTube Channels</h3>
-        <p class="text-muted text-sm">Add channel names to track YouTube.com content.</p>
+        <p class="text-muted text-sm" id="channel-help">Add channel names to track YouTube.com content.</p>
+        <label class="list-input-label" for="new-channel">Channel name</label>
         <div class="list-input">
-          <input type="text" id="new-channel" placeholder="Channel name (e.g. T-Series)" maxlength="100">
+          <input type="text" id="new-channel" aria-describedby="channel-help" placeholder="e.g. T-Series" maxlength="100">
           <button class="btn btn-primary btn-sm" id="btn-add-channel">Add</button>
         </div>
         <div class="tag-list" id="channel-list"></div>
@@ -488,31 +490,31 @@
         <div class="setting-group">
           <div class="setting-row">
             <div class="setting-info">
-              <div class="setting-label">Enable Tracking</div>
-              <div class="setting-desc">Track music from browser tabs</div>
+              <label class="setting-label" for="setting-tracking">Enable Tracking</label>
+              <div class="setting-desc" id="setting-tracking-help">Track music from browser tabs</div>
             </div>
             <label class="toggle">
-              <input type="checkbox" id="setting-tracking" checked>
-              <span class="toggle-slider"></span>
+              <input type="checkbox" id="setting-tracking" aria-describedby="setting-tracking-help" checked>
+              <span class="toggle-slider" aria-hidden="true"></span>
             </label>
           </div>
           <div class="setting-row">
             <div class="setting-info">
-              <div class="setting-label">Offline Mode</div>
-              <div class="setting-desc">Queue plays locally, sync later</div>
+              <label class="setting-label" for="setting-offline">Offline Mode</label>
+              <div class="setting-desc" id="setting-offline-help">Queue plays locally, sync later</div>
             </div>
             <label class="toggle">
-              <input type="checkbox" id="setting-offline">
-              <span class="toggle-slider"></span>
+              <input type="checkbox" id="setting-offline" aria-describedby="setting-offline-help">
+              <span class="toggle-slider" aria-hidden="true"></span>
             </label>
           </div>
           <div class="setting-row">
             <div class="setting-info">
-              <div class="setting-label">Sync Interval</div>
-              <div class="setting-desc">How often to auto-sync with phone</div>
+              <label class="setting-label" for="setting-sync-interval">Sync Interval</label>
+              <div class="setting-desc" id="setting-sync-interval-help">How often to auto-sync with phone</div>
             </div>
             <div class="select-wrapper">
-              <select id="setting-sync-interval" class="select-input">
+              <select id="setting-sync-interval" aria-describedby="setting-sync-interval-help" class="select-input">
                 <option value="15">15 min</option>
                 <option value="30" selected>30 min</option>
                 <option value="60">1 hour</option>
@@ -525,11 +527,11 @@
           </div>
           <div class="setting-row">
             <div class="setting-info">
-              <div class="setting-label">Polling Interval</div>
-              <div class="setting-desc">How often to check for media state</div>
+              <label class="setting-label" for="setting-polling-interval">Polling Interval</label>
+              <div class="setting-desc" id="setting-polling-interval-help">How often to check for media state</div>
             </div>
             <div class="select-wrapper">
-              <select id="setting-polling-interval" class="select-input">
+              <select id="setting-polling-interval" aria-describedby="setting-polling-interval-help" class="select-input">
                 <option value="1">1s</option>
                 <option value="2" selected>2s</option>
                 <option value="5">5s</option>

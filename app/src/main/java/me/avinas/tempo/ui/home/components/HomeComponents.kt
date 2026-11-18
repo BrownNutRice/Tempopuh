@@ -20,8 +20,10 @@ import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.automirrored.rounded.ArrowForwardIos
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.runtime.Composable
@@ -30,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -79,7 +82,7 @@ fun HeroCard(
     var scrubbingLabel by remember { mutableStateOf<String?>(null) }
 
     // Reset scrubbing state when time range changes
-    LaunchedEffect(selectedRange) {
+    LaunchedEffect(selectedRange, dailyLabels) {
         scrubbingTime = null
         scrubbingLabel = null
     }
@@ -285,12 +288,6 @@ fun HeroCard(
                         lineColor = me.avinas.tempo.ui.theme.TempoSecondary,
                         fillColor = me.avinas.tempo.ui.theme.TempoSecondary.copy(alpha = 0.2f),
                         strokeWidth = 3.dp,
-                        formatValue = { value ->
-                            val minutes = value.toLong()
-                            val hours = minutes / 60
-                            val mins = minutes % 60
-                            if (hours > 0) "${hours}h ${mins}m" else "${mins}m"
-                        },
                         onValueSelected = { value, label ->
                             val minutes = value.toLong()
                             val hours = minutes / 60
@@ -313,6 +310,9 @@ fun HeroCard(
                     )
                 }
             }
+            if (dailyLabels.isNotEmpty() && trendData.size == dailyLabels.size) {
+                TrendValues(dailyLabels, trendData, selectedRange)
+            }
             if (selectedRange == TimeRange.TODAY || selectedRange == TimeRange.THIS_WEEK) {
                 Text(
                     text = stringResource(R.string.home_session_start_attribution),
@@ -324,6 +324,36 @@ fun HeroCard(
     }
 }
 
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TrendValues(labels: List<String>, points: List<Float>, range: TimeRange) {
+    var expanded by rememberSaveable(range) { mutableStateOf(false) }
+    var selectedIndex by rememberSaveable(range, labels) { mutableStateOf(0) }
+
+    TextButton(onClick = { expanded = !expanded }) {
+        Text(stringResource(if (expanded) R.string.home_trend_hide_values else R.string.home_trend_show_values))
+    }
+    if (expanded) {
+        val index = selectedIndex.coerceIn(labels.indices)
+        Text(
+            text = stringResource(R.string.home_trend_value, labels[index], points[index].toLong()),
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            style = MaterialTheme.typography.bodyLarge,
+            color = LocalTempoPalette.current.onSurface
+        )
+        if (labels.size > 1) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = { selectedIndex = index - 1 }, enabled = index > 0) {
+                    Text(stringResource(R.string.home_trend_previous))
+                }
+                TextButton(onClick = { selectedIndex = index + 1 }, enabled = index < labels.lastIndex) {
+                    Text(stringResource(R.string.how_it_works_next))
+                }
+            }
+        }
+    }
+}
 
 private val SpotlightStoryGradient = listOf(
     TempoPrimary,       // Electric Teal

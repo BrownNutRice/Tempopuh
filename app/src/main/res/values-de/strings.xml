@@ -1221,6 +1221,10 @@
     <string name="appearance_transfer_failed">Diese Darstellungsdatei konnte nicht übertragen werden. Prüfe die Datei und versuche es erneut.</string>
     <string name="now_playing_last_detected">Zuletzt erkannt</string>
     <string name="spotify_secure_storage_unavailable">Der sichere Spotify-Speicher ist nicht verfügbar. Entsperre dein Gerät und versuche es erneut. Deine verschlüsselten Daten bleiben erhalten.</string>
+    <string name="home_trend_show_values">Trendwerte anzeigen</string>
+    <string name="home_trend_hide_values">Trendwerte ausblenden</string>
+    <string name="home_trend_previous">Zurück</string>
+    <string name="home_trend_value">%1$s · %2$d Min.</string>
     <string name="home_session_start_attribution">Die Hörzeit wird dem Datum zugeordnet, an dem die Wiedergabe begann.</string>
     <string name="settings_analytics_reset_id_desc">Ändert die ID für künftige Ereignisse. Bereits empfangene Ereignisse werden beim Dienst dadurch nicht gelöscht.</string>
     <string name="settings_clear_data_requesting">Wird zurückgesetzt…</string>

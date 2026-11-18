@@ -1679,6 +1679,10 @@
     <string name="appearance_transfer_failed">Could not transfer this appearance file. Check the file and try again.</string>
     <string name="now_playing_last_detected">Last detected</string>
     <string name="spotify_secure_storage_unavailable">Secure Spotify storage is unavailable. Unlock your device and try again. Your encrypted data has been preserved.</string>
+    <string name="home_trend_show_values">Show trend values</string>
+    <string name="home_trend_hide_values">Hide trend values</string>
+    <string name="home_trend_previous">Previous</string>
+    <string name="home_trend_value">%1$s · %2$d min</string>
     <string name="home_session_start_attribution">Listening time is grouped by the date each session started.</string>
     <string name="settings_clear_data_requesting">Resetting…</string>
     <string name="settings_clear_data_failed">Could not request an app reset. Try again or use Clear storage in Android app settings.</string>

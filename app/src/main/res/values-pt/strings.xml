@@ -1330,6 +1330,10 @@
     <string name="appearance_transfer_failed">Não foi possível transferir este ficheiro de aparência. Verifique o ficheiro e tente novamente.</string>
     <string name="now_playing_last_detected">Última deteção</string>
     <string name="spotify_secure_storage_unavailable">O armazenamento seguro do Spotify está indisponível. Desbloqueie o dispositivo e tente novamente. Os dados encriptados foram preservados.</string>
+    <string name="home_trend_show_values">Mostrar valores do gráfico</string>
+    <string name="home_trend_hide_values">Ocultar valores do gráfico</string>
+    <string name="home_trend_previous">Anterior</string>
+    <string name="home_trend_value">%1$s · %2$d min</string>
     <string name="home_session_start_attribution">O tempo de audição é atribuído à data em que cada sessão começou.</string>
     <string name="settings_analytics_reset_id_desc">Altera o ID dos eventos futuros. Isso não exclui eventos já recebidos pelo serviço.</string>
     <string name="settings_clear_data_requesting">Redefinindo…</string>

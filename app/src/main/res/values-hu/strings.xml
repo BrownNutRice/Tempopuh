@@ -855,6 +855,10 @@
     <string name="appearance_transfer_failed">A megjelenési fájl átvitele sikertelen. Ellenőrizd a fájlt, és próbáld újra.</string>
     <string name="now_playing_last_detected">Utoljára észlelve</string>
     <string name="spotify_secure_storage_unavailable">A Spotify biztonságos tárhelye nem érhető el. Oldd fel az eszközt, és próbáld újra. A titkosított adatok megmaradtak.</string>
+    <string name="home_trend_show_values">Trendértékek megjelenítése</string>
+    <string name="home_trend_hide_values">Trendértékek elrejtése</string>
+    <string name="home_trend_previous">Előző</string>
+    <string name="home_trend_value">%1$s · %2$d perc</string>
     <string name="home_session_start_attribution">A hallgatási idő ahhoz a naphoz kerül, amikor a lejátszás elkezdődött.</string>
     <string name="settings_analytics_reset_id_desc">Módosítja a jövőbeli események azonosítóját. A szolgáltatáshoz már beérkezett eseményeket nem törli.</string>
     <string name="settings_clear_data_requesting">Visszaállítás…</string>
