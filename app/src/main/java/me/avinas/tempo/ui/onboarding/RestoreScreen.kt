@@ -161,7 +161,10 @@ fun RestoreScreen(
             spotifyJsonImportUiState is SpotifyJsonImportUiState.Importing ||
             youTubeMusicImportUiState is YouTubeMusicImportUiState.Importing
 
-    androidx.activity.compose.BackHandler(enabled = !isOperationActive, onBack = onBack)
+    // Keep ownership of system Back while the toolbar actions are disabled.
+    androidx.activity.compose.BackHandler {
+        if (!isOperationActive) onBack()
+    }
 
     val isSignedIn by viewModel.isSignedIn.collectAsState()
     val driveBackups by viewModel.driveBackups.collectAsState()
@@ -547,6 +550,7 @@ fun RestoreScreen(
             OnboardingFooter(
                 text = "Start Tracking",
                 onClick = safeOnFinish,
+                enabled = !isOperationActive,
             )
         }
 

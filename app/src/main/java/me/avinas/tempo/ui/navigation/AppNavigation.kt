@@ -129,8 +129,7 @@ fun AppNavigation(
                         )
                     }
 
-                    composable(Screen.Stats.route) {
-                        val scope = rememberCoroutineScope()
+                    composable(Screen.Stats.route) { entry ->
                         val navigationViewModel: me.avinas.tempo.ui.navigation.NavigationViewModel = hiltViewModel()
 
                         me.avinas.tempo.ui.stats.StatsScreen(
@@ -145,16 +144,20 @@ fun AppNavigation(
                                     navController.safeNavigate(Screen.ArtistDetails.createRouteByName(artistIdentifier))
                                 }
                             },
-                            onNavigateToAlbum = { albumInfo ->
-                                scope.launch {
-                                    val parts = albumInfo.split("|")
-                                    if (parts.size == 2) {
-                                        val albumId = navigationViewModel.getAlbumIdByTitleAndArtist(parts[0], parts[1])
-                                        if (albumId != null) {
-                                            navController.safeNavigate(Screen.AlbumDetails.createRoute(albumId))
-                                        }
-                                    }
+                            onNavigateToAlbum = navigateToAlbum@{ title, artist ->
+                                if (navController.currentBackStackEntry != entry ||
+                                    !entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                                    return@navigateToAlbum true
                                 }
+                                if (title.isBlank() || artist.isBlank()) return@navigateToAlbum false
+                                val albumId = navigationViewModel.getAlbumIdByTitleAndArtist(title, artist)
+                                if (navController.currentBackStackEntry != entry ||
+                                    !entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                                    return@navigateToAlbum true
+                                }
+                                if (albumId == null || albumId <= 0) return@navigateToAlbum false
+                                navController.safeNavigate(Screen.AlbumDetails.createRoute(albumId))
+                                true
                             },
                             onNavigateToSupportedApps = { navController.navigate(Screen.SupportedApps.route) },
                         )

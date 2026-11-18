@@ -14,6 +14,7 @@ import me.avinas.tempo.ui.theme.premiumClickable
 import me.avinas.tempo.ui.components.TempoDropdownMenu
 import me.avinas.tempo.ui.components.TempoDropdownMenuItem
 import me.avinas.tempo.ui.components.TempoIcons
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.Brush
@@ -89,6 +90,8 @@ import me.avinas.tempo.ui.components.GlassCard
 import me.avinas.tempo.ui.components.TimePeriodSelector
 import me.avinas.tempo.ui.theme.TempoSecondary
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import me.avinas.tempo.R
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -97,7 +100,7 @@ fun StatsScreen(
     viewModel: StatsViewModel = hiltViewModel(),
     onNavigateToTrack: (Long) -> Unit,
     onNavigateToArtist: (String) -> Unit,
-    onNavigateToAlbum: (String) -> Unit,
+    onNavigateToAlbum: suspend (title: String, artist: String) -> Boolean,
     onNavigateToSupportedApps: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -107,6 +110,10 @@ fun StatsScreen(
     val listState = remember(uiState.selectedTab, uiState.selectedTimeRange, uiState.selectedSortBy, uiState.searchQuery) { LazyListState() }
     val scope = rememberCoroutineScope()
     var showShareDialog by remember { mutableStateOf(false) }
+    var openingAlbum by remember { mutableStateOf(false) }
+    val albumSnackbar = remember { SnackbarHostState() }
+    val albumNotFound = stringResource(R.string.album_not_found)
+    val albumLookupFailed = stringResource(R.string.stats_error_title)
 
     // Search drawer state: closed = search icon only; open = field slides over the top.
     var searchOpen by remember { mutableStateOf(false) }
@@ -151,13 +158,30 @@ fun StatsScreen(
             viewModel.loadMore()
         }
     }
-    val onStatItemClick = remember(onNavigateToTrack, onNavigateToArtist, onNavigateToAlbum) {
-        { clickedItem: StatItem ->
-            walkthroughController.dismiss()
-            resolveNavigation(clickedItem, onNavigateToTrack, onNavigateToArtist, onNavigateToAlbum)
+    val onStatItemClick: (StatItem) -> Unit = { clickedItem ->
+        walkthroughController.dismiss()
+        resolveNavigation(clickedItem, onNavigateToTrack, onNavigateToArtist) { title, artist ->
+            if (!openingAlbum) {
+                openingAlbum = true
+                scope.launch {
+                    val error = try {
+                        if (onNavigateToAlbum(title, artist)) null else albumNotFound
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (failure: Exception) {
+                        android.util.Log.w("StatsScreen", "Could not open album", failure)
+                        albumLookupFailed
+                    } finally {
+                        openingAlbum = false
+                    }
+                    if (error != null) {
+                        albumSnackbar.currentSnackbarData?.dismiss()
+                        albumSnackbar.showSnackbar(error)
+                    }
+                }
+            }
         }
     }
-
 
     DeepOceanBackground {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -273,10 +297,7 @@ fun StatsScreen(
 
                                 HeroStatItem(
                                     item = firstItem,
-                                    onNavigate = { 
-                                        walkthroughController.dismiss()
-                                        resolveNavigation(firstItem, onNavigateToTrack, onNavigateToArtist, onNavigateToAlbum) 
-                                    }
+                                    onNavigate = { onStatItemClick(firstItem) }
                                 )
                             }
                             Spacer(modifier = Modifier.height(16.dp))
@@ -377,6 +398,19 @@ fun StatsScreen(
                     )
                 }
             }
+            if (openingAlbum) {
+                val loadingDescription = stringResource(R.string.ui_loading)
+                LinearProgressIndicator(
+                    modifier = Modifier.align(Alignment.TopCenter)
+                        .statusBarsPadding()
+                        .fillMaxWidth()
+                        .semantics { contentDescription = loadingDescription },
+                )
+            }
+            SnackbarHost(
+                hostState = albumSnackbar,
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 108.dp),
+            )
         }
 
         if (showShareDialog) {
@@ -392,16 +426,16 @@ fun StatsScreen(
 }
 
 // Helper for Navigation
-private fun resolveNavigation(
+internal fun resolveNavigation(
     item: StatItem,
     onTrack: (Long) -> Unit,
     onArtist: (String) -> Unit,
-    onAlbum: (String) -> Unit
+    onAlbum: (title: String, artist: String) -> Unit
 ) {
     when (item) {
         is TopTrack -> onTrack(item.trackId)
         is TopArtist -> if (item.artistId != null && item.artistId > 0) onArtist("id:${item.artistId}") else onArtist(item.artist)
-        is TopAlbum -> onAlbum("${item.album}|${item.artist}")
+        is TopAlbum -> onAlbum(item.album, item.artist)
     }
 }
 
