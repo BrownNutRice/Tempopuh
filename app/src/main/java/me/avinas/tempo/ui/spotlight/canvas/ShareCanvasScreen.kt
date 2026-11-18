@@ -1,6 +1,9 @@
 package me.avinas.tempo.ui.spotlight.canvas
 
-import android.graphics.Bitmap
+import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.res.stringResource
+import me.avinas.tempo.R
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -86,40 +89,58 @@ fun ShareCanvasScreen(
         widthByHeight to maxCanvasHeight
     }
     
-    var canvasState by remember { mutableStateOf(CanvasState()) }
-    
-    LaunchedEffect(allCards, isLoading, snapshot) {
-        if (!isLoading && allCards.isNotEmpty() && canvasState.availableCards.isEmpty()) {
-            val initialCard = snapshot ?: viewModel.getInitialCard()
-            // Scale card to 50% canvas width (base 320dp)
-            val targetCardWidthPx = with(density) { canvasWidth.toPx() * 0.5f }
-            val baseCardWidthPx = with(density) { 320.dp.toPx() }
-            val cardScale = targetCardWidthPx / baseCardWidthPx
-            
-            // The card lays out by its top-left at its unscaled 320x560dp size: `.offset` runs
-            // before `.graphicsLayer`, which scales around the center, so layout center ==
-            // visual center. Center the unscaled box on the canvas.
-            
-            val centerX = with(density) { (canvasWidth / 2).toPx() - (320.dp.toPx() / 2) } 
-            val centerY = with(density) { (canvasHeight / 2).toPx() - (560.dp.toPx() / 2) }
-            
-            canvasState = CanvasState(
-                canvasItems = if (initialCard != null) {
-                    listOf(
-                        CanvasCardItem(
-                            cardData = initialCard,
-                            offsetX = centerX,
-                            offsetY = centerY,
-                            scale = cardScale,
-                            rotation = 0f
-                        )
-                    )
-                } else emptyList(),
-                availableCards = allCards
-            )
+    var canvasState by viewModel.editorState
+    val editorReady by viewModel.editorReady
+    val viewport = with(density) { CanvasViewport(canvasWidth.toPx(), canvasHeight.toPx(), this.density) }
+    LaunchedEffect(allCards, isLoading, snapshot, viewport) {
+        if (!isLoading && viewport.width > 0 && viewport.height > 0) {
+            viewModel.prepareEditor(viewport, allCards, snapshot ?: viewModel.getInitialCard())
         }
     }
-    
+
+    var showExitDialog by rememberSaveable { mutableStateOf(false) }
+    var savingDraft by remember { mutableStateOf(false) }
+    var saveFailed by rememberSaveable { mutableStateOf(false) }
+    val requestClose: () -> Unit = {
+        if (!savingDraft) {
+            if (viewModel.isDirty()) showExitDialog = true else onClose()
+        }
+    }
+    BackHandler(enabled = !canvasState.showTextEditor && !showExitDialog, onBack = requestClose)
+
+    if (showExitDialog) {
+        AlertDialog(
+            onDismissRequest = { if (!savingDraft) showExitDialog = false },
+            title = { Text(stringResource(R.string.canvas_draft_exit_title)) },
+            text = {
+                Text(stringResource(if (saveFailed) R.string.canvas_draft_save_failed else R.string.canvas_draft_exit_body))
+            },
+            confirmButton = {
+                TextButton(enabled = !savingDraft, onClick = {
+                    savingDraft = true
+                    saveFailed = false
+                    coroutineScope.launch {
+                        try {
+                            if (viewModel.saveDraft()) onClose() else saveFailed = true
+                        } finally {
+                            savingDraft = false
+                        }
+                    }
+                }) { Text(stringResource(R.string.canvas_draft_save)) }
+            },
+            dismissButton = {
+                Column(horizontalAlignment = Alignment.End) {
+                    TextButton(enabled = !savingDraft, onClick = onClose) {
+                        Text(stringResource(R.string.canvas_draft_discard))
+                    }
+                    TextButton(enabled = !savingDraft, onClick = { showExitDialog = false }) {
+                        Text(stringResource(R.string.canvas_draft_keep_editing))
+                    }
+                }
+            },
+        )
+    }
+
     LaunchedEffect(Unit) {
         captureController.capturedBitmap.collect { bitmap ->
             val success = ShareUtils.shareBitmap(context, bitmap, TempoFeature.SHARE_CANVAS)
@@ -136,7 +157,7 @@ fun ShareCanvasScreen(
     me.avinas.tempo.ui.components.DeepOceanBackground(
         modifier = Modifier.fillMaxSize()
     ) {
-        if (isLoading) {
+        if (!editorReady) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -352,7 +373,7 @@ fun ShareCanvasScreen(
                     .size(44.dp)
                     .clip(CircleShape)
                     .background(appearancePalette.surfaceSunken.copy(alpha = 0.8f))
-                    .clickable(onClick = onClose),
+                    .clickable(onClick = requestClose),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -382,7 +403,7 @@ fun ShareCanvasScreen(
         }
         
         // Floating Dock Toolbar
-        if (!isLoading) {
+        if (editorReady) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)

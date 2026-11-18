@@ -868,4 +868,10 @@
     <string name="history_delete_failed">Nem sikerült törölni a bejegyzést.</string>
     <string name="history_correction_failed">Nem sikerült menteni a javítást.</string>
     <string name="history_load_more">Továbbiak betöltése</string>
+    <string name="canvas_draft_exit_title">Kilépsz a megosztási vászonról?</string>
+    <string name="canvas_draft_exit_body">Mentsd a piszkozatot, hogy ugyanarról a Spotlight-kártyáról és időszakból nyithasd meg újra.</string>
+    <string name="canvas_draft_save">Piszkozat mentése</string>
+    <string name="canvas_draft_discard">Módosítások elvetése</string>
+    <string name="canvas_draft_keep_editing">Szerkesztés folytatása</string>
+    <string name="canvas_draft_save_failed">Nem sikerült menteni a piszkozatot. A módosításaid megmaradtak.</string>
 </resources>

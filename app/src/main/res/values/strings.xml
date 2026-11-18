@@ -1691,4 +1691,10 @@
     <string name="history_delete_failed">Could not delete the listening entry.</string>
     <string name="history_correction_failed">Could not save the correction.</string>
     <string name="history_load_more">Load more</string>
+    <string name="canvas_draft_exit_title">Leave Share Canvas?</string>
+    <string name="canvas_draft_exit_body">Save this draft to reopen it from the same Spotlight card and period.</string>
+    <string name="canvas_draft_save">Save draft</string>
+    <string name="canvas_draft_discard">Discard changes</string>
+    <string name="canvas_draft_keep_editing">Keep editing</string>
+    <string name="canvas_draft_save_failed">Could not save this draft. Your edits are still here.</string>
 </resources>

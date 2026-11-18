@@ -1232,4 +1232,10 @@
     <string name="history_delete_failed">Impossible de supprimer cette écoute.</string>
     <string name="history_correction_failed">Impossible d’enregistrer la correction.</string>
     <string name="history_load_more">Charger plus</string>
+    <string name="canvas_draft_exit_title">Quitter le canevas de partage ?</string>
+    <string name="canvas_draft_exit_body">Enregistrez le brouillon pour le rouvrir depuis la même carte Spotlight et la même période.</string>
+    <string name="canvas_draft_save">Enregistrer le brouillon</string>
+    <string name="canvas_draft_discard">Abandonner les modifications</string>
+    <string name="canvas_draft_keep_editing">Continuer la modification</string>
+    <string name="canvas_draft_save_failed">Impossible d’enregistrer le brouillon. Vos modifications sont toujours là.</string>
 </resources>

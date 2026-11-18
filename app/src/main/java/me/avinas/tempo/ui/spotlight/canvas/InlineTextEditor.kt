@@ -5,6 +5,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -58,13 +59,23 @@ fun InlineTextEditor(
     modifier: Modifier = Modifier
 ) {
     val palette = LocalTempoPalette.current
-    var localText by remember { mutableStateOf(textItem.text.takeIf { it != "Tap to edit" } ?: "") }
-    var localStyle by remember { mutableStateOf(textItem.style) }
+    val localText = textItem.text.takeUnless { it == "Tap to edit" }.orEmpty()
+    val localStyle = textItem.style
     var showColorPicker by remember { mutableStateOf(false) }
-    
+
+    fun updateStyle(style: TextStyle) {
+        onTextChanged(textItem.copy(style = style))
+    }
+
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
-    
+    val finishEditing: () -> Unit = {
+        onTextChanged(textItem.copy(text = localText.ifEmpty { "Text" }))
+        keyboardController?.hide()
+        onDismiss()
+    }
+    BackHandler(onBack = finishEditing)
+
     // Auto-focus the text field
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
@@ -87,12 +98,7 @@ fun InlineTextEditor(
                 .statusBarsPadding()
                 .padding(16.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .clickable(onClick = {
-                    val finalText = localText.ifEmpty { "Text" }
-                    onTextChanged(textItem.copy(text = finalText, style = localStyle))
-                    keyboardController?.hide()
-                    onDismiss()
-                })
+                .clickable(onClick = finishEditing)
                 .padding(horizontal = 12.dp, vertical = 8.dp)
         )
         
@@ -114,7 +120,7 @@ fun InlineTextEditor(
             
             BasicTextField(
                 value = localText,
-                onValueChange = { localText = it },
+                onValueChange = { onTextChanged(textItem.copy(text = it.take(MAX_CANVAS_TEXT_LENGTH))) },
                 textStyle = androidx.compose.ui.text.TextStyle(
                     fontFamily = localStyle.fontPreset.fontFamily,
                     fontSize = localStyle.fontSize.sp,
@@ -130,14 +136,7 @@ fun InlineTextEditor(
                 ),
                 cursorBrush = SolidColor(palette.accent),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        val finalText = localText.ifEmpty { "Text" }
-                        onTextChanged(textItem.copy(text = finalText, style = localStyle))
-                        keyboardController?.hide()
-                        onDismiss()
-                    }
-                ),
+                keyboardActions = KeyboardActions(onDone = { finishEditing() }),
                 modifier = Modifier
                     .fillMaxWidth()
                     .then(previewBgModifier)
@@ -195,7 +194,7 @@ fun InlineTextEditor(
                             color = color,
                             isSelected = localStyle.color == color,
                             onClick = { 
-                                localStyle = localStyle.copy(color = color)
+                                updateStyle(localStyle.copy(color = color))
                             }
                         )
                     }
@@ -250,7 +249,7 @@ fun InlineTextEditor(
                             TextAlign.Left -> TextAlign.Right
                             else -> TextAlign.Center
                         }
-                        localStyle = localStyle.copy(alignment = newAlign)
+                        updateStyle(localStyle.copy(alignment = newAlign))
                     }) {
                         Icon(
                             imageVector = when(localStyle.alignment) {
@@ -270,16 +269,16 @@ fun InlineTextEditor(
                         // Cycle: None -> Outline -> Filled -> Filled (Inverted)
                         if (!localStyle.hasBackground && !localStyle.hasOutline) {
                             // -> Outline
-                            localStyle = localStyle.copy(hasOutline = true)
+                            updateStyle(localStyle.copy(hasOutline = true))
                         } else if (localStyle.hasOutline) {
                             // -> Filled
-                            localStyle = localStyle.copy(hasOutline = false, hasBackground = true, backgroundColor = Color.Black)
+                            updateStyle(localStyle.copy(hasOutline = false, hasBackground = true, backgroundColor = Color.Black))
                         } else if (localStyle.hasBackground && localStyle.backgroundColor == Color.Black) {
                              // -> Filled (White/Inverted)
-                             localStyle = localStyle.copy(backgroundColor = Color.White, color = Color.Black)
+                             updateStyle(localStyle.copy(backgroundColor = Color.White, color = Color.Black))
                         } else {
                             // -> None
-                            localStyle = localStyle.copy(hasBackground = false, hasOutline = false, color = Color.White) // Reset color to white for safety
+                            updateStyle(localStyle.copy(hasBackground = false, hasOutline = false, color = Color.White)) // Reset color to white for safety
                         }
                     }) {
                         Icon(
@@ -302,7 +301,7 @@ fun InlineTextEditor(
                     FontStyleChip(
                         name = preset.displayName,
                         isSelected = localStyle.fontPreset == preset,
-                        onClick = { localStyle = localStyle.copy(fontPreset = preset) }
+                        onClick = { updateStyle(localStyle.copy(fontPreset = preset)) }
                     )
                  }
             }

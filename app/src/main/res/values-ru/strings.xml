@@ -1460,4 +1460,10 @@
     <string name="history_delete_failed">Не удалось удалить запись.</string>
     <string name="history_correction_failed">Не удалось сохранить исправление.</string>
     <string name="history_load_more">Загрузить ещё</string>
+    <string name="canvas_draft_exit_title">Закрыть холст для публикации?</string>
+    <string name="canvas_draft_exit_body">Сохраните черновик, чтобы открыть его из той же карточки Spotlight и за тот же период.</string>
+    <string name="canvas_draft_save">Сохранить черновик</string>
+    <string name="canvas_draft_discard">Отменить изменения</string>
+    <string name="canvas_draft_keep_editing">Продолжить редактирование</string>
+    <string name="canvas_draft_save_failed">Не удалось сохранить черновик. Ваши изменения пока на месте.</string>
 </resources>

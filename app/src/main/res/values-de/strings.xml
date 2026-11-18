@@ -1234,4 +1234,10 @@
     <string name="history_delete_failed">Der Eintrag konnte nicht gelöscht werden.</string>
     <string name="history_correction_failed">Die Korrektur konnte nicht gespeichert werden.</string>
     <string name="history_load_more">Mehr laden</string>
+    <string name="canvas_draft_exit_title">Share Canvas verlassen?</string>
+    <string name="canvas_draft_exit_body">Speichere den Entwurf, um ihn über dieselbe Spotlight-Karte und denselben Zeitraum erneut zu öffnen.</string>
+    <string name="canvas_draft_save">Entwurf speichern</string>
+    <string name="canvas_draft_discard">Änderungen verwerfen</string>
+    <string name="canvas_draft_keep_editing">Weiter bearbeiten</string>
+    <string name="canvas_draft_save_failed">Der Entwurf konnte nicht gespeichert werden. Deine Änderungen sind noch da.</string>
 </resources>
