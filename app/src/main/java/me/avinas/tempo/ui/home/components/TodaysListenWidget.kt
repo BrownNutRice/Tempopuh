@@ -87,7 +87,7 @@ fun TodaysListenWidget(
                 onClickLabel = "Open today's overview"
             ) { overviewAction?.invoke() },
         shape = RoundedCornerShape(22.dp),
-        accentColor = TempoPrimary,
+        accentColor = MaterialTheme.colorScheme.primary,
         accentStrength = 0.05f,
         variant = GlassCardVariant.Obsidian,
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)
@@ -115,14 +115,14 @@ fun TodaysListenWidget(
                         Text(
                             text = "TODAY · $currentDateLabel",
                             style = KickerSmall,
-                            color = TempoPrimaryMuted,
+                            color = MaterialTheme.colorScheme.primary,
                             letterSpacing = 0.7.sp
                         )
 
                         Text(
                             text = "·",
                             style = CaptionSmall,
-                            color = TextQuaternary
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
                         DayOverDayTrendInline(
@@ -137,7 +137,7 @@ fun TodaysListenWidget(
                         fontWeight = FontWeight.Bold,
                         fontSize = 26.sp,
                         lineHeight = 29.sp,
-                        color = TextPrimary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     // Volume summary
@@ -152,7 +152,7 @@ fun TodaysListenWidget(
                             }
                         },
                         style = CaptionSmall,
-                        color = TextSecondary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
@@ -176,8 +176,8 @@ fun TodaysListenWidget(
                         Brush.horizontalGradient(
                             listOf(
                                 Color.Transparent,
-                                GlassBorderSoft,
-                                GlassBorderSoft,
+                                MaterialTheme.colorScheme.outlineVariant,
+                                MaterialTheme.colorScheme.outlineVariant,
                                 Color.Transparent
                             )
                         )
@@ -224,14 +224,14 @@ private fun DayOverDayTrendInline(
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
                         contentDescription = null,
-                        tint = TempoPrimary,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(11.dp)
                     )
                     Text(
                         text = "+${timeChange.roundToInt()}%",
                         style = CaptionSmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = TempoPrimary
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -243,14 +243,14 @@ private fun DayOverDayTrendInline(
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.TrendingDown,
                         contentDescription = null,
-                        tint = TextTertiary,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(11.dp)
                     )
                     Text(
                         text = "-${abs(timeChange).roundToInt()}%",
                         style = CaptionSmall,
                         fontWeight = FontWeight.Medium,
-                        color = TextTertiary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -262,14 +262,14 @@ private fun DayOverDayTrendInline(
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.TrendingFlat,
                         contentDescription = null,
-                        tint = TextSecondary,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(11.dp)
                     )
                     Text(
                         text = "even",
                         style = CaptionSmall,
                         fontWeight = FontWeight.Medium,
-                        color = TextSecondary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -278,7 +278,7 @@ private fun DayOverDayTrendInline(
         Text(
             text = "today",
             style = CaptionSmall,
-            color = TextTertiary
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -347,36 +347,21 @@ private fun CompactDayCadenceEqualizer(
                     0.08f
                 }
                 val barBrush: Brush = when {
-                    isCurrentHour && playCount > 0 -> {
-                        Brush.verticalGradient(
-                            listOf(
-                                TempoAccentBright,
-                                TempoPrimary
-                            )
-                        )
-                    }
-                    isPeak -> {
-                        Brush.verticalGradient(
-                            listOf(
-                                TempoAccent,
-                                TempoPrimary
-                            )
-                        )
-                    }
+                    (isCurrentHour || isPeak) && playCount > 0 -> SolidColor(MaterialTheme.colorScheme.primary)
                     playCount > 0 -> {
                         val alpha = (0.7f + 0.3f * (playCount.toFloat() / maxPlays)).coerceIn(0.6f, 1f)
                         Brush.verticalGradient(
                             listOf(
-                                TempoPrimary.copy(alpha = alpha),
-                                TempoPrimaryDeep.copy(alpha = alpha * 0.85f)
+                                MaterialTheme.colorScheme.primary.copy(alpha = alpha),
+                                MaterialTheme.colorScheme.primary.copy(alpha = alpha * 0.85f)
                             )
                         )
                     }
                     isCurrentHour -> {
-                        SolidColor(TempoPrimary.copy(alpha = 0.35f))
+                        SolidColor(MaterialTheme.colorScheme.primary.copy(alpha = 0.35f))
                     }
                     else -> {
-                        SolidColor(Color.White.copy(alpha = 0.08f))
+                        SolidColor(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
                     }
                 }
 
@@ -402,7 +387,7 @@ private fun CompactDayCadenceEqualizer(
                 text = formatHourLabel(startHour),
                 style = CaptionSmall,
                 fontSize = 10.sp,
-                color = TextQuaternary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 0.2.sp
             )
 
@@ -411,7 +396,7 @@ private fun CompactDayCadenceEqualizer(
                 style = CaptionSmall,
                 fontSize = 10.sp,
                 fontWeight = if (endHour == currentHour) FontWeight.Bold else FontWeight.Normal,
-                color = if (endHour == currentHour) TempoPrimary else TextQuaternary,
+                color = if (endHour == currentHour) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 0.2.sp
             )
         }
@@ -446,8 +431,8 @@ private fun CompactTrackRow(
             modifier = Modifier
                 .size(40.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(TempoDarkSurfaceElevated)
-                .border(0.5.dp, GlassBorderMedium, RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
         ) {
             CachedAsyncImage(
                 imageUrl = track.albumArtUrl,
@@ -458,13 +443,13 @@ private fun CompactTrackRow(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(TempoPrimary.copy(alpha = 0.12f)),
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.MusicNote,
                             contentDescription = null,
-                            tint = TempoPrimary.copy(alpha = 0.7f),
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -485,27 +470,27 @@ private fun CompactTrackRow(
                     text = if (track.playCount > 1) "MOST PLAYED" else "LEAD TRACK",
                     style = KickerSmall,
                     fontSize = 10.5.sp,
-                    color = TempoPrimary,
+                    color = MaterialTheme.colorScheme.primary,
                     letterSpacing = 0.6.sp
                 )
 
                 Text(
                     text = "·",
                     style = CaptionSmall,
-                    color = TextQuaternary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Text(
                     text = "${track.playCount} ${if (track.playCount == 1) "play" else "plays"}",
                     style = CaptionSmall,
-                    color = TextTertiary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 if (track.totalTimeMs > 0) {
                     Text(
                         text = "· ${formatTrackDuration(track.totalTimeMs)}",
                         style = CaptionSmall,
-                        color = TextTertiary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -515,7 +500,7 @@ private fun CompactTrackRow(
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -524,7 +509,7 @@ private fun CompactTrackRow(
                 text = track.artist,
                 style = MaterialTheme.typography.bodySmall,
                 fontSize = 12.sp,
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -535,14 +520,14 @@ private fun CompactTrackRow(
             modifier = Modifier
                 .size(28.dp)
                 .clip(CircleShape)
-                .background(TempoPrimary.copy(alpha = 0.08f))
-                .border(0.5.dp, TempoPrimary.copy(alpha = 0.20f), CircleShape),
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                .border(0.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.20f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.ArrowForwardIos,
                 contentDescription = "View track details",
-                tint = TempoPrimary,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(10.dp)
             )
         }
@@ -579,20 +564,20 @@ private fun CompactArtistRow(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(TempoDarkSurfaceElevated)
-                .border(0.5.dp, GlassBorderMedium, CircleShape),
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
             contentScale = ContentScale.Crop,
             placeholder = {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(TempoInfo.copy(alpha = 0.15f)),
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Person,
                         contentDescription = null,
-                        tint = TempoInfoSoft,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -608,7 +593,7 @@ private fun CompactArtistRow(
                 text = "TOP ARTIST",
                 style = KickerSmall,
                 fontSize = 10.5.sp,
-                color = TempoInfoSoft,
+                color = MaterialTheme.colorScheme.primary,
                 letterSpacing = 0.6.sp
             )
             Text(
@@ -616,14 +601,14 @@ private fun CompactArtistRow(
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = "${artist.playCount} ${if (artist.playCount == 1) "play" else "plays"} today",
                 style = CaptionSmall,
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -634,14 +619,14 @@ private fun CompactArtistRow(
             modifier = Modifier
                 .size(28.dp)
                 .clip(CircleShape)
-                .background(TempoInfo.copy(alpha = 0.10f))
-                .border(0.5.dp, TempoInfo.copy(alpha = 0.24f), CircleShape),
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f))
+                .border(0.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.24f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.ArrowForwardIos,
                 contentDescription = "View artist details",
-                tint = TempoInfoSoft,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(10.dp)
             )
         }
@@ -669,14 +654,14 @@ private fun CompactRecapFooter(
             Icon(
                 imageVector = Icons.Rounded.GraphicEq,
                 contentDescription = null,
-                tint = TempoPrimary,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(14.dp)
             )
             val artistsCount = todayOverview?.uniqueArtistsCount ?: 0
             Text(
                 text = if (artistsCount > 0) "$artistsCount artists active today" else "Today's recap",
                 style = CaptionSmall,
-                color = TextSecondary
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
@@ -693,12 +678,12 @@ private fun CompactRecapFooter(
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 11.sp,
-                color = TempoAccent
+                color = MaterialTheme.colorScheme.primary
             )
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.ArrowForwardIos,
                 contentDescription = null,
-                tint = TempoAccent,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(9.dp)
             )
         }

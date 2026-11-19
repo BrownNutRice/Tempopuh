@@ -85,7 +85,7 @@ fun TempoTheme(
 ) {
     val effective = if (preview) appearance else appearance.forLiveApp()
     val context = LocalContext.current
-    val basePalette = androidx.compose.runtime.remember(effective.preset, effective.tone, darkTheme) {
+    val basePalette = androidx.compose.runtime.remember(effective.preset, effective.tone, effective.accentSource, effective.customAccent, darkTheme) {
         AppearancePaletteResolver.resolve(effective, darkTheme)
     }
     val palette = if (effective.accentSource == AppearanceAccentSource.WALLPAPER && Build.VERSION.SDK_INT >= 31) {
@@ -94,7 +94,7 @@ fun TempoTheme(
     } else basePalette
     val policy = rememberAppearanceRuntimePolicy(effective)
     val colorScheme = if (effective.preset == AppearancePreset.ABYSS && effective.tone == AppearanceTone.DARK &&
-        effective.accentSource != AppearanceAccentSource.WALLPAPER) DarkColorScheme else palette.materialColorScheme()
+        (effective.accentSource == AppearanceAccentSource.PRESET || effective.accentSource == AppearanceAccentSource.ARTWORK)) DarkColorScheme else palette.materialColorScheme()
 
     val view = LocalView.current
     if (!view.isInEditMode && !preview) {

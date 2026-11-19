@@ -13,7 +13,7 @@ import me.avinas.tempo.ui.theme.TextOnAccent
 import me.avinas.tempo.ui.theme.GoldDark
 import me.avinas.tempo.ui.theme.TextPrimary
 import me.avinas.tempo.ui.theme.TextSecondary
-import me.avinas.tempo.ui.theme.TextTertiary
+import me.avinas.tempo.ui.theme.LocalTempoPalette
 import me.avinas.tempo.ui.theme.innerShadow
 import me.avinas.tempo.ui.theme.premiumClickable
 import me.avinas.tempo.ui.theme.rememberReducedMotion
@@ -104,6 +104,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import me.avinas.tempo.R
+import me.avinas.tempo.ui.appearance.AppearancePaletteResolver
 import me.avinas.tempo.ui.components.LoadErrorNotice
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -492,12 +493,16 @@ fun HeroStatItem(item: StatItem, onNavigate: () -> Unit) {
         is TopAlbum -> stringResource(R.string.stats_rank_1_album)
     }
 
+    val palette = LocalTempoPalette.current
+    val rankColor = remember(palette) { AppearancePaletteResolver.readableAccent(palette, GoldDark, palette.surfaceSunken) }
+    val scheme = MaterialTheme.colorScheme
+
     GlassCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
             .premiumClickable(onClick = onNavigate),
-        backgroundColor = GoldDark.copy(alpha = 0.15f), // Reduced from 0.25f for better blend
+        backgroundColor = rankColor.copy(alpha = 0.12f), // Reduced from 0.25f for better blend
         contentPadding = PaddingValues(16.dp) // Reduced from 24.dp
     ) {
         Row(
@@ -506,7 +511,7 @@ fun HeroStatItem(item: StatItem, onNavigate: () -> Unit) {
             // Big Image
             Box(contentAlignment = Alignment.Center) {
                 // Glow Layer
-                Box(modifier = Modifier.size(90.dp).clip(CircleShape).background(GoldDark.copy(alpha = 0.25f))) // Reduced glow size
+                Box(modifier = Modifier.size(90.dp).clip(CircleShape).background(rankColor.copy(alpha = 0.22f))) // Reduced glow size
                 
                 // Image Layer
                 if (imageUrl != null) {
@@ -518,7 +523,7 @@ fun HeroStatItem(item: StatItem, onNavigate: () -> Unit) {
                         targetSizeDp = 80 // Downsample for faster decode & less memory
                     )
                 } else {
-                     Box(modifier = Modifier.size(80.dp).clip(CircleShape).background(Color.DarkGray), contentAlignment = Alignment.Center) {
+                     Box(modifier = Modifier.size(80.dp).clip(CircleShape).background(scheme.surfaceContainerHigh), contentAlignment = Alignment.Center) {
                          Text(title.firstOrNull()?.toString() ?: "?", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onSurface)
                      }
                 }
@@ -527,7 +532,7 @@ fun HeroStatItem(item: StatItem, onNavigate: () -> Unit) {
             Spacer(modifier = Modifier.width(20.dp))
             
             Column(modifier = Modifier.weight(1f)) {
-                Text(label, style = MaterialTheme.typography.labelMedium, color = GoldDark, fontWeight = FontWeight.Bold)
+                Text(label, style = MaterialTheme.typography.labelMedium, color = rankColor, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
                 Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
@@ -572,6 +577,8 @@ fun GlassStatItem(rank: Int, item: StatItem, onClick: (StatItem) -> Unit) {
         is TopAlbum -> item.totalTimeMs
     }
 
+    val palette = LocalTempoPalette.current
+    val scheme = MaterialTheme.colorScheme
     val tintColor: Color
     val bgAlpha: Float
     when (rank) {
@@ -597,6 +604,10 @@ fun GlassStatItem(rank: Int, item: StatItem, onClick: (StatItem) -> Unit) {
     // Since this composable handles rank 2+, we check against 3.
     val variant = if (rank <= 3) me.avinas.tempo.ui.components.GlassCardVariant.HighProminence else me.avinas.tempo.ui.components.GlassCardVariant.LowProminence
 
+    val rankColor = remember(palette, tintColor) {
+        AppearancePaletteResolver.readableAccent(palette, tintColor, palette.surfaceSunken)
+    }
+
     GlassCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -617,12 +628,12 @@ fun GlassStatItem(rank: Int, item: StatItem, onClick: (StatItem) -> Unit) {
                 text = "#$rank",
                 style = MaterialTheme.typography.titleMedium, // Reduced from Large
                 fontWeight = FontWeight.Bold,
-                color = if (rank <= 3) tintColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (rank <= 3) rankColor else scheme.onSurfaceVariant,
                 modifier = Modifier.width(36.dp)
             )
             
             Box(
-                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)).background(Color.White.copy(alpha = 0.08f)),
+                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)).background(scheme.surfaceContainerHigh),
                 contentAlignment = Alignment.Center
             ) {
                 if (imageUrl != null) {
@@ -634,7 +645,7 @@ fun GlassStatItem(rank: Int, item: StatItem, onClick: (StatItem) -> Unit) {
                         targetSizeDp = 48 // Downsample for faster decode & less memory
                     )
                 } else {
-                    Icon(Icons.Rounded.MusicNote, contentDescription = null, tint = Color.White.copy(alpha = 0.5f))
+                    Icon(Icons.Rounded.MusicNote, contentDescription = null, tint = scheme.onSurfaceVariant)
                 }
             }
             
@@ -674,10 +685,7 @@ fun EmptyStatsState() {
 
 @Composable
 fun StatsTabSelector(selectedTab: StatsTab, onTabSelected: (StatsTab) -> Unit) {
-    val palette = me.avinas.tempo.ui.theme.LocalTempoPalette.current
-    val selectedBackground = remember(palette) {
-        Brush.verticalGradient(listOf(palette.accent, palette.accent.copy(alpha = 0.87f)))
-    }
+    val palette = LocalTempoPalette.current
     val selectedBorder = remember(palette) {
         Brush.verticalGradient(listOf(palette.onAccent.copy(alpha = 0.34f), Color.Transparent))
     }
@@ -689,19 +697,14 @@ fun StatsTabSelector(selectedTab: StatsTab, onTabSelected: (StatsTab) -> Unit) {
             .clip(RoundedCornerShape(25.dp))
             .background(palette.surfaceSunken)
             .innerShadow(
-                color = Color.Black.copy(alpha = 0.55f),
+                color = Color.Black.copy(alpha = if (palette.isDark) 0.55f else 0.12f),
                 cornersRadius = 25.dp,
                 blur = 4.dp,
                 offsetY = 2.dp
             )
             .border(
                 1.dp,
-                Brush.verticalGradient(
-                    listOf(
-                        Color.White.copy(alpha = 0.14f),
-                        Color.White.copy(alpha = 0.03f)
-                    )
-                ),
+                MaterialTheme.colorScheme.outlineVariant,
                 RoundedCornerShape(25.dp)
             )
             .padding(3.dp)
@@ -731,7 +734,7 @@ fun StatsTabSelector(selectedTab: StatsTab, onTabSelected: (StatsTab) -> Unit) {
                                         ambientColor = Color.Black.copy(alpha = 0.7f)
                                     )
                                     .clip(RoundedCornerShape(22.dp))
-                                    .background(selectedBackground)
+                                    .background(palette.accent)
                                     .border(
                                         1.dp,
                                         selectedBorder,
@@ -866,7 +869,7 @@ private fun SearchEmptyState(query: String) {
                 imageVector = Icons.Default.Search,
                 contentDescription = null,
                 modifier = Modifier.size(40.dp),
-                tint = TextTertiary
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
@@ -894,7 +897,7 @@ private fun StatsErrorState(message: String, onRetry: () -> Unit, modifier: Modi
                 imageVector = Icons.AutoMirrored.Filled.TrendingDown,
                 contentDescription = null,
                 modifier = Modifier.size(48.dp),
-                tint = TextTertiary
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(

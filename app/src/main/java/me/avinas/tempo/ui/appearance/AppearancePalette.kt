@@ -9,7 +9,7 @@ import androidx.compose.ui.graphics.Color
 
 /**
  * Shared design tokens. These intentionally keep the legacy Abyss values unchanged.
- * The six presets support dark and opt-in beta light/system surface roles.
+ * Presets have dedicated Light surface colors as well as Dark surface roles.
  * Some artwork-specific illustrations intentionally retain their design colors.
  */
 data class AppearancePalette(
@@ -102,6 +102,20 @@ object AppearancePaletteResolver {
             onSurface = Color(0xFFF2ECFF), mutedText = Color(0xFFB7AFD2),
             border = Color(0xFF544776),
         )
+        AppearancePreset.VERDANT -> AppearancePalette(
+            preset = preset, accent = Color(0xFFACD47E), onAccent = Color(0xFF16230D),
+            background = Color(0xFF111C12), topBackground = Color(0xFF233524),
+            surface = Color(0xFF1B2C1D), elevatedSurface = Color(0xFF293D29),
+            surfaceSunken = Color(0xFF0B140D), onSurface = Color(0xFFF1F7E8),
+            mutedText = Color(0xFFB9C9AF), border = Color(0xFF526E50),
+        )
+        AppearancePreset.SLATE -> AppearancePalette(
+            preset = preset, accent = Color(0xFFBDC9DB), onAccent = Color(0xFF18202D),
+            background = Color(0xFF16191F), topBackground = Color(0xFF272D38),
+            surface = Color(0xFF1E252E), elevatedSurface = Color(0xFF303946),
+            surfaceSunken = Color(0xFF101218), onSurface = Color(0xFFF1F3F7),
+            mutedText = Color(0xFFBAC2CF), border = Color(0xFF576273),
+        )
         // Glacier Night can also resolve to the experimental Glacier Light palette.
         AppearancePreset.GLACIER -> AppearancePalette(
             preset = preset,
@@ -121,44 +135,66 @@ object AppearancePaletteResolver {
             else -> true
         }
         val base = forPreset(settings.preset)
-        if (settings.tone == AppearanceTone.OLED) return base.copy(
-            background = Color.Black, topBackground = Color.Black, surfaceSunken = Color.Black,
-        )
-        if (dark) return base
-        val warm = settings.preset == AppearancePreset.SOLSTICE || settings.preset == AppearancePreset.EMBER
-        val accent = when (settings.preset) {
-            AppearancePreset.ABYSS -> Color(0xFF006B57)
-            AppearancePreset.OBSIDIAN_GOLD -> Color(0xFF73530B)
-            AppearancePreset.AURORA -> Color(0xFF6541A5)
-            AppearancePreset.GLACIER -> Color(0xFF16618C)
-            AppearancePreset.EMBER -> Color(0xFFA22B48)
-            AppearancePreset.SOLSTICE -> Color(0xFF994421)
+        val palette = when {
+            settings.tone == AppearanceTone.OLED -> base.copy(
+                background = Color.Black, topBackground = Color.Black, surfaceSunken = Color.Black,
+            )
+            dark -> base
+            else -> lightPalette(base)
+        }
+        val custom = if (settings.accentSource == AppearanceAccentSource.CUSTOM) {
+            normalizeAccentHex(settings.customAccent)?.toLong(16)
+        } else null
+        return if (custom != null) withAccent(palette, Color(0xFF000000L or custom)) else palette
+    }
+
+    private fun lightPalette(base: AppearancePalette): AppearancePalette {
+        val (canvas, accent) = when (base.preset) {
+            AppearancePreset.ABYSS -> Color(0xFFEAF5F0) to Color(0xFF00614E)
+            AppearancePreset.OBSIDIAN_GOLD -> Color(0xFFF6EED8) to Color(0xFF6A4B05)
+            AppearancePreset.AURORA -> Color(0xFFF0EAF9) to Color(0xFF5E3799)
+            AppearancePreset.GLACIER -> Color(0xFFE8F2FA) to Color(0xFF155782)
+            AppearancePreset.EMBER -> Color(0xFFFAE9EF) to Color(0xFF942443)
+            AppearancePreset.SOLSTICE -> Color(0xFFFFEEDC) to Color(0xFF8B3A1B)
+            AppearancePreset.VERDANT -> Color(0xFFEDF4E3) to Color(0xFF3D5E22)
+            AppearancePreset.SLATE -> Color(0xFFEDF0F4) to Color(0xFF46556D)
         }
         return base.copy(
-            accent = accent, onAccent = Color.White,
-            background = if (warm) Color(0xFFFFF7EA) else Color(0xFFEFF6FC),
-            topBackground = if (warm) Color(0xFFFFFBF4) else Color(0xFFF8FCFF),
-            surface = if (warm) Color(0xFFFFFBF4) else Color(0xFFF8FCFF),
-            elevatedSurface = if (warm) Color(0xFFF3E7D5) else Color(0xFFE1EDF5),
-            surfaceSunken = if (warm) Color(0xFFF0E2CF) else Color(0xFFDCE8F1),
-            onSurface = if (warm) Color(0xFF2B2118) else Color(0xFF172C3C),
-            mutedText = if (warm) Color(0xFF61503F) else Color(0xFF455967),
-            border = if (warm) Color(0xFF8A745D) else Color(0xFF647E91),
+            accent = accent,
+            onAccent = Color.White,
+            background = canvas,
+            topBackground = lerp(canvas, Color.White, 0.68f),
+            surface = lerp(canvas, Color.White, 0.55f),
+            elevatedSurface = lerp(canvas, accent, 0.08f),
+            surfaceSunken = lerp(canvas, accent, 0.14f),
+            onSurface = lerp(Color(0xFF17191D), accent, 0.20f),
+            mutedText = lerp(Color(0xFF404650), accent, 0.26f),
+            border = lerp(accent, canvas, 0.38f),
             isDark = false,
         )
     }
 
+    /** Resolve candidate text or icon color against the surfaces behind it. */
+    fun readableAccent(palette: AppearancePalette, candidate: Color, surface: Color = palette.surface): Color =
+        contrastAdjusted(candidate, if (palette.isDark) Color.White else Color.Black, listOf(surface))
+
     /** Adjust decorative accent until it is readable against its actual surface. */
     fun withAccent(palette: AppearancePalette, candidate: Color): AppearancePalette {
-        val opaque = candidate.copy(alpha = 1f)
         val target = if (palette.isDark) Color.White else Color.Black
-        var accent = opaque
-        for (step in 0..20) {
-            accent = lerp(opaque, target, step / 20f)
-            if (contrast(accent, palette.surface) >= 4.5f) break
-        }
+        val accent = contrastAdjusted(
+            candidate, target, listOf(palette.surface, palette.elevatedSurface, palette.surfaceSunken),
+        )
         val onAccent = if (contrast(Color.Black, accent) >= contrast(Color.White, accent)) Color.Black else Color.White
         return palette.copy(accent = accent, onAccent = onAccent)
+    }
+
+    private fun contrastAdjusted(candidate: Color, target: Color, surfaces: List<Color>): Color {
+        val opaque = candidate.copy(alpha = 1f)
+        for (step in 0..20) {
+            val color = lerp(opaque, target, step / 20f)
+            if (surfaces.all { contrast(color, it) >= 4.5f }) return color
+        }
+        return target
     }
 
     private fun contrast(a: Color, b: Color): Float {

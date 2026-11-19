@@ -370,7 +370,7 @@ fun SettingsScreen(
                                     }
                                 },
                             )
-                            HorizontalDivider(color = GlassBorderSoft)
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             SettingsOption(
                                 title = stringResource(R.string.settings_health_listener),
                                 subtitle = stringResource(
@@ -388,7 +388,7 @@ fun SettingsScreen(
                                 ),
                                 onClick = { settingsCategory = "tracking" },
                             )
-                            HorizontalDivider(color = GlassBorderSoft)
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             SettingsOption(
                                 title = stringResource(R.string.settings_health_last_signal),
                                 subtitle = trackingHealth?.lastPlayerSignalAgeMs?.let {
@@ -446,25 +446,25 @@ fun SettingsScreen(
                                 subtitle = stringResource(R.string.settings_category_general_desc),
                                 onClick = { settingsCategory = "general" },
                             )
-                            HorizontalDivider(color = GlassBorderSoft)
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             SettingsOption(
                                 title = stringResource(R.string.settings_category_tracking),
                                 subtitle = stringResource(R.string.settings_category_tracking_desc),
                                 onClick = { settingsCategory = "tracking" },
                             )
-                            HorizontalDivider(color = GlassBorderSoft)
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             SettingsOption(
                                 title = stringResource(R.string.settings_category_connections),
                                 subtitle = stringResource(R.string.settings_category_connections_desc),
                                 onClick = { settingsCategory = "connections" },
                             )
-                            HorizontalDivider(color = GlassBorderSoft)
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             SettingsOption(
                                 title = stringResource(R.string.settings_category_data),
                                 subtitle = stringResource(R.string.settings_category_data_desc),
                                 onClick = { settingsCategory = "data" },
                             )
-                            HorizontalDivider(color = GlassBorderSoft)
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             SettingsOption(
                                 title = stringResource(R.string.settings_category_about),
                                 subtitle = stringResource(R.string.settings_category_about_desc),
@@ -632,7 +632,7 @@ fun SettingsScreen(
                             checked = uiState.dailySummaryEnabled,
                             onCheckedChange = viewModel::toggleDailySummary,
                         )
-                        HorizontalDivider(color = GlassBorderSoft)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         SettingsSwitch(
                             title = stringResource(R.string.settings_weekly_recap),
                             subtitle = stringResource(R.string.settings_weekly_recap_desc),
@@ -640,14 +640,14 @@ fun SettingsScreen(
                             onCheckedChange = viewModel::toggleWeeklyRecap,
                         )
                         if (uiState.isGamificationEnabled) {
-                            HorizontalDivider(color = GlassBorderSoft)
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             SettingsSwitch(
                                 title = stringResource(R.string.settings_daily_challenges),
                                 subtitle = stringResource(R.string.settings_daily_challenges_desc),
                                 checked = uiState.dailyChallengesEnabled,
                                 onCheckedChange = viewModel::toggleDailyChallenges,
                             )
-                            HorizontalDivider(color = GlassBorderSoft)
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             SettingsSwitch(
                                 title = stringResource(R.string.settings_achievements),
                                 subtitle = stringResource(R.string.settings_achievements_desc),
@@ -687,13 +687,13 @@ fun SettingsScreen(
                                 }
                             },
                         )
-                        HorizontalDivider(color = GlassBorderSoft)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         SettingsOption(
                             title = stringResource(R.string.settings_manage_apps),
                             subtitle = stringResource(R.string.settings_manage_apps_desc),
                             onClick = { onNavigateToSupportedApps?.invoke() },
                         )
-                        HorizontalDivider(color = GlassBorderSoft)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         SettingsSwitch(
                             title = stringResource(R.string.settings_pause_tracking_low_battery),
                             subtitle =
@@ -705,7 +705,7 @@ fun SettingsScreen(
                             checked = uiState.pauseTrackingOnLowBattery,
                             onCheckedChange = viewModel::togglePauseTrackingOnLowBattery,
                         )
-                        HorizontalDivider(color = GlassBorderSoft)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         SettingsOption(
                             title = stringResource(R.string.settings_cover_source_title),
                             subtitle = selectedCoverSourceName,
@@ -752,7 +752,7 @@ fun SettingsScreen(
                             checked = uiState.filterPodcasts,
                             onCheckedChange = viewModel::toggleFilterPodcasts,
                         )
-                        HorizontalDivider(color = GlassBorderSoft)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         SettingsSwitch(
                             title = stringResource(R.string.settings_filter_audiobooks),
                             subtitle = stringResource(R.string.settings_filter_audiobooks_desc),
@@ -777,14 +777,14 @@ fun SettingsScreen(
                             checked = uiState.extendedAudioAnalysisEnabled,
                             onCheckedChange = viewModel::toggleExtendedAudioAnalysis,
                         )
-                        HorizontalDivider(color = GlassBorderSoft)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         SettingsSwitch(
                             title = stringResource(R.string.settings_enable_gamification),
                             subtitle = stringResource(R.string.settings_enable_gamification_desc),
                             checked = uiState.isGamificationEnabled,
                             onCheckedChange = viewModel::toggleGamificationEnabled,
                         )
-                        HorizontalDivider(color = GlassBorderSoft)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         SettingsSwitch(
                             title = stringResource(R.string.settings_hide_streaks),
                             subtitle = stringResource(R.string.settings_hide_streaks_desc),
@@ -824,7 +824,7 @@ fun SettingsScreen(
                             )
                         }
 
-                        HorizontalDivider(color = GlassBorderSoft)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
                         SettingsOption(
                             title = if (spotifyConnected) "Spotify API · Connected" else "Spotify API · Connect account",
@@ -912,7 +912,7 @@ fun SettingsScreen(
                             },
                         )
 
-                        HorizontalDivider(color = GlassBorderSoft)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
                         SettingsSwitch(
                             title = "Spotify Device Broadcast Status",
@@ -928,7 +928,7 @@ fun SettingsScreen(
                         // tracking fallback, even when broadcast mode is disabled.
                         LiveNowPlayingCard(modifier = Modifier.padding(horizontal = 16.dp))
 
-                        HorizontalDivider(color = GlassBorderSoft)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
                         SettingsOption(
                             title = stringResource(R.string.settings_import_spotify_json),
@@ -936,7 +936,7 @@ fun SettingsScreen(
                             onClick = { onNavigateToSpotifyJsonImport?.invoke() },
                         )
 
-                        HorizontalDivider(color = GlassBorderSoft)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
                         SettingsOption(
                             title = stringResource(R.string.settings_import_deezer),
@@ -944,7 +944,7 @@ fun SettingsScreen(
                             onClick = { onNavigateToDeezerImport?.invoke() },
                         )
 
-                        HorizontalDivider(color = GlassBorderSoft)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
                         SettingsOption(
                             title = stringResource(R.string.settings_import_youtube_music),
@@ -952,7 +952,7 @@ fun SettingsScreen(
                             onClick = { onNavigateToYouTubeMusicImport?.invoke() },
                         )
 
-                        HorizontalDivider(color = GlassBorderSoft)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
                         SettingsOption(
                             title = stringResource(R.string.settings_import_musicolet),
@@ -960,7 +960,7 @@ fun SettingsScreen(
                             onClick = { onNavigateToMusicoletImport?.invoke() },
                         )
 
-                        HorizontalDivider(color = GlassBorderSoft)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
                         SettingsOption(
                             title = stringResource(R.string.settings_import_extension),
@@ -995,7 +995,7 @@ fun SettingsScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                 )
                             }
-                            HorizontalDivider(color = GlassBorderSoft)
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         } else if (isLowBattery) {
                             Box(
                                 modifier =
@@ -1011,7 +1011,7 @@ fun SettingsScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                 )
                             }
-                            HorizontalDivider(color = GlassBorderSoft)
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         } else {
                             Box(
                                 modifier =
@@ -1027,7 +1027,7 @@ fun SettingsScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                 )
                             }
-                            HorizontalDivider(color = GlassBorderSoft)
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         }
 
                         SettingsOption(
@@ -1061,7 +1061,7 @@ fun SettingsScreen(
                                 checked = uiState.analyticsEnabled,
                                 onCheckedChange = viewModel::setAnalyticsEnabled,
                             )
-                            HorizontalDivider(color = GlassBorderSoft)
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             // Offered even while reporting is off: someone who has just turned
                             // it off may still want the id they used beforehand replaced.
                             SettingsOption(
@@ -1069,7 +1069,7 @@ fun SettingsScreen(
                                 subtitle = stringResource(R.string.settings_analytics_reset_id_desc),
                                 onClick = viewModel::resetAnalyticsId,
                             )
-                            HorizontalDivider(color = GlassBorderSoft)
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         }
                         SettingsSwitch(
                             title = stringResource(R.string.settings_smart_merge),
@@ -1077,13 +1077,13 @@ fun SettingsScreen(
                             checked = uiState.mergeAlternateVersions,
                             onCheckedChange = viewModel::toggleMergeAlternateVersions,
                         )
-                        HorizontalDivider(color = GlassBorderSoft)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         SettingsOption(
                             title = stringResource(R.string.settings_backup_restore),
                             subtitle = stringResource(R.string.settings_backup_restore_desc),
                             onClick = { onNavigateToBackup?.invoke() },
                         )
-                        HorizontalDivider(color = GlassBorderSoft)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         SettingsOption(
                             title = "Check listening-history accuracy",
                             subtitle = "Find older Spotify API records with unverified listening minutes. No automatic changes.",
@@ -1093,13 +1093,13 @@ fun SettingsScreen(
                                 viewModel.scanHistoryQuality()
                             },
                         )
-                        HorizontalDivider(color = GlassBorderSoft)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         SettingsOption(
                             title = stringResource(R.string.enrichment_report_settings_option),
                             subtitle = stringResource(R.string.enrichment_report_settings_option_desc),
                             onClick = { onNavigateToEnrichmentReport?.invoke() },
                         )
-                        HorizontalDivider(color = GlassBorderSoft)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         SettingsOption(
                             title = stringResource(R.string.settings_clear_all),
                             textColor = TempoError,
@@ -1203,7 +1203,7 @@ fun SettingsScreen(
                                 }
                             },
                         )
-                        HorizontalDivider(color = GlassBorderSoft)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
                         SettingsOption(
                             title = stringResource(R.string.settings_github),
@@ -1217,7 +1217,7 @@ fun SettingsScreen(
                                 }
                             },
                         )
-                        HorizontalDivider(color = GlassBorderSoft)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         SettingsOption(
                             title = stringResource(R.string.settings_contribute),
                             subtitle = stringResource(R.string.settings_contribute_desc),
@@ -1264,7 +1264,7 @@ fun SettingsScreen(
                                 }
                             },
                         )
-                        HorizontalDivider(color = GlassBorderSoft)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         SettingsOption(
                             title = stringResource(R.string.settings_privacy_policy),
                             onClick = {
@@ -1276,13 +1276,13 @@ fun SettingsScreen(
                                 }
                             },
                         )
-                        HorizontalDivider(color = GlassBorderSoft)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         SettingsOption(
                             title = stringResource(R.string.settings_data_diagnostics),
                             subtitle = stringResource(R.string.settings_data_diagnostics_desc),
                             onClick = { onNavigateToYourData?.invoke() },
                         )
-                        HorizontalDivider(color = GlassBorderSoft)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         SettingsOption(
                             title = stringResource(R.string.settings_version),
                             subtitle = versionName,

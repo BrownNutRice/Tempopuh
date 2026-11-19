@@ -9,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -23,9 +24,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -34,10 +38,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.avinas.tempo.R
-import me.avinas.tempo.ui.components.DeepOceanBackground
+import me.avinas.tempo.ui.components.appearanceBackdropBrush
 import me.avinas.tempo.ui.components.GlassCard
 import me.avinas.tempo.ui.theme.AppFontFamily
 import me.avinas.tempo.ui.theme.DisplayFontFamily
+import me.avinas.tempo.ui.theme.LocalTempoPalette
 import me.avinas.tempo.ui.theme.TempoTheme
 
 private val DraftSaver = Saver<AppearanceSettings, String>(
@@ -45,7 +50,7 @@ private val DraftSaver = Saver<AppearanceSettings, String>(
     restore = { runCatching { AppearanceCodec.decode(it) }.getOrDefault(AppearanceSettings()) },
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AppearanceScreen(onNavigateBack: () -> Unit, viewModel: AppearanceViewModel = hiltViewModel()) {
     val loaded by viewModel.settings.collectAsState()
@@ -183,10 +188,54 @@ fun AppearanceScreen(onNavigateBack: () -> Unit, viewModel: AppearanceViewModel 
             verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(stringResource(R.string.appearance_gallery_heading), style = MaterialTheme.typography.headlineMedium)
             Text(stringResource(R.string.appearance_gallery_description), style = MaterialTheme.typography.bodyMedium)
+            ChoiceRow(R.string.appearance_tone_heading, AppearanceTone.entries, draft.tone, !busy,
+                { when (it) {
+                    AppearanceTone.DARK -> R.string.appearance_dark
+                    AppearanceTone.OLED -> R.string.appearance_oled
+                    AppearanceTone.LIGHT -> R.string.appearance_light
+                    AppearanceTone.SYSTEM -> R.string.appearance_system
+                } }) {
+                draft = draft.copy(tone = it)
+            }
+            ChoiceRow(R.string.appearance_accent_source, AppearanceAccentSource.entries.filter {
+                it != AppearanceAccentSource.WALLPAPER || Build.VERSION.SDK_INT >= 31
+            }, draft.accentSource, !busy, { when (it) {
+                AppearanceAccentSource.PRESET -> R.string.appearance_preset_accent
+                AppearanceAccentSource.WALLPAPER -> R.string.appearance_wallpaper
+                AppearanceAccentSource.ARTWORK -> R.string.appearance_artwork
+                AppearanceAccentSource.CUSTOM -> R.string.appearance_custom_accent
+            } }) {
+                draft = draft.copy(
+                    accentSource = it,
+                    customAccent = if (it == AppearanceAccentSource.CUSTOM) {
+                        draft.customAccent ?: AccentSwatches.first().first
+                    } else draft.customAccent,
+                )
+            }
+            when (draft.accentSource) {
+                AppearanceAccentSource.CUSTOM -> CustomAccentPicker(draft.customAccent, enabled = !busy) {
+                    draft = draft.copy(customAccent = it)
+                }
+                AppearanceAccentSource.ARTWORK -> Text(
+                    stringResource(R.string.appearance_artwork_scope),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                else -> Unit
+            }
+            ChoiceRow(R.string.appearance_backdrop, AppearanceBackdrop.entries, draft.backdrop, !busy, { when (it) {
+                AppearanceBackdrop.GRADIENT -> R.string.appearance_backdrop_gradient
+                AppearanceBackdrop.FLAT -> R.string.appearance_backdrop_flat
+                AppearanceBackdrop.WASH -> R.string.appearance_backdrop_wash
+            } }) { draft = draft.copy(backdrop = it) }
             // Actual card/text tokens, isolated from saved app state and system bars.
             TempoTheme(appearance = preview, preview = true) {
-                Surface(shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.background) {
-                    Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                val palette = LocalTempoPalette.current
+                val brush = remember(palette, preview.backdrop) { appearanceBackdropBrush(palette, preview.backdrop) }
+                Surface(shape = RoundedCornerShape(22.dp), color = palette.background) {
+                    Column(
+                        Modifier.fillMaxWidth().background(brush).padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
                         Text(stringResource(R.string.appearance_preview_song), style = MaterialTheme.typography.headlineSmall)
                         GlassCard {
                             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -200,27 +249,43 @@ fun AppearanceScreen(onNavigateBack: () -> Unit, viewModel: AppearanceViewModel 
                     }
                 }
             }
-            AppearancePreset.entries.chunked(2).forEach { pair ->
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    pair.forEach { preset -> AppearancePresetCard(preset, saved.preset == preset, draft.preset == preset,
-                        onClick = { if (!busy) draft = draft.copy(preset = preset) }, modifier = Modifier.weight(1f), tone = preview.tone) }
+            AppearanceSection(R.string.appearance_presets, initiallyExpanded = true) {
+                BoxWithConstraints {
+                    val columns = if (maxWidth < 290.dp || LocalDensity.current.fontScale >= 1.4f) 1 else 2
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        AppearancePreset.entries.chunked(columns).forEach { row ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                row.forEach { preset ->
+                                    AppearancePresetCard(
+                                        preset, saved.preset == preset, draft.preset == preset,
+                                        onClick = { draft = draft.copy(preset = preset) },
+                                        modifier = Modifier.weight(1f),
+                                        tone = preview.tone,
+                                        enabled = !busy,
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
-            ChoiceRow(R.string.appearance_tone_heading, AppearanceTone.entries, draft.tone, !busy,
-                { when (it) {
-                    AppearanceTone.DARK -> R.string.appearance_dark
-                    AppearanceTone.OLED -> R.string.appearance_oled
-                    AppearanceTone.LIGHT -> R.string.appearance_light
-                    AppearanceTone.SYSTEM -> R.string.appearance_system
-                } }) {
-                draft = draft.copy(tone = it)
-            }
-            Text(stringResource(R.string.appearance_light_preview_notice), style = MaterialTheme.typography.bodySmall)
             AppearanceSection(R.string.appearance_layout_heading) {
-                AppearanceFontStyle.entries.chunked(2).forEach { pair -> Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    pair.forEach { style -> FontStyleCard(style, draft.fontStyle == style,
-                        onClick = { if (!busy) draft = draft.copy(fontStyle = style) }, modifier = Modifier.weight(1f)) }
-                } }
+                BoxWithConstraints {
+                    val columns = if (maxWidth < 290.dp || LocalDensity.current.fontScale >= 1.4f) 1 else 2
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        AppearanceFontStyle.entries.chunked(columns).forEach { row ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                row.forEach { style ->
+                                    FontStyleCard(
+                                        style, draft.fontStyle == style,
+                                        onClick = { if (!busy) draft = draft.copy(fontStyle = style) },
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
                 ChoiceRow(R.string.appearance_density, AppearanceDensity.entries, draft.density, !busy,
                     { if (it == AppearanceDensity.COMPACT) R.string.appearance_compact else R.string.appearance_comfortable }) { draft = draft.copy(density = it) }
                 ChoiceRow(R.string.appearance_corners, AppearanceShape.entries, draft.shape, !busy, { when (it) {
@@ -231,14 +296,6 @@ fun AppearanceScreen(onNavigateBack: () -> Unit, viewModel: AppearanceViewModel 
                 SettingToggle(R.string.appearance_bold, draft.boldText, !busy) { draft = draft.copy(boldText = it) }
             }
             AppearanceSection(R.string.appearance_effects_heading) {
-                ChoiceRow(R.string.appearance_accent_source, AppearanceAccentSource.entries.filter {
-                    it != AppearanceAccentSource.WALLPAPER || Build.VERSION.SDK_INT >= 31
-                }, draft.accentSource, !busy, { when (it) {
-                    AppearanceAccentSource.PRESET -> R.string.appearance_preset_accent
-                    AppearanceAccentSource.WALLPAPER -> R.string.appearance_wallpaper
-                    AppearanceAccentSource.ARTWORK -> R.string.appearance_artwork
-                } }) { draft = draft.copy(accentSource = it) }
-                Text(stringResource(R.string.appearance_artwork_scope), style = MaterialTheme.typography.bodySmall)
                 ChoiceRow(R.string.appearance_finish, AppearanceSurface.entries, draft.surface, !busy,
                     { if (it == AppearanceSurface.SOLID) R.string.appearance_solid else R.string.appearance_satin }) { draft = draft.copy(surface = it) }
                 SettingToggle(R.string.appearance_reduce_motion, draft.reduceMotion, !busy) { draft = draft.copy(reduceMotion = it) }
@@ -312,8 +369,12 @@ fun AppearanceScreen(onNavigateBack: () -> Unit, viewModel: AppearanceViewModel 
 }
 
 @Composable
-private fun AppearanceSection(title: Int, content: @Composable ColumnScope.() -> Unit) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
+private fun AppearanceSection(
+    title: Int,
+    initiallyExpanded: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    var expanded by rememberSaveable { mutableStateOf(initiallyExpanded) }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         TextButton(onClick = { expanded = !expanded }, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(title), modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
@@ -332,12 +393,13 @@ private fun SettingToggle(label: Int, checked: Boolean, enabled: Boolean, onChan
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun <T> ChoiceRow(label: Int, options: List<T>, selected: T, enabled: Boolean,
     text: (T) -> Int, onSelect: (T) -> Unit) {
     Column {
         Text(stringResource(label), style = MaterialTheme.typography.titleSmall)
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             options.forEach { option -> FilterChip(selected = selected == option, enabled = enabled,
                 onClick = { onSelect(option) }, label = { Text(stringResource(text(option))) }) }
         }
@@ -360,6 +422,7 @@ private fun AppearancePresetCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     tone: AppearanceTone = AppearanceTone.DARK,
+    enabled: Boolean = true,
 ) {
     val palette = AppearancePaletteResolver.resolve(AppearanceSettings(preset = preset, tone = tone), androidx.compose.foundation.isSystemInDarkTheme())
     val shape = RoundedCornerShape(22.dp)
@@ -370,6 +433,8 @@ private fun AppearancePresetCard(
         AppearancePreset.GLACIER -> stringResource(R.string.appearance_glacier)
         AppearancePreset.EMBER -> stringResource(R.string.appearance_ember)
         AppearancePreset.SOLSTICE -> stringResource(R.string.appearance_solstice)
+        AppearancePreset.VERDANT -> stringResource(R.string.appearance_verdant)
+        AppearancePreset.SLATE -> stringResource(R.string.appearance_slate)
     }
     val description = when (preset) {
         AppearancePreset.ABYSS -> stringResource(R.string.appearance_abyss_desc)
@@ -378,6 +443,8 @@ private fun AppearancePresetCard(
         AppearancePreset.GLACIER -> stringResource(R.string.appearance_glacier_desc)
         AppearancePreset.EMBER -> stringResource(R.string.appearance_ember_desc)
         AppearancePreset.SOLSTICE -> stringResource(R.string.appearance_solstice_desc)
+        AppearancePreset.VERDANT -> stringResource(R.string.appearance_verdant_desc)
+        AppearancePreset.SLATE -> stringResource(R.string.appearance_slate_desc)
     }
     Column(
         modifier = modifier
@@ -387,7 +454,7 @@ private fun AppearancePresetCard(
                     if (selected) palette.accent else MaterialTheme.colorScheme.outlineVariant),
                 shape,
             )
-            .clickable(onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick)
             .semantics {
                 role = Role.RadioButton
                 this.selected = selected
@@ -396,7 +463,7 @@ private fun AppearancePresetCard(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Box(
-            modifier = Modifier.fillMaxWidth().height(148.dp)
+            modifier = Modifier.fillMaxWidth().heightIn(min = 148.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(
                     Brush.verticalGradient(listOf(palette.topBackground, palette.background))
@@ -408,7 +475,7 @@ private fun AppearancePresetCard(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(43.dp).clip(RoundedCornerShape(8.dp))
-                        .background(palette.accent.copy(alpha = 0.77f)),
+                        .background(palette.accent),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text("♫", color = palette.onAccent,
@@ -463,8 +530,7 @@ private fun AppearancePresetCard(
         Text(label, color = MaterialTheme.colorScheme.onSurface,
             style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
         Text(description, color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.bodySmall, maxLines = 2,
-            overflow = TextOverflow.Ellipsis)
+            style = MaterialTheme.typography.bodySmall)
     }
 }
  
@@ -512,13 +578,77 @@ private fun FontStyleCard(
             maxLines = 1)
         Column(modifier = Modifier.weight(1f)) {
             Text(label, color = scheme.onSurface,
-                style = MaterialTheme.typography.labelMedium,
-                maxLines = 1, overflow = TextOverflow.Ellipsis)
+                style = MaterialTheme.typography.labelMedium)
             if (selected) Text(
                 stringResource(R.string.appearance_font_selected),
                 color = scheme.primary,
                 style = MaterialTheme.typography.labelSmall,
             )
         }
+    }
+}
+
+private val AccentSwatches = listOf(
+    "008E77" to R.string.appearance_color_teal,
+    "2879BB" to R.string.appearance_color_blue,
+    "8056C7" to R.string.appearance_color_violet,
+    "B94B70" to R.string.appearance_color_rose,
+    "B37629" to R.string.appearance_color_amber,
+    "608E37" to R.string.appearance_color_green,
+)
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CustomAccentPicker(selected: String?, enabled: Boolean, onSelect: (String) -> Unit) {
+    var showPicker by rememberSaveable { mutableStateOf(false) }
+    Column {
+        FlowRow(
+            modifier = Modifier.selectableGroup(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            AccentSwatches.forEach { (hex, label) ->
+                FilterChip(
+                    selected = selected == hex,
+                    enabled = enabled,
+                    onClick = { onSelect(hex) },
+                    leadingIcon = {
+                        Box(Modifier.size(16.dp).clip(RoundedCornerShape(50)).background(Color(0xFF000000L or hex.toLong(16))))
+                    },
+                    label = { Text(stringResource(label)) },
+                )
+            }
+        }
+        OutlinedButton(enabled = enabled, onClick = { showPicker = true }) {
+            Text(stringResource(R.string.appearance_custom_hex, selected?.let { "#$it" } ?: ""))
+        }
+        Text(stringResource(R.string.appearance_accent_contrast), style = MaterialTheme.typography.bodySmall)
+    }
+    if (showPicker) {
+        var input by rememberSaveable { mutableStateOf(selected?.let { "#$it" }.orEmpty()) }
+        val hex = normalizeAccentHex(input)
+        AlertDialog(
+            onDismissRequest = { showPicker = false },
+            title = { Text(stringResource(R.string.appearance_custom_accent)) },
+            text = {
+                OutlinedTextField(
+                    value = input,
+                    onValueChange = { input = it.take(16) },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.appearance_hex_label)) },
+                    supportingText = { Text("#008E77") },
+                    isError = input.isNotBlank() && hex == null,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
+                )
+            },
+            confirmButton = {
+                TextButton(enabled = enabled && hex != null, onClick = {
+                    hex?.let(onSelect)
+                    showPicker = false
+                }) { Text(stringResource(R.string.appearance_choose_color)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPicker = false }) { Text(stringResource(R.string.appearance_cancel)) }
+            },
+        )
     }
 }

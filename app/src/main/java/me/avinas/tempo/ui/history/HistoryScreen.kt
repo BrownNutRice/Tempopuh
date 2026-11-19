@@ -50,10 +50,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import me.avinas.tempo.R
+import me.avinas.tempo.ui.appearance.AppearancePaletteResolver
 import me.avinas.tempo.data.local.dao.HistoryItem
 import me.avinas.tempo.ui.components.*
 import me.avinas.tempo.ui.theme.*
@@ -153,6 +157,23 @@ fun HistoryScreen(
         }
     }
 
+    if (uiState.isMarking) {
+        val loading = stringResource(R.string.ui_loading)
+        Dialog(
+            onDismissRequest = {},
+            properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
+        ) {
+            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+                Box(Modifier.padding(22.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(36.dp).semantics { contentDescription = loading },
+                        strokeWidth = 3.dp,
+                    )
+                }
+            }
+        }
+    }
+
     Box(Modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxSize()) {
             PullToRefreshBox(
@@ -205,22 +226,6 @@ fun HistoryScreen(
                     }
                 )
                 
-                // Loading overlay when marking content
-                if (uiState.isMarking) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.45f))
-                            .clickable(enabled = false) { }, // Block clicks
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(36.dp),
-                            strokeWidth = 3.dp
-                        )
-                    }
-                }
             } // end PullToRefreshBox
 
             // Top Bar with scroll-aware elevation and studio glass styling
@@ -461,19 +466,14 @@ fun HistoryFilterSheetContent(
                 .clip(RoundedCornerShape(24.dp))
                 .background(MaterialTheme.colorScheme.surfaceContainerLowest)
                 .innerShadow(
-                    color = Color.Black.copy(alpha = 0.55f),
+                    color = Color.Black.copy(alpha = if (LocalTempoPalette.current.isDark) 0.55f else 0.12f),
                     cornersRadius = 24.dp,
                     blur = 4.dp,
                     offsetY = 1.dp
                 )
                 .border(
                     1.dp,
-                    Brush.verticalGradient(
-                        listOf(
-                            Color.White.copy(alpha = 0.12f),
-                            Color.White.copy(alpha = 0.03f)
-                        )
-                    ),
+                    MaterialTheme.colorScheme.outlineVariant,
                     RoundedCornerShape(24.dp)
                 )
                 .padding(3.dp)
@@ -503,15 +503,7 @@ fun HistoryFilterSheetContent(
                                             ambientColor = Color.Black.copy(alpha = 0.7f)
                                         )
                                         .clip(RoundedCornerShape(21.dp))
-                                        .background(
-                                            Brush.verticalGradient(
-                                                listOf(
-                                                    MaterialTheme.colorScheme.primary,
-                                                    MaterialTheme.colorScheme.primary,
-                                                    MaterialTheme.colorScheme.primaryContainer
-                                                )
-                                            )
-                                        )
+                                        .background(MaterialTheme.colorScheme.primary)
                                         .border(
                                             1.dp,
                                             Brush.verticalGradient(
@@ -620,15 +612,7 @@ fun HistoryFilterSheetContent(
                     spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
                 )
                 .clip(RoundedCornerShape(24.dp))
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            MaterialTheme.colorScheme.primary,
-                            MaterialTheme.colorScheme.primary,
-                            MaterialTheme.colorScheme.primaryContainer
-                        )
-                    )
-                )
+                .background(MaterialTheme.colorScheme.primary)
                 .border(
                     1.dp,
                     Brush.verticalGradient(
@@ -1537,10 +1521,14 @@ fun HistoryListItem(
                         
                         // Inline Badge Text
                         if (item.content_type != "MUSIC") {
-                            val badgeColor = when(item.content_type) {
+                            val palette = LocalTempoPalette.current
+                            val candidate = when (item.content_type) {
                                 "PODCAST" -> TempoCyan
                                 "AUDIOBOOK" -> GoldenAmber
-                                else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
+                                else -> palette.mutedText
+                            }
+                            val badgeColor = remember(palette, candidate) {
+                                AppearancePaletteResolver.readableAccent(palette, candidate, palette.surfaceSunken)
                             }
                             Box(
                                 modifier = Modifier
@@ -1561,18 +1549,22 @@ fun HistoryListItem(
                         
                         // Desktop source tag
                         if (item.source.startsWith("desktop:")) {
+                            val palette = LocalTempoPalette.current
+                            val badgeColor = remember(palette) {
+                                AppearancePaletteResolver.readableAccent(palette, Color(0xFFA78BFA), palette.surfaceSunken)
+                            }
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(4.dp))
-                                    .background(Color(0xFF8B5CF6).copy(alpha = 0.14f))
-                                    .border(0.8.dp, Color(0xFF8B5CF6).copy(alpha = 0.35f), RoundedCornerShape(4.dp))
+                                    .background(badgeColor.copy(alpha = 0.10f))
+                                    .border(0.8.dp, badgeColor.copy(alpha = 0.35f), RoundedCornerShape(4.dp))
                                     .padding(horizontal = 5.dp, vertical = 1.dp)
                             ) {
                                 Text(
                                     text = "DESK",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontSize = 9.sp,
-                                    color = Color(0xFFA78BFA),
+                                    color = badgeColor,
                                     fontWeight = FontWeight.Bold
                                 )
                             }

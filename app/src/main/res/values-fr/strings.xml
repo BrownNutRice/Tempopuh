@@ -1263,4 +1263,24 @@
     <string name="offline_queue_discard">Supprimer les écoutes illisibles</string>
     <string name="offline_queue_discard_confirmation">Supprimer définitivement les écoutes hors ligne illisibles ? L’historique enregistré et la file hors ligne active seront conservés.</string>
     <string name="offline_queue_discard_failed">Impossible de supprimer les écoutes illisibles. Réessayez.</string>
+    <string name="appearance_custom_accent">Personnalisé</string>
+    <string name="appearance_custom_hex">Couleur hexadécimale %1$s</string>
+    <string name="appearance_hex_label">Code hexadécimal à six chiffres</string>
+    <string name="appearance_choose_color">Utiliser cette couleur</string>
+    <string name="appearance_accent_contrast">Tempo ajuste la couleur pour préserver le contraste du thème.</string>
+    <string name="appearance_color_teal">Sarcelle</string>
+    <string name="appearance_color_blue">Bleu</string>
+    <string name="appearance_color_violet">Violet</string>
+    <string name="appearance_color_rose">Rose</string>
+    <string name="appearance_color_amber">Ambre</string>
+    <string name="appearance_color_green">Vert</string>
+    <string name="appearance_verdant">Verdant</string>
+    <string name="appearance_verdant_desc">Vert mousse et nuances végétales douces</string>
+    <string name="appearance_slate">Slate</string>
+    <string name="appearance_slate_desc">Gris froid avec un accent bleu acier</string>
+    <string name="appearance_backdrop">Arrière-plan</string>
+    <string name="appearance_backdrop_gradient">Dégradé</string>
+    <string name="appearance_backdrop_flat">Uni</string>
+    <string name="appearance_backdrop_wash">Voile coloré</string>
+    <string name="appearance_presets">Préréglages</string>
 </resources>

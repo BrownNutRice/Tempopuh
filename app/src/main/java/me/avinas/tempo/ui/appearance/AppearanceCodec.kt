@@ -12,6 +12,8 @@ object AppearanceCodec {
         put("preset", value.preset.name); put("tone", value.tone.name)
         put("font", value.fontStyle.name); put("reduceMotion", value.reduceMotion)
         put("accent", value.accentSource.name); put("density", value.density.name)
+        put("customAccent", normalizeAccentHex(value.customAccent))
+        put("backdrop", value.backdrop.name)
         put("shape", value.shape.name); put("bold", value.boldText)
         put("surface", value.surface.name); put("adaptive", value.adaptiveEffects)
         put("nowListening", value.nowListening.name)
@@ -47,6 +49,8 @@ object AppearanceCodec {
             homeOrder = order + AppearanceHomeSection.entries.filter { it !in order },
             statsTab = enumOrDefault(json.optString("statsTab"), AppearanceStatsTab.SONGS),
             statsRange = enumOrDefault(json.optString("statsRange"), AppearanceStatsRange.WEEK),
+            customAccent = normalizeAccentHex(json.optString("customAccent")),
+            backdrop = enumOrDefault(json.optString("backdrop"), AppearanceBackdrop.GRADIENT),
         )
     }
 }

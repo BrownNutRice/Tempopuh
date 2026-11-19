@@ -2,7 +2,7 @@ package me.avinas.tempo.ui.appearance
 
 /** Stable persisted identifiers. Unknown values fall back without touching listening data. */
 enum class AppearancePreset {
-    ABYSS, OBSIDIAN_GOLD, AURORA, GLACIER, EMBER, SOLSTICE;
+    ABYSS, OBSIDIAN_GOLD, AURORA, GLACIER, EMBER, SOLSTICE, VERDANT, SLATE;
     companion object {
         fun decode(raw: String?): AppearancePreset = entries.firstOrNull { it.name == raw } ?: ABYSS
     }
@@ -14,10 +14,11 @@ enum class AppearanceFontStyle {
         fun decode(raw: String?): AppearanceFontStyle = entries.firstOrNull { it.name == raw } ?: TEMPO
     }
 }
-enum class AppearanceAccentSource { PRESET, WALLPAPER, ARTWORK }
+enum class AppearanceAccentSource { PRESET, WALLPAPER, ARTWORK, CUSTOM }
 enum class AppearanceDensity { COMFORTABLE, COMPACT }
 enum class AppearanceShape { SOFT, MODERATE, SHARP }
 enum class AppearanceSurface { SATIN, SOLID }
+enum class AppearanceBackdrop { GRADIENT, FLAT, WASH }
 enum class AppearanceNowListening { INLINE, COMPACT, HIDDEN }
 enum class AppearanceHomeSection { SUMMARY, SPOTLIGHT, QUICK_STATS, TODAY, INSIGHTS }
 enum class AppearanceStatsTab { SONGS, ARTISTS, ALBUMS }
@@ -39,6 +40,8 @@ data class AppearanceSettings(
     val homeOrder: List<AppearanceHomeSection> = AppearanceHomeSection.entries.toList(),
     val statsTab: AppearanceStatsTab = AppearanceStatsTab.SONGS,
     val statsRange: AppearanceStatsRange = AppearanceStatsRange.WEEK,
+    val customAccent: String? = null,
+    val backdrop: AppearanceBackdrop = AppearanceBackdrop.GRADIENT,
 ) {
     /** Retain opt-in beta tones when applying or importing an appearance. */
     fun forLiveApp(): AppearanceSettings = this
@@ -46,3 +49,10 @@ data class AppearanceSettings(
 internal fun decodeAppearanceTone(raw: String?): AppearanceTone = enumOrDefault(raw, AppearanceTone.DARK)
 internal inline fun <reified T : Enum<T>> enumOrDefault(raw: String?, fallback: T): T =
     enumValues<T>().firstOrNull { it.name == raw } ?: fallback
+
+/** Canonical six-digit RGB, with opaque alpha applied by the palette resolver. */
+internal fun normalizeAccentHex(raw: String?): String? {
+    val rgb = raw?.trim()?.removePrefix("#") ?: return null
+    return rgb.takeIf { it.length == 6 && it.all { char -> char in '0'..'9' || char in 'a'..'f' || char in 'A'..'F' } }
+        ?.uppercase()
+}

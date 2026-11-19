@@ -39,7 +39,7 @@ class AppearancePaletteTest {
         assertEquals(androidx.compose.ui.graphics.Color(0xFF0A0E0E), abyss.background)
         assertEquals(androidx.compose.ui.graphics.Color(0xFF2FDBB8), abyss.accent)
     }
-    @Test fun `all six palettes use high contrast text and buttons`() {
+    @Test fun `all dark presets use high contrast text and buttons`() {
         AppearancePreset.entries.forEach { preset ->
             val palette = AppearancePaletteResolver.forPreset(preset)
             assertTrue("$preset primary text", contrast(palette.onSurface, palette.background) >= 7.0)
@@ -74,6 +74,42 @@ class AppearancePaletteTest {
         assertEquals(AppearanceTone.LIGHT, AppearanceSettings(tone = AppearanceTone.LIGHT).forLiveApp().tone)
         assertEquals(AppearanceTone.SYSTEM, AppearanceSettings(tone = AppearanceTone.SYSTEM).forLiveApp().tone)
         assertEquals(AppearanceTone.OLED, AppearanceSettings(tone = AppearanceTone.OLED).forLiveApp().tone)
+    }
+
+    @Test fun `light presets have distinct surfaces and readable muted text`() {
+        val palettes = AppearancePreset.entries.map {
+            AppearancePaletteResolver.resolve(AppearanceSettings(preset = it, tone = AppearanceTone.LIGHT))
+        }
+        assertEquals(palettes.size, palettes.map { it.background }.distinct().size)
+        assertEquals(palettes.size, palettes.map { it.surface }.distinct().size)
+        palettes.forEach { palette ->
+            for (surface in listOf(palette.surface, palette.elevatedSurface, palette.surfaceSunken)) {
+                assertTrue("${palette.preset} muted text", contrast(palette.mutedText, surface) >= 4.5)
+                assertTrue("${palette.preset} accent text", contrast(palette.accent, surface) >= 4.5)
+            }
+        }
+    }
+
+    @Test fun `custom accents adapt to each tone without replacing preset surfaces`() {
+        val settings = AppearanceSettings(preset = AppearancePreset.AURORA, accentSource = AppearanceAccentSource.CUSTOM)
+        for (systemDark in listOf(false, true)) {
+            for (tone in AppearanceTone.entries) {
+                val base = AppearancePaletteResolver.resolve(settings.copy(tone = tone), systemDark)
+                val custom = AppearancePaletteResolver.resolve(
+                    settings.copy(tone = tone, customAccent = if (base.isDark) "000000" else "FFFFFF"),
+                    systemDark,
+                )
+                assertEquals(base.background, custom.background)
+                assertEquals(base.surface, custom.surface)
+                for (surface in listOf(custom.surface, custom.elevatedSurface, custom.surfaceSunken)) {
+                    assertTrue("$tone custom text", contrast(custom.accent, surface) >= 4.5)
+                }
+                assertTrue("$tone custom button", contrast(custom.onAccent, custom.accent) >= 4.5)
+                assertEquals(base, AppearancePaletteResolver.resolve(settings.copy(tone = tone, customAccent = "invalid"), systemDark))
+            }
+        }
+        assertEquals("ABCDEF", normalizeAccentHex(" #abcdef "))
+        assertEquals(null, normalizeAccentHex("#FFFFFF7F"))
     }
 
     private fun contrast(first: Color, second: Color): Double {

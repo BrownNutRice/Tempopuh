@@ -21,6 +21,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -831,7 +834,7 @@ fun ProfileScreen(
                 ) {
                     FrostedIconButton(
                         icon = Icons.AutoMirrored.Rounded.ArrowBack,
-                        contentDescription = "Back",
+                        contentDescription = stringResource(R.string.settings_back),
                         onClick = onBack,
                     )
                     Box(modifier = Modifier.weight(1f).padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
@@ -844,7 +847,7 @@ fun ProfileScreen(
                     }
                     FrostedIconButton(
                         icon = Icons.Rounded.Settings,
-                        contentDescription = "Settings",
+                        contentDescription = stringResource(R.string.settings_title),
                         onClick = onNavigateToSettings,
                     )
                 }
@@ -1432,6 +1435,7 @@ private fun TabSwitcher(
     onTabSelected: (Int) -> Unit,
 ) {
     val appearancePalette = LocalTempoPalette.current
+    val reducedMotion = rememberReducedMotion()
     BoxWithConstraints(
         modifier =
             Modifier
@@ -1444,7 +1448,7 @@ private fun TabSwitcher(
         val tabWidth = maxWidth / tabs.size
         val indicatorPosition by animateFloatAsState(
             targetValue = selectedTab.toFloat(),
-            animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
+            animationSpec = tween(durationMillis = if (reducedMotion) 0 else 160, easing = FastOutSlowInEasing),
             label = "tabIndicator",
         )
         Box(modifier = Modifier.matchParentSize()) {
@@ -1463,7 +1467,7 @@ private fun TabSwitcher(
                         .border(0.8.dp, appearancePalette.accent.copy(alpha = 0.42f), RoundedCornerShape(12.dp)),
             )
         }
-        Row(modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth().selectableGroup()) {
             tabs.forEachIndexed { index, title ->
                 val selected = selectedTab == index
                 Text(
@@ -1477,7 +1481,7 @@ private fun TabSwitcher(
                         Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(12.dp))
-                            .clickable { onTabSelected(index) }
+                            .selectable(selected = selected, role = Role.Tab) { onTabSelected(index) }
                             .padding(vertical = 11.dp, horizontal = 8.dp),
                 )
             }

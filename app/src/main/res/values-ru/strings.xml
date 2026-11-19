@@ -1491,4 +1491,24 @@
     <string name="offline_queue_discard">Удалить нечитаемые прослушивания</string>
     <string name="offline_queue_discard_confirmation">Удалить нечитаемые офлайн-прослушивания безвозвратно? Сохранённая история и активная офлайн-очередь останутся.</string>
     <string name="offline_queue_discard_failed">Не удалось удалить нечитаемые прослушивания. Повторите попытку.</string>
+    <string name="appearance_custom_accent">Свой цвет</string>
+    <string name="appearance_custom_hex">HEX-цвет %1$s</string>
+    <string name="appearance_hex_label">Шестизначный HEX-код</string>
+    <string name="appearance_choose_color">Использовать цвет</string>
+    <string name="appearance_accent_contrast">Tempo корректирует акцентный цвет для контраста в выбранной теме.</string>
+    <string name="appearance_color_teal">Бирюзовый</string>
+    <string name="appearance_color_blue">Синий</string>
+    <string name="appearance_color_violet">Фиолетовый</string>
+    <string name="appearance_color_rose">Розовый</string>
+    <string name="appearance_color_amber">Янтарный</string>
+    <string name="appearance_color_green">Зелёный</string>
+    <string name="appearance_verdant">Verdant</string>
+    <string name="appearance_verdant_desc">Зелёный мох и мягкие растительные оттенки</string>
+    <string name="appearance_slate">Slate</string>
+    <string name="appearance_slate_desc">Холодный серый со стальным синим акцентом</string>
+    <string name="appearance_backdrop">Фон</string>
+    <string name="appearance_backdrop_gradient">Градиент</string>
+    <string name="appearance_backdrop_flat">Однотонный</string>
+    <string name="appearance_backdrop_wash">С оттенком акцента</string>
+    <string name="appearance_presets">Готовые темы</string>
 </resources>

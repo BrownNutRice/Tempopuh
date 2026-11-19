@@ -1265,4 +1265,24 @@
     <string name="offline_queue_discard">Unlesbare Wiedergaben verwerfen</string>
     <string name="offline_queue_discard_confirmation">Unlesbare Offline-Wiedergaben endgültig verwerfen? Der gespeicherte Hörverlauf und die aktive Warteschlange bleiben erhalten.</string>
     <string name="offline_queue_discard_failed">Die unlesbaren Wiedergaben konnten nicht verworfen werden. Versuche es erneut.</string>
+    <string name="appearance_custom_accent">Benutzerdefiniert</string>
+    <string name="appearance_custom_hex">Hex-Farbe %1$s</string>
+    <string name="appearance_hex_label">Sechsstelliger Hex-Farbwert</string>
+    <string name="appearance_choose_color">Farbe verwenden</string>
+    <string name="appearance_accent_contrast">Tempo passt die Akzentfarbe für einen besseren Kontrast an.</string>
+    <string name="appearance_color_teal">Petrol</string>
+    <string name="appearance_color_blue">Blau</string>
+    <string name="appearance_color_violet">Violett</string>
+    <string name="appearance_color_rose">Rosa</string>
+    <string name="appearance_color_amber">Bernstein</string>
+    <string name="appearance_color_green">Grün</string>
+    <string name="appearance_verdant">Verdant</string>
+    <string name="appearance_verdant_desc">Moosgrün und sanfte Pflanzentöne</string>
+    <string name="appearance_slate">Slate</string>
+    <string name="appearance_slate_desc">Kühles Grau mit stahlblauem Akzent</string>
+    <string name="appearance_backdrop">Hintergrund</string>
+    <string name="appearance_backdrop_gradient">Farbverlauf</string>
+    <string name="appearance_backdrop_flat">Einfarbig</string>
+    <string name="appearance_backdrop_wash">Akzentschimmer</string>
+    <string name="appearance_presets">Vorlagen</string>
 </resources>

@@ -1722,4 +1722,24 @@
     <string name="offline_queue_discard">Discard unreadable plays</string>
     <string name="offline_queue_discard_confirmation">Permanently discard the unreadable offline plays? Saved listening history and the active offline queue will be kept.</string>
     <string name="offline_queue_discard_failed">Could not discard the unreadable plays. Try again.</string>
+    <string name="appearance_custom_accent">Custom</string>
+    <string name="appearance_custom_hex">Hex color %1$s</string>
+    <string name="appearance_hex_label">Six-digit hex color</string>
+    <string name="appearance_choose_color">Use color</string>
+    <string name="appearance_accent_contrast">Tempo adjusts the accent for contrast in the selected tone.</string>
+    <string name="appearance_color_teal">Teal</string>
+    <string name="appearance_color_blue">Blue</string>
+    <string name="appearance_color_violet">Violet</string>
+    <string name="appearance_color_rose">Rose</string>
+    <string name="appearance_color_amber">Amber</string>
+    <string name="appearance_color_green">Green</string>
+    <string name="appearance_verdant">Verdant</string>
+    <string name="appearance_verdant_desc">Moss green and soft botanical tones</string>
+    <string name="appearance_slate">Slate</string>
+    <string name="appearance_slate_desc">Cool gray with a steel-blue accent</string>
+    <string name="appearance_backdrop">Background</string>
+    <string name="appearance_backdrop_gradient">Gradient</string>
+    <string name="appearance_backdrop_flat">Flat</string>
+    <string name="appearance_backdrop_wash">Accent wash</string>
+    <string name="appearance_presets">Presets</string>
 </resources>

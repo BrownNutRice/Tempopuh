@@ -899,4 +899,24 @@
     <string name="offline_queue_discard">Olvashatatlan lejátszások törlése</string>
     <string name="offline_queue_discard_confirmation">Végleg törlöd az olvashatatlan offline lejátszásokat? A mentett előzmények és az aktív offline sor megmaradnak.</string>
     <string name="offline_queue_discard_failed">Az olvashatatlan lejátszások törlése sikertelen. Próbáld újra.</string>
+    <string name="appearance_custom_accent">Egyéni</string>
+    <string name="appearance_custom_hex">Hexaszín %1$s</string>
+    <string name="appearance_hex_label">Hatjegyű hexadecimális színkód</string>
+    <string name="appearance_choose_color">Szín használata</string>
+    <string name="appearance_accent_contrast">A Tempo a témához igazítja a kiemelőszín kontrasztját.</string>
+    <string name="appearance_color_teal">Türkiz</string>
+    <string name="appearance_color_blue">Kék</string>
+    <string name="appearance_color_violet">Ibolya</string>
+    <string name="appearance_color_rose">Rózsaszín</string>
+    <string name="appearance_color_amber">Borostyán</string>
+    <string name="appearance_color_green">Zöld</string>
+    <string name="appearance_verdant">Verdant</string>
+    <string name="appearance_verdant_desc">Mohazöld és lágy növényi árnyalatok</string>
+    <string name="appearance_slate">Slate</string>
+    <string name="appearance_slate_desc">Hűvös szürke acélkék kiemeléssel</string>
+    <string name="appearance_backdrop">Háttér</string>
+    <string name="appearance_backdrop_gradient">Színátmenet</string>
+    <string name="appearance_backdrop_flat">Egyszínű</string>
+    <string name="appearance_backdrop_wash">Színezett</string>
+    <string name="appearance_presets">Előbeállítások</string>
 </resources>

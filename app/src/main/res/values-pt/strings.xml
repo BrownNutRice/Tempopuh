@@ -1374,4 +1374,24 @@
     <string name="offline_queue_discard">Descartar reproduções ilegíveis</string>
     <string name="offline_queue_discard_confirmation">Descartar permanentemente as reproduções offline ilegíveis? O histórico salvo e a fila offline ativa serão mantidos.</string>
     <string name="offline_queue_discard_failed">Não foi possível descartar as reproduções ilegíveis. Tente novamente.</string>
+    <string name="appearance_custom_accent">Personalizado</string>
+    <string name="appearance_custom_hex">Cor hexadecimal %1$s</string>
+    <string name="appearance_hex_label">Código hexadecimal de seis dígitos</string>
+    <string name="appearance_choose_color">Usar cor</string>
+    <string name="appearance_accent_contrast">O Tempo ajusta a cor de destaque para manter o contraste no tema.</string>
+    <string name="appearance_color_teal">Verde-azulado</string>
+    <string name="appearance_color_blue">Azul</string>
+    <string name="appearance_color_violet">Violeta</string>
+    <string name="appearance_color_rose">Rosa</string>
+    <string name="appearance_color_amber">Âmbar</string>
+    <string name="appearance_color_green">Verde</string>
+    <string name="appearance_verdant">Verdant</string>
+    <string name="appearance_verdant_desc">Verde-musgo e tons botânicos suaves</string>
+    <string name="appearance_slate">Slate</string>
+    <string name="appearance_slate_desc">Cinza frio com um destaque azul-aço</string>
+    <string name="appearance_backdrop">Fundo</string>
+    <string name="appearance_backdrop_gradient">Gradiente</string>
+    <string name="appearance_backdrop_flat">Liso</string>
+    <string name="appearance_backdrop_wash">Tonalizado</string>
+    <string name="appearance_presets">Predefinições</string>
 </resources>
