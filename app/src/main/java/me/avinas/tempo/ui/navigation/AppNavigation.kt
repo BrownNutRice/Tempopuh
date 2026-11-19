@@ -188,6 +188,7 @@ fun AppNavigation(
                             onNavigateToLastFmImport = { navController.navigate(Screen.LastFmImport.route) },
                             onNavigateToSpotifyJsonImport = { navController.navigate(Screen.SpotifyJsonImport.route) },
                             onNavigateToDeezerImport = { navController.navigate(Screen.DeezerImport.route) },
+                            onNavigateToAppleMusicImport = { navController.navigate(Screen.AppleMusicImport.route) },
                             onNavigateToYouTubeMusicImport = { navController.navigate(Screen.YouTubeMusicImport.route) },
                             onNavigateToMusicoletImport = { navController.navigate(Screen.MusicoletImport.route) },
                             onNavigateToExtensionImport = { navController.navigate(Screen.ExtensionImport.route) },
@@ -234,6 +235,12 @@ fun AppNavigation(
 
                     composable(Screen.DeezerImport.route) {
                         me.avinas.tempo.ui.deezer.DeezerImportScreen(
+                            onNavigateBack = { navController.popBackStack() },
+                        )
+                    }
+
+                    composable(Screen.AppleMusicImport.route) {
+                        me.avinas.tempo.ui.applemusic.AppleMusicImportScreen(
                             onNavigateBack = { navController.popBackStack() },
                         )
                     }

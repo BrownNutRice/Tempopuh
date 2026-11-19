@@ -86,6 +86,7 @@ fun SettingsScreen(
     onNavigateToLastFmImport: (() -> Unit)? = null,
     onNavigateToSpotifyJsonImport: (() -> Unit)? = null,
     onNavigateToDeezerImport: (() -> Unit)? = null,
+    onNavigateToAppleMusicImport: (() -> Unit)? = null,
     onNavigateToYouTubeMusicImport: (() -> Unit)? = null,
     onNavigateToMusicoletImport: (() -> Unit)? = null,
     onNavigateToExtensionImport: (() -> Unit)? = null,
@@ -942,6 +943,14 @@ fun SettingsScreen(
                             title = stringResource(R.string.settings_import_deezer),
                             subtitle = stringResource(R.string.settings_import_deezer_desc),
                             onClick = { onNavigateToDeezerImport?.invoke() },
+                        )
+
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                        SettingsOption(
+                            title = stringResource(R.string.settings_import_apple_music),
+                            subtitle = stringResource(R.string.settings_import_apple_music_desc),
+                            onClick = { onNavigateToAppleMusicImport?.invoke() },
                         )
 
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)

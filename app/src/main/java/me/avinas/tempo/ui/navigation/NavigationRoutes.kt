@@ -59,6 +59,7 @@ sealed class Screen(
     data object SpotifyJsonImport : Screen("spotify_json_import")
 
     data object DeezerImport : Screen("deezer_import")
+    data object AppleMusicImport : Screen("apple_music_import")
 
     data object YouTubeMusicImport : Screen("youtube_music_import")
 

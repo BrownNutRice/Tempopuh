@@ -10,7 +10,7 @@ package me.avinas.tempo.data.local
  * Hierarchy (most → least authoritative):
  *  100 — live app tracking (the device was actually playing it; precise timing)
  *   90 — desktop satellite (real-time, second device)
- *   70 — first-party Spotify JSON / Deezer XLSX data exports
+ *   70 — first-party Spotify, Deezer and Apple Music data exports
  *   65 — YouTube Music data-export JSON
  *   60 — other structured data exports
  *   55 — API "recently played" imports
@@ -21,6 +21,8 @@ package me.avinas.tempo.data.local
  * so real listening data can never be overwritten or deleted by an import.
  */
 object SourceAuthority {
+    const val APPLE_MUSIC_EXPORT = "com.apple.android.music.import.csv"
+
 
     fun rank(source: String): Int = when {
         source.startsWith("desktop:") -> 90
@@ -28,6 +30,7 @@ object SourceAuthority {
         source.contains("fm.last.import") -> 50
         source.contains("import.json") && source.contains("spotify") -> 70
         source.contains("import.xlsx") && source.contains("deezer") -> 70
+        source == APPLE_MUSIC_EXPORT -> 70
         source.contains("import.json") && source.contains("youtube") -> 65
         source.contains("import.json") -> 60
         source.contains(".import") -> 55

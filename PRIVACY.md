@@ -22,6 +22,8 @@ The source contains no advertising or attribution SDK. Optional app-health repor
 
 The library uses Room/SQLite in Android app-private storage. **The app does not configure an encrypted database.** Android's device/storage protections are separate from application-level encryption. Some credentials use Android Keystore-backed storage; that does not encrypt the listening database or every preference.
 
+Apple Music privacy exports are processed locally. Tempo saves playback and track metadata in the listening library. Fields such as Apple Account identifiers, IP addresses and device identifiers are excluded from listening records.
+
 ## Data sent to other destinations
 
 | Feature | Destination and data |

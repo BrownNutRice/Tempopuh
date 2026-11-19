@@ -60,6 +60,18 @@ very long offline gaps can exceed the accessible history window. An automatic
 sync cannot reconstruct every historical play; for comprehensive older data,
 prefer the extended streaming-history export.
 
+## Apple Music history
+
+Request **Apple Media Services information** at [Apple Data and Privacy](https://privacy.apple.com/).
+In Tempo, open **Settings → Import Apple Music** and select the downloaded ZIP files or the extracted
+**Apple Music Play Activity** CSV. Select the companion history CSVs alongside an extracted activity
+file to help recover missing artist credits.
+
+Tempo imports timestamped playback rows using Apple's reported listening duration and UTC offset,
+when available. The daily and recent history files provide track metadata only. Plays below your
+minimum duration, duplicate events and rows with unresolved artists appear in the import summary.
+A track split across multiple playback rows can count as multiple plays.
+
 ## Data already imported
 
 These changes affect **new imports and syncs only**. Tempo does not

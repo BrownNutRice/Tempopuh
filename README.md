@@ -18,7 +18,7 @@ See the [release catalog](docs/releases/README.md) for versions, checksums and u
 
 - Local notification and MediaSession playback tracking, with optional Spotify device broadcasts.
 - Listening history, charts, artist/album details, challenges and badges.
-- Spotify, Last.fm, YouTube Music, Deezer, Musicolet and browser-history imports.
+- Spotify, Apple Music, Last.fm, YouTube Music, Deezer, Musicolet and browser-history imports.
 - Six appearance presets, saved looks and experimental Light/Follow System support.
 - Spotlight stories and share cards.
 - Local export/restore, optional Google Drive backups and an optional browser companion.
