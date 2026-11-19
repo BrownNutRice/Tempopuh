@@ -76,11 +76,11 @@ fun TimePeriodSelector(
                 )
 
                 val displayText = when (range) {
+                    TimeRange.TODAY -> stringResource(R.string.stats_share_period_today)
                     TimeRange.THIS_WEEK -> stringResource(R.string.stats_range_week)
                     TimeRange.THIS_MONTH -> stringResource(R.string.stats_range_month)
                     TimeRange.THIS_YEAR -> stringResource(R.string.stats_range_year)
                     TimeRange.ALL_TIME -> stringResource(R.string.stats_range_all_time)
-                    else -> range.name
                 }
 
                 val itemWeight = 2f + displayText.length.toFloat()

@@ -661,6 +661,8 @@ interface StatsDao {
         FROM listening_events le
         INNER JOIN tracks t ON le.track_id = t.id
         WHERE le.timestamp >= :startTime AND le.timestamp <= :endTime
+            AND (:filterPodcasts = 0 OR t.content_type IS NULL OR t.content_type != 'PODCAST')
+            AND (:filterAudiobooks = 0 OR t.content_type IS NULL OR t.content_type != 'AUDIOBOOK')
         GROUP BY date
         ORDER BY date DESC
         LIMIT :limit
@@ -670,6 +672,8 @@ interface StatsDao {
         startTime: Long,
         endTime: Long,
         limit: Int,
+        filterPodcasts: Boolean = false,
+        filterAudiobooks: Boolean = false,
     ): List<DailyListening>
 
     // Temporal Analysis - Monthly Aggregations

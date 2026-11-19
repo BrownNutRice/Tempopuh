@@ -1,6 +1,7 @@
 package me.avinas.tempo.widget.theme
 
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.glance.GlanceTheme
@@ -59,11 +60,21 @@ private val DarkColorScheme = darkColorScheme(
     outline = TempoWidgetColors.Outline
 )
 
+private val LightColorScheme = lightColorScheme(
+    primary = Color(0xFF005137),
+    onPrimary = Color.White,
+    background = Color(0xFFF1F7F4),
+    onBackground = Color(0xFF15251E),
+    surface = Color(0xFFF1F7F4),
+    onSurface = Color(0xFF15251E),
+    onSurfaceVariant = Color(0xFF475A51),
+)
+
 @Composable
 fun TempoWidgetTheme(content: @Composable () -> Unit) {
     GlanceTheme(
         colors = ColorProviders(
-            light = DarkColorScheme, // Force dark theme for consistency with "Vibe"
+            light = LightColorScheme,
             dark = DarkColorScheme
         ),
         content = content

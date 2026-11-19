@@ -9,10 +9,13 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
+import dagger.Lazy
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import me.avinas.tempo.data.analytics.AnalyticsConsent
@@ -28,6 +31,9 @@ import me.avinas.tempo.data.local.AppDatabase
 import me.avinas.tempo.data.local.dao.UserKnownArtistDao
 import me.avinas.tempo.data.local.dao.UserPreferencesDao
 import me.avinas.tempo.data.repository.AppPreferenceRepository
+import me.avinas.tempo.data.repository.StatsRepository
+import me.avinas.tempo.widget.utils.placedWidgets
+import me.avinas.tempo.widget.utils.scheduleWidgetUpdateAfterHistoryChange
 import me.avinas.tempo.service.TrackingServiceHeartbeat
 import me.avinas.tempo.ui.onboarding.dataStore
 import me.avinas.tempo.utils.ArtistParser
@@ -92,6 +98,11 @@ class TempoApplication :
     @Inject
     lateinit var analyticsFeatureLedger: me.avinas.tempo.data.analytics.AnalyticsFeatureLedger
 
+    @Inject
+    lateinit var statsRepository: Lazy<StatsRepository>
+
+    private var widgetRefreshJob: Job? = null
+
     private val backgroundExecutor = Executors.newSingleThreadExecutor()
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -124,9 +135,28 @@ class TempoApplication :
         reconcileAutomaticBackupSchedules()
         scheduleBackgroundWorkDeferred()
         observeAnalyticsConsent()
+        applicationScope.launch { syncWidgetRefreshObserver() }
 
         reportAppStarted(initStartedAt)
         reportDatabaseVersionChange()
+    }
+
+    @Synchronized
+    internal fun syncWidgetRefreshObserver() {
+        if (placedWidgets(this).isEmpty()) {
+            widgetRefreshJob?.cancel()
+            widgetRefreshJob = null
+        } else if (widgetRefreshJob?.isActive != true) {
+            widgetRefreshJob = applicationScope.launch {
+                statsRepository.get().observeListeningStatsChanges().drop(1).collect {
+                    try {
+                        scheduleWidgetUpdateAfterHistoryChange(this@TempoApplication)
+                    } catch (failure: IllegalStateException) {
+                        android.util.Log.w("TempoApplication", "Could not enqueue widget refresh", failure)
+                    }
+                }
+            }
+        }
     }
 
     /**

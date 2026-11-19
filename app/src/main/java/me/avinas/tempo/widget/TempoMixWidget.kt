@@ -13,7 +13,6 @@ import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.LocalSize
-import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
@@ -39,11 +38,11 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
-import me.avinas.tempo.MainActivity
 import me.avinas.tempo.R
 import me.avinas.tempo.widget.theme.TempoWidgetTheme
 import me.avinas.tempo.widget.theme.TempoWidgetColors
 import me.avinas.tempo.widget.utils.WidgetHub
+import me.avinas.tempo.widget.utils.WidgetNavigation
 import me.avinas.tempo.widget.utils.appWidgetBackground
 import me.avinas.tempo.widget.utils.scheduleImmediateWidgetUpdate
 import me.avinas.tempo.widget.utils.cancelPeriodicWidgetUpdateIfUnused
@@ -58,8 +57,8 @@ class TempoMixWidget : GlanceAppWidget() {
                 val prefs = currentState<Preferences>()
                 val mixImage = prefs[stringPreferencesKey(WidgetHub.PREF_TOP_ARTIST_IMAGE)]
                 
-                val mixTitle = prefs[stringPreferencesKey(WidgetHub.PREF_MIX_TITLE)] ?: "Weekly Mix"
-                val artistName = prefs[stringPreferencesKey(WidgetHub.PREF_MIX_ARTIST)] ?: "Made for you"
+                val mixTitle = context.getString(R.string.stats_share_period_this_week)
+                val subtitle = context.getString(R.string.widget_weekly_daily_time)
                 val chartDataStr = prefs[stringPreferencesKey(WidgetHub.PREF_MIX_CHART_DATA)] ?: ""
                 val chartData = if (chartDataStr.isNotEmpty()) {
                     chartDataStr.split(",").mapNotNull { it.toFloatOrNull() }
@@ -67,15 +66,14 @@ class TempoMixWidget : GlanceAppWidget() {
                 
                 // Get widget size
                 val size = LocalSize.current
-                val widthPx = size.width.value.toInt() * 3
-                val heightPx = size.height.value.toInt() * 3
+                val pixels = me.avinas.tempo.widget.utils.getPixelSize(context, size)
                 
                 val generatedArt = me.avinas.tempo.widget.utils.BitmapGenerator.generateMixPortal(
                     context,
-                    widthPx.coerceAtLeast(100),
-                    heightPx.coerceAtLeast(100),
+                    pixels.width,
+                    pixels.height,
                     mixTitle,
-                    artistName,
+                    subtitle,
                     mixImage,
                     chartData
                 )
@@ -83,7 +81,7 @@ class TempoMixWidget : GlanceAppWidget() {
                 Box(
                     modifier = GlanceModifier
                         .appWidgetBackground()
-                        .clickable(actionStartActivity<MainActivity>()),
+                        .clickable(WidgetNavigation.openStats(context)),
                     contentAlignment = Alignment.Center
                 ) {
                      Image(

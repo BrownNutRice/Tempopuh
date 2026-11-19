@@ -40,6 +40,8 @@ import me.avinas.tempo.ui.settings.YourDataScreen
 import me.avinas.tempo.ui.spotlight.SpotlightScreen
 import me.avinas.tempo.ui.theme.rememberReducedMotion
 
+private const val WidgetPeriodKey = "widgetStatsPeriod"
+
 /**
  * Safe navigate that prevents double-click / rapid-tap navigation.
  * Only navigates if the current back stack entry is in RESUMED state
@@ -55,6 +57,7 @@ private fun NavHostController.safeNavigate(route: String) {
 fun AppNavigation(
     walkthroughController: me.avinas.tempo.ui.components.WalkthroughController,
     navigationTrigger: String? = null,
+    onWidgetNavigationHandled: () -> Unit = {},
 ) {
     val navController = rememberNavController()
     val reducedMotion = rememberReducedMotion()
@@ -63,7 +66,16 @@ fun AppNavigation(
     val currentDestination = navBackStackEntry?.destination
 
     androidx.compose.runtime.LaunchedEffect(navigationTrigger) {
-        if (navigationTrigger == "profile_challenges") {
+        val widgetPeriod = me.avinas.tempo.widget.utils.WidgetNavigation.periodFor(navigationTrigger)
+        if (widgetPeriod != null) {
+            navController.navigate(Screen.Stats.route) {
+                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+            navController.currentBackStackEntry?.savedStateHandle?.set(WidgetPeriodKey, widgetPeriod.name)
+            onWidgetNavigationHandled()
+        } else if (navigationTrigger == "profile_challenges") {
             navController.navigate(Screen.Profile.route) {
                 popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                 launchSingleTop = true
@@ -142,7 +154,11 @@ fun AppNavigation(
                     composable(Screen.Stats.route) { entry ->
                         val navigationViewModel: me.avinas.tempo.ui.navigation.NavigationViewModel = hiltViewModel()
 
+                        val widgetPeriod by entry.savedStateHandle
+                            .getStateFlow<String?>(WidgetPeriodKey, null).collectAsState()
                         me.avinas.tempo.ui.stats.StatsScreen(
+                            widgetPeriod = widgetPeriod?.let { me.avinas.tempo.data.stats.TimeRange.valueOf(it) },
+                            onWidgetPeriodHandled = { entry.savedStateHandle.set<String?>(WidgetPeriodKey, null) },
                             onNavigateToTrack = { trackId -> navController.safeNavigate(Screen.SongDetails.createRoute(trackId)) },
                             onNavigateToArtist = { artistIdentifier ->
                                 if (artistIdentifier.startsWith("id:")) {

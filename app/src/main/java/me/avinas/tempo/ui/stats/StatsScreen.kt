@@ -92,6 +92,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import me.avinas.tempo.ui.components.CachedAsyncImage
 import me.avinas.tempo.ui.components.MusicNotePlaceholder
 import me.avinas.tempo.data.repository.SortBy
+import me.avinas.tempo.data.stats.CombinedBasicStats
 import me.avinas.tempo.data.stats.TimeRange
 import me.avinas.tempo.data.stats.TopAlbum
 import me.avinas.tempo.data.stats.TopArtist
@@ -114,7 +115,9 @@ fun StatsScreen(
     onNavigateToTrack: (Long) -> Unit,
     onNavigateToArtist: (String) -> Unit,
     onNavigateToAlbum: suspend (title: String, artist: String) -> Boolean,
-    onNavigateToSupportedApps: () -> Unit
+    onNavigateToSupportedApps: () -> Unit,
+    widgetPeriod: TimeRange? = null,
+    onWidgetPeriodHandled: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -154,6 +157,14 @@ fun StatsScreen(
         viewModel.onSearchQueryChanged("")
     }
     BackHandler(enabled = searchOpen, onBack = closeSearch)
+    LaunchedEffect(widgetPeriod) {
+        if (widgetPeriod != null) {
+            keyboard?.hide()
+            searchOpen = false
+            viewModel.openWidgetPeriod(widgetPeriod)
+            onWidgetPeriodHandled()
+        }
+    }
 
     // NOTE: the old totalItemCount + scrollToItem workaround was removed: it
     // issued a scroll during flings, fighting remeasure and triggering the
@@ -245,6 +256,14 @@ fun StatsScreen(
                         availableRanges = StatsAvailableRanges,
                         modifier = Modifier.padding(horizontal = 16.dp),
                     )
+                }
+
+                if (uiState.searchQuery.isBlank()) {
+                    uiState.periodTotals?.let { totals ->
+                        item(key = "period_summary") {
+                            StatsPeriodSummary(totals)
+                        }
+                    }
                 }
 
                 item(key = "sort_by_selector") {
@@ -445,7 +464,7 @@ fun StatsScreen(
                 tab = uiState.selectedTab,
                 timeRange = uiState.selectedTimeRange,
                 items = uiState.items,
-                totals = uiState.shareTotals,
+                totals = uiState.periodTotals,
                 onDismiss = { showShareDialog = false }
             )
         }
@@ -999,7 +1018,46 @@ private fun StatsTopBar(
     }
 }
 
-private val StatsAvailableRanges = listOf(TimeRange.THIS_WEEK, TimeRange.THIS_MONTH, TimeRange.THIS_YEAR, TimeRange.ALL_TIME)
+private val StatsAvailableRanges = TimeRange.entries.toList()
+
+@Composable
+private fun StatsPeriodSummary(totals: CombinedBasicStats) {
+    Surface(
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            StatsPeriodMetric(
+                stringResource(R.string.stats_period_listening_time),
+                if (totals.totalTimeMs > 0) formatListeningTime(totals.totalTimeMs)
+                else stringResource(R.string.stats_period_zero_time),
+                Modifier.weight(1.25f),
+            )
+            StatsPeriodMetric(
+                stringResource(R.string.stats_period_plays),
+                stringResource(R.string.stats_period_number, totals.playCount),
+                Modifier.weight(1f),
+            )
+            StatsPeriodMetric(
+                stringResource(R.string.stats_period_unique_songs),
+                stringResource(R.string.stats_period_number, totals.uniqueTracks),
+                Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatsPeriodMetric(label: String, value: String, modifier: Modifier) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
 
 @Composable
 fun SortBySelector(

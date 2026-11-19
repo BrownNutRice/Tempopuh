@@ -30,13 +30,30 @@
     <string name="home_settings">Settings</string>
     
     <!-- Widget descriptions -->
-    <string name="widget_stats_desc">Today\'s listening stats at a glance</string>
+    <string name="widget_stats_desc">This week’s listening at a glance</string>
     <string name="widget_artist_desc">Shows your top artist statistics</string>
-    <string name="widget_dashboard_desc">Overview of your music listening stats</string>
-    <string name="widget_discovery_desc">Discover new music based on your taste</string>
-    <string name="widget_heatmap_desc">Visualize your listening patterns over time</string>
-    <string name="widget_milestone_desc">Track your listening milestones</string>
-    <string name="widget_mix_desc">Your personalized music mix</string>
+    <string name="widget_dashboard_desc">Today’s listening time, plays and distinct songs</string>
+    <string name="widget_discovery_desc">Songs and artists you first heard this week</string>
+    <string name="widget_heatmap_desc">Your top genres this week</string>
+    <string name="widget_milestone_desc">Your most played song this week</string>
+    <string name="widget_mix_desc">Daily listening activity this week</string>
+    <string name="widget_today_listening">Today’s listening</string>
+    <string name="widget_weekly_discovery">New this week</string>
+    <string name="widget_weekly_listening">This week’s listening</string>
+    <string name="widget_artist_title">Top artist this week</string>
+    <string name="widget_top_genres_title">Top genres this week</string>
+    <string name="widget_top_song_title">Top song this week</string>
+    <string name="widget_no_listening">No listening yet</string>
+    <string name="widget_new_songs">New songs</string>
+    <string name="widget_new_artists">New artists</string>
+    <string name="widget_weekly_daily_time">Listening by day</string>
+    <string name="widget_duration_under_minute">&lt;1m</string>
+    <string name="widget_duration_minutes">%1$dm</string>
+    <string name="widget_duration_hours_minutes">%1$dh %2$dm</string>
+    <plurals name="widget_play_count">
+        <item quantity="one">%1$d play</item>
+        <item quantity="other">%1$d plays</item>
+    </plurals>
 
     <!-- Home components -->
     <string name="home_spotlight_title">Tempo Spotlight</string>
@@ -898,6 +915,11 @@
     <string name="stats_search_hint_albums">Search albums, artists…</string>
     <string name="stats_search_clear">Clear search</string>
     <string name="stats_range_week">Week</string>
+    <string name="stats_period_listening_time">Listening time</string>
+    <string name="stats_period_plays">Plays</string>
+    <string name="stats_period_unique_songs">Unique songs</string>
+    <string name="stats_period_zero_time">0m</string>
+    <string name="stats_period_number">%1$d</string>
     <string name="stats_range_month">Month</string>
     <string name="stats_range_year">Year</string>
     <string name="stats_range_all_time">All Time</string>

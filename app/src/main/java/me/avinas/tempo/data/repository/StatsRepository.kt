@@ -110,6 +110,7 @@ interface StatsRepository {
     suspend fun getTopGenres(
         timeRange: TimeRange,
         limit: Int = 10,
+        withLeeway: Boolean = true,
     ): List<TopGenre>
 
     // Ranking Search

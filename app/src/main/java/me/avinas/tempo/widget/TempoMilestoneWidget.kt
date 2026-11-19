@@ -13,7 +13,6 @@ import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.LocalSize
-import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
@@ -38,10 +37,11 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.text.TextAlign
 import androidx.glance.unit.ColorProvider
-import me.avinas.tempo.MainActivity
+import me.avinas.tempo.R
 import me.avinas.tempo.widget.theme.TempoWidgetTheme
 import me.avinas.tempo.widget.theme.TempoWidgetColors
 import me.avinas.tempo.widget.utils.WidgetHub
+import me.avinas.tempo.widget.utils.WidgetNavigation
 import me.avinas.tempo.widget.utils.appWidgetBackground
 import me.avinas.tempo.widget.utils.scheduleImmediateWidgetUpdate
 import me.avinas.tempo.widget.utils.cancelPeriodicWidgetUpdateIfUnused
@@ -54,9 +54,11 @@ class TempoMilestoneWidget : GlanceAppWidget() {
         provideContent {
             TempoWidgetTheme {
                 val prefs = currentState<Preferences>()
-                val trackName = prefs[stringPreferencesKey(WidgetHub.PREF_MILESTONE_TRACK_NAME)] ?: "No Data"
+                val trackName = prefs[stringPreferencesKey(WidgetHub.PREF_MILESTONE_TRACK_NAME)] ?: context.getString(R.string.widget_no_listening)
                 val artistName = prefs[stringPreferencesKey(WidgetHub.PREF_MILESTONE_ARTIST_NAME)] ?: ""
-                val badge = prefs[stringPreferencesKey(WidgetHub.PREF_MILESTONE_BADGE)] ?: "#1 Most Played This Week"
+                val plays = prefs[stringPreferencesKey(WidgetHub.PREF_MILESTONE_PLAY_COUNT)]?.toIntOrNull()
+                val badge = plays?.let { context.resources.getQuantityString(R.plurals.widget_play_count, it, it) }
+                    ?: context.getString(R.string.stats_share_period_this_week)
                 val imagePath = prefs[stringPreferencesKey(WidgetHub.PREF_MILESTONE_IMAGE)]
                 
                 // Get widget size
@@ -78,7 +80,7 @@ class TempoMilestoneWidget : GlanceAppWidget() {
                 Box(
                     modifier = GlanceModifier
                         .appWidgetBackground()
-                        .clickable(actionStartActivity<MainActivity>()),
+                        .clickable(WidgetNavigation.openStats(context)),
                     contentAlignment = Alignment.Center
                 ) {
                      Image(

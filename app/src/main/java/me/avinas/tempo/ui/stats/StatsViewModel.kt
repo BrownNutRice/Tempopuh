@@ -114,9 +114,27 @@ class StatsViewModel
             searchJob?.cancel()
             invalidateInFlightQueries()
             _uiState.update { it.copy(
-                selectedTimeRange = timeRange, shareTotals = null,
+                selectedTimeRange = timeRange, periodTotals = null,
                 isLoading = true, items = emptyList(), page = 0, hasMore = true,
             ) }
+            loadJob = loadData()
+        }
+
+        fun openWidgetPeriod(timeRange: TimeRange) {
+            userSelectedFilters = true
+            searchJob?.cancel()
+            invalidateInFlightQueries()
+            _uiState.update { state ->
+                state.copy(
+                    selectedTimeRange = timeRange,
+                    searchQuery = "",
+                    periodTotals = state.periodTotals.takeIf { state.selectedTimeRange == timeRange },
+                    isLoading = true,
+                    items = emptyList(),
+                    page = 0,
+                    hasMore = true,
+                )
+            }
             loadJob = loadData()
         }
 
@@ -215,7 +233,7 @@ class StatsViewModel
                         )
                     }
 
-                    if (page == 0 && items.isNotEmpty()) updateShareTotals(timeRange, generation)
+                    if (page == 0) updatePeriodTotals(timeRange, generation)
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (failure: Exception) {
@@ -233,14 +251,14 @@ class StatsViewModel
             }
         }
 
-        private suspend fun updateShareTotals(timeRange: TimeRange, generation: Long) {
+        private suspend fun updatePeriodTotals(timeRange: TimeRange, generation: Long) {
             try {
                 val totals = statsRepository.getListeningTotals(timeRange, withLeeway = false)
-                if (generation == resultGeneration) _uiState.update { it.copy(shareTotals = totals) }
+                if (generation == resultGeneration) _uiState.update { it.copy(periodTotals = totals) }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (failure: Exception) {
-                android.util.Log.w("StatsViewModel", "Could not load share totals", failure)
+                android.util.Log.w("StatsViewModel", "Could not load period totals", failure)
             }
         }
 
@@ -275,7 +293,7 @@ data class StatsUiState(
     val searchQuery: String = "",
     val page: Int = 0,
     val hasMore: Boolean = true,
-    val shareTotals: CombinedBasicStats? = null,
+    val periodTotals: CombinedBasicStats? = null,
 )
 
 @Immutable

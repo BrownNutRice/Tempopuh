@@ -1,395 +1,197 @@
 package me.avinas.tempo.widget
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.content.Context
 import android.graphics.Bitmap
-import android.os.Build
-import androidx.core.app.NotificationCompat
+import android.util.AtomicFile
+import android.util.Log
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
-import androidx.glance.appwidget.updateAll
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
-import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import coil3.ImageLoader
 import coil3.request.ImageRequest
 import coil3.request.SuccessResult
-import coil3.size.Precision
-import coil3.size.Size
+import coil3.request.allowHardware
 import coil3.toBitmap
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import me.avinas.tempo.R
+import me.avinas.tempo.data.repository.SortBy
 import me.avinas.tempo.data.repository.StatsRepository
 import me.avinas.tempo.data.stats.TimeRange
-import me.avinas.tempo.utils.ForegroundNotificationGuard
 import me.avinas.tempo.widget.utils.WidgetHub
+import me.avinas.tempo.widget.utils.WidgetType
+import me.avinas.tempo.widget.utils.placedWidgets
+import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
-import java.io.FileOutputStream
+import java.io.IOException
+import java.time.LocalDate
+import java.time.temporal.TemporalAdjusters
+import java.time.DayOfWeek
 
 @HiltWorker
-class WidgetWorker
-    @AssistedInject
-    constructor(
-        @Assisted private val context: Context,
-        @Assisted workerParams: WorkerParameters,
-        private val statsRepository: StatsRepository,
-    ) : CoroutineWorker(context, workerParams) {
-        companion object {
-            private const val TAG = "WidgetWorker"
-            private const val NOTIFICATION_CHANNEL_ID = "widget_worker"
-            private const val NOTIFICATION_ID = 3008
+class WidgetWorker @AssistedInject constructor(
+    @Assisted private val context: Context,
+    @Assisted workerParams: WorkerParameters,
+    private val statsRepository: StatsRepository,
+    private val imageLoader: ImageLoader,
+) : CoroutineWorker(context, workerParams) {
+
+    override suspend fun doWork(): Result = try {
+        refreshLock.withLock { refreshPlacedWidgets() }
+        Result.success()
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (failure: Exception) {
+        Log.w(TAG, "Could not refresh listening widgets", failure)
+        if (runAttemptCount < 2) Result.retry() else Result.failure()
+    }
+
+    private suspend fun refreshPlacedWidgets() {
+        val placed = placedWidgets(context)
+        if (placed.isEmpty()) return
+
+        val states = placed.keys.associateWith { mutableMapOf<String, String?>() }
+
+        val weekly = states[WidgetType.WEEKLY]
+        val mix = states[WidgetType.MIX]
+        if (weekly != null || mix != null) {
+            val daily = statsRepository.getDailyListening(TimeRange.THIS_WEEK, limit = 8, withLeeway = false)
+                .associate { it.date to it.totalTimeMs }
+            val monday = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+            val chart = (0L..6L).joinToString(",") { day ->
+                (daily[monday.plusDays(day).toString()] ?: 0L).toString()
+            }
+            weekly?.set(WidgetHub.PREF_WEEKLY_CHART_DATA, chart)
+            mix?.set(WidgetHub.PREF_MIX_CHART_DATA, chart)
+        }
+        if (weekly != null) {
+            val totals = statsRepository.getListeningTotals(TimeRange.THIS_WEEK, withLeeway = false)
+            weekly[WidgetHub.PREF_WEEKLY_TIME] = totals.totalTimeMs.toString()
+            weekly[WidgetHub.PREF_WEEKLY_PLAYS] = totals.playCount.toString()
         }
 
-        override suspend fun doWork(): Result =
-            try {
-                // 1. Fetch Core Data
-                val weeklyOverview = statsRepository.getListeningOverview(TimeRange.THIS_WEEK)
-                val dailyStats = statsRepository.getDailyListening(TimeRange.THIS_WEEK, limit = 7)
-
-                // Calculate Growth (vs Last Week)
-                val lastWeekOverview = statsRepository.getPeriodComparison(TimeRange.THIS_WEEK)
-                val growthPercent =
-                    if (lastWeekOverview.previousPeriodTimeMs > 0) {
-                        (
-                            (weeklyOverview.totalListeningTimeMs - lastWeekOverview.previousPeriodTimeMs).toFloat() /
-                                lastWeekOverview.previousPeriodTimeMs
-                        ) *
-                            100
-                    } else {
-                        100f
-                    }
-                val growthString = "${if (growthPercent > 0) "+" else ""}${growthPercent.toInt()}%"
-
-                // Format Time
-                val totalHours = weeklyOverview.totalListeningTimeMs / 1000.0 / 60.0 / 60.0
-                val hoursString = String.format("%.1f", totalHours)
-
-                // Chart Data (daily listening times for bar chart)
-                val chartData = dailyStats.reversed().map { it.totalTimeMs.toFloat() }.joinToString(",")
-
-                // Insight Calculation
-                val mostActiveDay = statsRepository.getMostActiveDay(TimeRange.THIS_WEEK)
-                val mostActiveHour = statsRepository.getMostActiveHour(TimeRange.THIS_WEEK)
-
-                val insightString =
-                    when {
-                        mostActiveDay != null && mostActiveDay.totalTimeMs > (weeklyOverview.totalListeningTimeMs / 7 * 1.5) -> {
-                            "Most active on ${mostActiveDay.dayName}s"
-                        }
-
-                        mostActiveHour != null -> {
-                            "Peaking at ${if (mostActiveHour.hour > 12) mostActiveHour.hour - 12 else mostActiveHour.hour} ${if (mostActiveHour.hour >= 12) "PM" else "AM"}"
-                        }
-
-                        else -> {
-                            "${weeklyOverview.totalPlayCount} tracks played"
-                        }
-                    }
-
-                // 1b. Fetch Today's Data (for Dashboard)
-                val todayOverview = statsRepository.getListeningOverview(TimeRange.TODAY)
-                val hourlyStats = statsRepository.getHourlyDistribution(TimeRange.TODAY)
-
-                // Calculate Growth (vs Yesterday)
-                val yesterdayComparison = statsRepository.getPeriodComparison(TimeRange.TODAY)
-                val todayGrowthPercent =
-                    if (yesterdayComparison.previousPeriodTimeMs > 0) {
-                        (
-                            (todayOverview.totalListeningTimeMs - yesterdayComparison.previousPeriodTimeMs).toFloat() /
-                                yesterdayComparison.previousPeriodTimeMs
-                        ) *
-                            100
-                    } else {
-                        0f
-                    }
-                val todayGrowthString = "${if (todayGrowthPercent > 0) "+" else ""}${todayGrowthPercent.toInt()}%"
-
-                // Format Time
-                val todayHours = todayOverview.totalListeningTimeMs / 1000.0 / 60.0 / 60.0
-                val todayHoursString = String.format("%.1f", todayHours)
-
-                // Chart Data (Hourly)
-                // Zero-fill missing hours across the 24-hour chart window
-                val hourlyMap = hourlyStats.associate { it.hour to it.totalTimeMs.toFloat() }
-                // Get current hour to limit the chart if desired, or show full 24h
-                val currentHour =
-                    java.time.LocalTime
-                        .now()
-                        .hour
-                val todayChartData =
-                    (0..23)
-                        .map { hour ->
-                            if (hour <= currentHour) hourlyMap[hour] ?: 0f else 0f
-                        }.joinToString(",")
-
-                // 2. Top Artist Data (for Artist Spotlight + Dashboard)
-                val topArtists = statsRepository.getTopArtists(TimeRange.THIS_WEEK, pageSize = 1)
-                val topArtist = topArtists.items.firstOrNull()
-                var artistImagePath: String? = null
-                if (topArtist?.imageUrl != null) {
-                    artistImagePath = downloadImage(context, topArtist.imageUrl, "widget_artist_bg.jpg")
-                }
-                val artistHours = String.format("%.0f", (topArtist?.totalTimeMs ?: 0) / 3_600_000.0)
-
-                // 3. Top Genres with Percentages (for Heatmap treemap)
-                val topGenres = statsRepository.getTopGenres(TimeRange.THIS_WEEK, limit = 5)
-                val totalGenrePlays = topGenres.sumOf { it.playCount }.coerceAtLeast(1)
-                val genreJson =
-                    if (topGenres.isNotEmpty()) {
-                        topGenres.joinToString(",", "[", "]") {
-                            val percent = (it.playCount * 100) / totalGenrePlays
-                            """{"genre":"${it.genre}","count":${it.playCount},"percent":$percent}"""
-                        }
-                    } else {
-                        "[]"
-                    }
-
-                // 4. Milestone Data (Top Track with real insights)
-                val topTracks = statsRepository.getTopTracks(TimeRange.THIS_WEEK, pageSize = 1)
-                val topTrack = topTracks.items.firstOrNull()
-
-                var milestoneTrackName = "No Data"
-                var milestoneArtistName = ""
-                var milestonePlayCount = "0"
-                var milestoneBadge = "#1 Most Played This Week"
-                var milestoneImage: String? = null
-
-                if (topTrack != null) {
-                    milestoneTrackName = topTrack.title
-                    milestoneArtistName = topTrack.artist
-                    milestonePlayCount = topTrack.playCount.toString()
-
-                    // Compute milestone badge
-                    milestoneBadge =
-                        when {
-                            topTrack.playCount >= 1000 -> "🏆 ${topTrack.playCount}th Stream!"
-                            topTrack.playCount >= 500 -> "🏆 ${topTrack.playCount}th Stream!"
-                            topTrack.playCount >= 100 -> "🏆 ${topTrack.playCount}th Stream!"
-                            topTrack.playCount >= 50 -> "🔥 ${topTrack.playCount}th Stream!"
-                            else -> "#1 Most Played This Week"
-                        }
-
-                    if (topTrack.albumArtUrl != null) {
-                        milestoneImage = downloadImage(context, topTrack.albumArtUrl, "widget_milestone_art.jpg")
-                    }
-                }
-
-                // 5. Discovery Data (Most-explored artist with real stats)
-                val artistLoyalties = statsRepository.getArtistLoyalty(TimeRange.THIS_WEEK, minPlays = 3, limit = 5)
-                val mostExploredArtist = artistLoyalties.maxByOrNull { it.uniqueTracksPlayed }
-
-                var discoveryArtistName = topArtist?.artist ?: "artists"
-                var discoveryTracksCount = weeklyOverview.uniqueTracksCount.toString()
-                var discoveryHours = hoursString
-                var discoveryPercentile = "Top 10%"
-                var discoveryText = "You've discovered $discoveryTracksCount tracks this week."
-
-                if (mostExploredArtist != null) {
-                    discoveryArtistName = mostExploredArtist.artist
-                    discoveryTracksCount = mostExploredArtist.uniqueTracksPlayed.toString()
-                    val artistTimeHours = String.format("%.1f", mostExploredArtist.totalPlays * 3.5 / 60.0) // approx hours
-                    discoveryHours = "${artistTimeHours}h"
-
-                    // Get percentile
-                    try {
-                        val percentile =
-                            statsRepository.getArtistRankPercentile(
-                                mostExploredArtist.totalPlays,
-                                TimeRange.THIS_WEEK,
-                            )
-                        discoveryPercentile = "Top ${percentile.toInt().coerceAtLeast(1)}%"
-                    } catch (_: Exception) {
-                        discoveryPercentile = "Top Fan"
-                    }
-
-                    discoveryText =
-                        if (mostExploredArtist.uniqueTracksPlayed >= 10) {
-                            "You've explored ${mostExploredArtist.artist}'s entire catalog."
-                        } else {
-                            "You've discovered ${mostExploredArtist.uniqueTracksPlayed} of ${mostExploredArtist.artist}'s tracks."
-                        }
-                }
-
-                // 6. Mix Widget Data
-                // Generate varying bar heights for audio visualization from daily stats
-                val mixChartData =
-                    if (dailyStats.isNotEmpty()) {
-                        dailyStats.reversed().map { it.totalTimeMs.toFloat() }.joinToString(",")
-                    } else {
-                        // Fallback to some visual variety
-                        "0.3,0.6,1.0,0.7,0.4,0.2,0.5,0.9,0.5,0.3,0.2,0.4"
-                    }
-
-                // 7. Update All Widget States
-                val manager = GlanceAppWidgetManager(context)
-
-                val allWidgetClasses: List<Class<out GlanceAppWidget>> =
-                    listOf(
-                        TempoAppWidget::class.java,
-                        TempoArtistWidget::class.java,
-                        TempoDashboardWidget::class.java,
-                        TempoDiscoveryWidget::class.java,
-                        TempoHeatmapWidget::class.java,
-                        TempoMilestoneWidget::class.java,
-                        TempoMixWidget::class.java,
-                    )
-
-                for (widgetClass in allWidgetClasses) {
-                    val glanceIds = manager.getGlanceIds(widgetClass)
-                    glanceIds.forEach { glanceId ->
-                        updateAppWidgetState(context, glanceId) { prefs ->
-                            fun setStr(
-                                key: String,
-                                value: String,
-                            ) {
-                                prefs[stringPreferencesKey(key)] = value
-                            }
-
-                            // Core weekly stats
-                            setStr(WidgetHub.PREF_WEEKLY_HOURS, hoursString)
-                            setStr(WidgetHub.PREF_WEEKLY_GROWTH, growthString)
-                            setStr(WidgetHub.PREF_WEEKLY_INSIGHT, insightString)
-                            setStr(WidgetHub.PREF_WEEKLY_CHART_DATA, chartData)
-
-                            // Today's stats
-                            setStr(WidgetHub.PREF_TODAY_HOURS, todayHoursString)
-                            setStr(WidgetHub.PREF_TODAY_GROWTH, todayGrowthString)
-                            setStr(WidgetHub.PREF_TODAY_CHART_DATA, todayChartData)
-
-                            // Artist spotlight
-                            setStr(WidgetHub.PREF_TOP_ARTIST_NAME, topArtist?.artist ?: "No Data")
-                            setStr(WidgetHub.PREF_TOP_ARTIST_HOURS, "${artistHours}h")
-                            setStr(WidgetHub.PREF_TOP_ARTIST_TRACKS, (topArtist?.uniqueTracks ?: 0).toString())
-                            if (artistImagePath != null) setStr(WidgetHub.PREF_TOP_ARTIST_IMAGE, artistImagePath)
-
-                            // Genres
-                            setStr(WidgetHub.PREF_TOP_GENRES_JSON, genreJson)
-
-                            // Milestone (real track data)
-                            setStr(WidgetHub.PREF_MILESTONE_TITLE, milestoneTrackName)
-                            setStr(WidgetHub.PREF_MILESTONE_SUBTITLE, milestoneArtistName)
-                            setStr(WidgetHub.PREF_MILESTONE_TRACK_NAME, milestoneTrackName)
-                            setStr(WidgetHub.PREF_MILESTONE_ARTIST_NAME, milestoneArtistName)
-                            setStr(WidgetHub.PREF_MILESTONE_PLAY_COUNT, milestonePlayCount)
-                            setStr(WidgetHub.PREF_MILESTONE_BADGE, milestoneBadge)
-                            if (milestoneImage != null) setStr(WidgetHub.PREF_MILESTONE_IMAGE, milestoneImage)
-
-                            // Discovery (real insights)
-                            setStr(WidgetHub.PREF_DISCOVERY_TEXT, discoveryText)
-                            setStr(WidgetHub.PREF_DISCOVERY_ARTIST_NAME, discoveryArtistName)
-                            setStr(WidgetHub.PREF_DISCOVERY_TRACKS_COUNT, discoveryTracksCount)
-                            setStr(WidgetHub.PREF_DISCOVERY_HOURS, discoveryHours)
-                            setStr(WidgetHub.PREF_DISCOVERY_PERCENTILE, discoveryPercentile)
-
-                            // Mix
-                            setStr(WidgetHub.PREF_MIX_TITLE, "Weekly Mix")
-                            setStr(WidgetHub.PREF_MIX_ARTIST, "Made for you")
-                            setStr(WidgetHub.PREF_MIX_CHART_DATA, mixChartData)
-                        }
-                    }
-                }
-
-                // Refresh only the widget types that are actually on the home screen.
-                //
-                // This worker previously called updateAll() on all seven types every run. The
-                // preferences above are read back via currentState<Preferences>() inside each
-                // widget's provideGlance, so a widget that is not placed has nothing to display
-                // and no one to display it to — its updateAll walked an empty id list (re-querying
-                // AppWidgetManager per widget) for no effect. Refreshing just the placed ones also
-                // keeps future unplaced-widget work out of this path.
-                val appWidgetManager = android.appwidget.AppWidgetManager.getInstance(context)
-                suspend fun refreshIfPlaced(widget: androidx.glance.appwidget.GlanceAppWidget, provider: Class<*>) {
-                    val placed =
-                        appWidgetManager
-                            ?.getAppWidgetIds(android.content.ComponentName(context, provider))
-                            ?.isNotEmpty() == true
-                    if (placed) widget.updateAll(context)
-                }
-
-                refreshIfPlaced(TempoAppWidget(), TempoAppWidget::class.java)
-                refreshIfPlaced(TempoArtistWidget(), TempoArtistWidget::class.java)
-                refreshIfPlaced(TempoDashboardWidget(), TempoDashboardWidget::class.java)
-                refreshIfPlaced(TempoDiscoveryWidget(), TempoDiscoveryWidget::class.java)
-                refreshIfPlaced(TempoHeatmapWidget(), TempoHeatmapWidget::class.java)
-                refreshIfPlaced(TempoMilestoneWidget(), TempoMilestoneWidget::class.java)
-                refreshIfPlaced(TempoMixWidget(), TempoMixWidget::class.java)
-
-                Result.success()
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Result.retry()
-            }
-
-        private suspend fun downloadImage(
-            context: Context,
-            url: String,
-            fileName: String,
-        ): String? {
-            val file = File(context.filesDir, fileName)
-            val prefs = context.getSharedPreferences("widget_image_cache", Context.MODE_PRIVATE)
-            val lastUrl = prefs.getString(fileName, null)
-
-            // Smart Cache: Only download if URL changed or file is missing
-            if (file.exists() && url == lastUrl) {
-                return file.absolutePath
-            }
-
-            val loader = ImageLoader(context)
-            val request =
-                ImageRequest
-                    .Builder(context)
-                    .data(url)
-                    .size(Size(512, 512))
-                    .precision(Precision.EXACT)
-                    .build()
-
-            val result = (loader.execute(request) as? SuccessResult)?.image
-            val bitmap = result?.toBitmap()
-
-            return bitmap?.let {
-                FileOutputStream(file).use { out ->
-                    it.compress(Bitmap.CompressFormat.JPEG, 85, out)
-                }
-                // Update cache mapping
-                prefs.edit().putString(fileName, url).apply()
-                file.absolutePath
-            }
+        val artist = states[WidgetType.ARTIST]
+        if (weekly != null || artist != null || mix != null) {
+            val lead = statsRepository.getTopArtists(TimeRange.THIS_WEEK, pageSize = 1, withLeeway = false)
+                .items.firstOrNull()
+            val fallback = context.getString(R.string.widget_no_listening)
+            val name = lead?.artist ?: fallback
+            val artwork = lead?.imageUrl?.let { cacheArtwork(it, "widget_artist_bg.jpg") }
+            weekly?.set(WidgetHub.PREF_TOP_ARTIST_NAME, name)
+            weekly?.set(WidgetHub.PREF_TOP_ARTIST_IMAGE, artwork)
+            artist?.set(WidgetHub.PREF_TOP_ARTIST_NAME, name)
+            artist?.set(WidgetHub.PREF_TOP_ARTIST_IMAGE, artwork)
+            artist?.set(WidgetHub.PREF_TOP_ARTIST_HOURS, widgetListeningTime(context, lead?.totalTimeMs ?: 0L))
+            mix?.set(WidgetHub.PREF_TOP_ARTIST_IMAGE, artwork)
         }
 
-        override suspend fun getForegroundInfo(): ForegroundInfo {
-            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        states[WidgetType.DASHBOARD]?.let { state ->
+            val today = statsRepository.getListeningTotals(TimeRange.TODAY, withLeeway = false)
+            state[WidgetHub.PREF_TODAY_TIME] = today.totalTimeMs.toString()
+            state[WidgetHub.PREF_TODAY_PLAYS] = today.playCount.toString()
+            state[WidgetHub.PREF_TODAY_TRACKS] = today.uniqueTracks.toString()
+        }
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val channel =
-                    NotificationChannel(
-                        NOTIFICATION_CHANNEL_ID,
-                        "Widget Updates",
-                        NotificationManager.IMPORTANCE_LOW,
-                    )
-                notificationManager.createNotificationChannel(channel)
+        states[WidgetType.DISCOVERY]?.let { state ->
+            val discovery = statsRepository.getDiscoveryStats(TimeRange.THIS_WEEK, withLeeway = false)
+            state[WidgetHub.PREF_DISCOVERY_NEW_TRACKS] = discovery.newTracksCount.toString()
+            state[WidgetHub.PREF_DISCOVERY_NEW_ARTISTS] = discovery.newArtistsCount.toString()
+        }
+
+        states[WidgetType.HEATMAP]?.let { state ->
+            val genres = statsRepository.getTopGenres(TimeRange.THIS_WEEK, limit = 5, withLeeway = false)
+            val total = genres.sumOf { it.playCount.toLong() }.coerceAtLeast(1L)
+            val json = JSONArray()
+            for (genre in genres) {
+                json.put(JSONObject()
+                    .put("genre", genre.genre)
+                    .put("count", genre.playCount)
+                    .put("percent", genre.playCount * 100L / total))
             }
+            state[WidgetHub.PREF_TOP_GENRES_JSON] = json.toString()
+        }
 
-            val notification =
-                NotificationCompat
-                    .Builder(context, NOTIFICATION_CHANNEL_ID)
-                    .setSmallIcon(R.drawable.ic_notification)
-                    .setContentTitle("Tempo Widget")
-                    .setContentText("Updating stats...")
-                    .setPriority(NotificationCompat.PRIORITY_LOW)
-                    .setOngoing(true)
-                    .build()
+        states[WidgetType.MILESTONE]?.let { state ->
+            val track = statsRepository.getTopTracks(
+                TimeRange.THIS_WEEK, sortBy = SortBy.PLAY_COUNT, pageSize = 1, withLeeway = false,
+            ).items.firstOrNull()
+            state[WidgetHub.PREF_MILESTONE_TRACK_NAME] = track?.title
+            state[WidgetHub.PREF_MILESTONE_ARTIST_NAME] = track?.artist
+            state[WidgetHub.PREF_MILESTONE_PLAY_COUNT] = track?.playCount?.toString()
+            state[WidgetHub.PREF_MILESTONE_IMAGE] = track?.albumArtUrl?.let { cacheArtwork(it, "widget_milestone_art.jpg") }
+        }
 
-            return ForegroundNotificationGuard.postableForegroundInfo(
-                context = context,
-                notificationId = NOTIFICATION_ID,
-                requestedChannelId = NOTIFICATION_CHANNEL_ID,
-                notification = notification,
-                logTag = TAG,
-            )
+        val manager = GlanceAppWidgetManager(context)
+        for ((type, ids) in placed) {
+            val widget = type.createWidget()
+            val values = states.getValue(type)
+            for (appWidgetId in ids) {
+                val id = try {
+                    manager.getGlanceIdBy(appWidgetId)
+                } catch (_: IllegalArgumentException) {
+                    continue // The launcher removed the widget during the refresh.
+                }
+                updateAppWidgetState(context, id) { preferences ->
+                    for ((name, value) in values) {
+                        val key = stringPreferencesKey(name)
+                        if (value == null) preferences.remove(key) else preferences[key] = value
+                    }
+                }
+                widget.update(context, id)
+            }
         }
     }
+
+    private suspend fun cacheArtwork(url: String, fileName: String): String? = withContext(Dispatchers.IO) {
+        val file = File(context.filesDir, fileName)
+        val cache = context.getSharedPreferences("widget_image_cache", Context.MODE_PRIVATE)
+        if (file.exists() && cache.getString(fileName, null) == url) return@withContext file.absolutePath
+
+        try {
+            val request = ImageRequest.Builder(context).data(url).size(512, 512).allowHardware(false).build()
+            val bitmap = (imageLoader.execute(request) as? SuccessResult)?.image?.toBitmap()
+                ?: return@withContext null
+            val atomic = AtomicFile(file)
+            val output = atomic.startWrite()
+            try {
+                if (!bitmap.compress(Bitmap.CompressFormat.JPEG, 85, output)) {
+                    throw IOException("Could not encode widget artwork")
+                }
+                atomic.finishWrite(output)
+            } catch (failure: Exception) {
+                atomic.failWrite(output)
+                throw failure
+            }
+            cache.edit().putString(fileName, url).apply()
+            file.absolutePath
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Exception) {
+            Log.w(TAG, "Could not cache widget artwork", failure)
+            null
+        }
+    }
+
+    private companion object {
+        const val TAG = "WidgetWorker"
+        val refreshLock = Mutex()
+    }
+}
+
+internal fun widgetListeningTime(context: Context, millis: Long): String {
+    if (millis == 0L) return context.getString(R.string.stats_period_zero_time)
+    val minutes = millis / 60_000L
+    if (minutes == 0L) return context.getString(R.string.widget_duration_under_minute)
+    val hours = minutes / 60
+    return if (hours > 0) context.getString(R.string.widget_duration_hours_minutes, hours, minutes % 60)
+    else context.getString(R.string.widget_duration_minutes, minutes)
+}

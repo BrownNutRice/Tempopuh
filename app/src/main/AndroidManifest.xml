@@ -152,6 +152,7 @@
         <!-- Widget Providers -->
         <receiver
             android:name=".widget.TempoWidgetReceiver"
+            android:label="@string/widget_weekly_listening"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -163,6 +164,7 @@
 
         <receiver
             android:name=".widget.TempoArtistWidgetReceiver"
+            android:label="@string/widget_artist_title"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -174,6 +176,7 @@
 
         <receiver
             android:name=".widget.TempoDashboardWidgetReceiver"
+            android:label="@string/widget_today_listening"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -185,6 +188,7 @@
 
         <receiver
             android:name=".widget.TempoDiscoveryWidgetReceiver"
+            android:label="@string/widget_weekly_discovery"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -196,6 +200,7 @@
 
         <receiver
             android:name=".widget.TempoHeatmapWidgetReceiver"
+            android:label="@string/widget_top_genres_title"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -207,6 +212,7 @@
 
         <receiver
             android:name=".widget.TempoMilestoneWidgetReceiver"
+            android:label="@string/widget_top_song_title"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -218,6 +224,7 @@
 
         <receiver
             android:name=".widget.TempoMixWidgetReceiver"
+            android:label="@string/widget_weekly_daily_time"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

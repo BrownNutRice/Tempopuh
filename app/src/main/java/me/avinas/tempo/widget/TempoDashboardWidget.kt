@@ -1,10 +1,7 @@
 package me.avinas.tempo.widget
 
 import android.content.Context
-import android.graphics.BitmapFactory
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.datastore.preferences.core.Preferences
@@ -12,43 +9,31 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
-import androidx.glance.Image
-import androidx.glance.ImageProvider
 import androidx.glance.LocalSize
-import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
-import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.currentState
 import androidx.glance.layout.Alignment
-import androidx.glance.layout.Box
 import androidx.glance.layout.Column
-import androidx.glance.layout.ContentScale
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
-import androidx.glance.layout.fillMaxHeight
-import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
-import androidx.glance.layout.size
-import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import androidx.glance.unit.ColorProvider
-import me.avinas.tempo.MainActivity
 import me.avinas.tempo.R
 import me.avinas.tempo.widget.theme.TempoWidgetTheme
-import me.avinas.tempo.widget.theme.TempoWidgetColors
 import me.avinas.tempo.widget.utils.WidgetHub
+import me.avinas.tempo.widget.utils.WidgetNavigation
 import me.avinas.tempo.widget.utils.appWidgetBackground
-import me.avinas.tempo.widget.utils.scheduleImmediateWidgetUpdate
 import me.avinas.tempo.widget.utils.cancelPeriodicWidgetUpdateIfUnused
+import me.avinas.tempo.widget.utils.scheduleImmediateWidgetUpdate
 import me.avinas.tempo.widget.utils.schedulePeriodicWidgetUpdate
 
 class TempoDashboardWidget : GlanceAppWidget() {
@@ -56,56 +41,76 @@ class TempoDashboardWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent {
-            TempoWidgetTheme {
-                val prefs = currentState<Preferences>()
-                // Fetch data from prefs
-                // Fetch data from prefs
-                val weeklyHours = prefs[stringPreferencesKey(WidgetHub.PREF_WEEKLY_HOURS)] ?: "--"
-                val weeklyGrowth = prefs[stringPreferencesKey(WidgetHub.PREF_WEEKLY_GROWTH)] ?: "+0%"
-                val weeklyInsight = prefs[stringPreferencesKey(WidgetHub.PREF_WEEKLY_INSIGHT)] ?: ""
-                val chartDataStr = prefs[stringPreferencesKey(WidgetHub.PREF_WEEKLY_CHART_DATA)] ?: ""
-                val topArtistName = prefs[stringPreferencesKey(WidgetHub.PREF_TOP_ARTIST_NAME)] ?: "No Data"
-                val artistImagePath = prefs[stringPreferencesKey(WidgetHub.PREF_TOP_ARTIST_IMAGE)]
+            val prefs = currentState<Preferences>()
+            val millis = prefs[stringPreferencesKey(WidgetHub.PREF_TODAY_TIME)]?.toLongOrNull()
+            val plays = prefs[stringPreferencesKey(WidgetHub.PREF_TODAY_PLAYS)]?.toIntOrNull()
+            val songs = prefs[stringPreferencesKey(WidgetHub.PREF_TODAY_TRACKS)]?.toIntOrNull()
 
-                val chartData = if (chartDataStr.isNotEmpty()) {
-                    chartDataStr.split(",").mapNotNull { it.toFloatOrNull() }
-                } else emptyList()
-                
-                // Get widget size
-                val size = LocalSize.current
-                val pixelSize = me.avinas.tempo.widget.utils.getPixelSize(context, size)
-                val widthPx = pixelSize.width
-                val heightPx = pixelSize.height
-                
-                val generatedArt = me.avinas.tempo.widget.utils.BitmapGenerator.generateDashboardCard(
-                    context,
-                    widthPx.coerceAtLeast(100),
-                    heightPx.coerceAtLeast(100),
-                    weeklyHours,
-                    weeklyGrowth,
-                    weeklyInsight,
-                    chartData,
-                    topArtistName,
-                    artistImagePath
+            ListeningWidgetCard(context, context.getString(R.string.widget_today_listening), today = true) {
+                WidgetMetric(
+                    millis?.let { widgetListeningTime(context, it) } ?: "—",
+                    context.getString(R.string.stats_period_listening_time),
+                    GlanceModifier.defaultWeight(),
+                    highlighted = true,
                 )
-
-                Box(
-                    modifier = GlanceModifier
-                        .appWidgetBackground()
-                        .clickable(actionStartActivity<MainActivity>()),
-                    contentAlignment = Alignment.Center
-                ) {
-                     Image(
-                        provider = ImageProvider(generatedArt),
-                        contentDescription = "Dashboard Pulse",
-                        modifier = GlanceModifier.fillMaxSize(),
-                        contentScale = ContentScale.FillBounds
+                WidgetMetric(
+                    plays?.let { context.getString(R.string.stats_period_number, it) } ?: "—",
+                    context.getString(R.string.stats_period_plays),
+                    GlanceModifier.defaultWeight(),
+                )
+                if (LocalSize.current.width >= 280.dp) {
+                    WidgetMetric(
+                        songs?.let { context.getString(R.string.stats_period_number, it) } ?: "—",
+                        context.getString(R.string.stats_period_unique_songs),
+                        GlanceModifier.defaultWeight(),
                     )
                 }
             }
         }
     }
+}
 
+@Composable
+internal fun ListeningWidgetCard(
+    context: Context,
+    title: String,
+    today: Boolean = false,
+    metrics: @Composable androidx.glance.layout.RowScope.() -> Unit,
+) {
+    TempoWidgetTheme {
+        val compact = LocalSize.current.height < 105.dp
+        Column(
+            modifier = GlanceModifier.appWidgetBackground()
+                .background(GlanceTheme.colors.surface)
+                .clickable(WidgetNavigation.openStats(context, today))
+                .padding(if (compact) 10.dp else 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                title,
+                style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 13.sp, fontWeight = FontWeight.Medium),
+                maxLines = 1,
+            )
+            Spacer(GlanceModifier.height(if (compact) 4.dp else 8.dp))
+            Row(modifier = GlanceModifier.fillMaxWidth(), content = metrics)
+        }
+    }
+}
+
+@Composable
+internal fun WidgetMetric(value: String, label: String, modifier: GlanceModifier, highlighted: Boolean = false) {
+    Column(modifier = modifier.padding(end = 6.dp)) {
+        Text(
+            value,
+            style = TextStyle(
+                color = if (highlighted) GlanceTheme.colors.primary else GlanceTheme.colors.onSurface,
+                fontSize = if (LocalSize.current.height < 105.dp) 18.sp else 22.sp,
+                fontWeight = FontWeight.Bold,
+            ),
+            maxLines = 1,
+        )
+        Text(label, style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp), maxLines = 2)
+    }
 }
 
 class TempoDashboardWidgetReceiver : GlanceAppWidgetReceiver() {

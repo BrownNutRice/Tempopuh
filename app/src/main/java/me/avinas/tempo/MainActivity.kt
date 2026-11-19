@@ -146,7 +146,8 @@ class MainActivity : AppCompatActivity() {
                                 // Schedule the health worker after setup is complete
                                 ServiceHealthWorker.schedule(this)
                             },
-                            navigationTrigger = navigationTrigger.value
+                            navigationTrigger = navigationTrigger.value,
+                            onWidgetNavigationHandled = { navigationTrigger.value = null }
                         )
                     }
                 }
@@ -215,6 +216,7 @@ fun TempoApp(
     walkthroughController: me.avinas.tempo.ui.components.WalkthroughController,
     onSetupComplete: () -> Unit,
     navigationTrigger: String? = null,
+    onWidgetNavigationHandled: () -> Unit = {},
     viewModel: OnboardingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -398,7 +400,8 @@ fun TempoApp(
                 OnboardingStep.COMPLETED -> {
                     AppNavigation(
                         walkthroughController = walkthroughController,
-                        navigationTrigger = localNavigationTrigger ?: navigationTrigger
+                        navigationTrigger = localNavigationTrigger ?: navigationTrigger,
+                        onWidgetNavigationHandled = onWidgetNavigationHandled
                     )
                     // Clear local trigger after passing it
                     LaunchedEffect(localNavigationTrigger) {

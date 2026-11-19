@@ -13,7 +13,6 @@ import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.LocalSize
-import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
@@ -38,10 +37,11 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
-import me.avinas.tempo.MainActivity
+import me.avinas.tempo.R
 import me.avinas.tempo.widget.theme.TempoWidgetTheme
 import me.avinas.tempo.widget.theme.TempoWidgetColors
 import me.avinas.tempo.widget.utils.WidgetHub
+import me.avinas.tempo.widget.utils.WidgetNavigation
 import me.avinas.tempo.widget.utils.appWidgetBackground
 import me.avinas.tempo.widget.utils.scheduleImmediateWidgetUpdate
 import me.avinas.tempo.widget.utils.cancelPeriodicWidgetUpdateIfUnused
@@ -54,8 +54,8 @@ class TempoArtistWidget : GlanceAppWidget() {
         provideContent {
             TempoWidgetTheme {
                 val prefs = currentState<Preferences>()
-                val artistName = prefs[stringPreferencesKey(WidgetHub.PREF_TOP_ARTIST_NAME)] ?: "No Data"
-                val artistHours = prefs[stringPreferencesKey(WidgetHub.PREF_TOP_ARTIST_HOURS)] ?: "0h"
+                val artistName = prefs[stringPreferencesKey(WidgetHub.PREF_TOP_ARTIST_NAME)] ?: context.getString(R.string.widget_no_listening)
+                val artistHours = prefs[stringPreferencesKey(WidgetHub.PREF_TOP_ARTIST_HOURS)] ?: "—"
                 val artistImageInfo = prefs[stringPreferencesKey(WidgetHub.PREF_TOP_ARTIST_IMAGE)]
                 
                 // Get widget size to generate pixel-perfect bitmap
@@ -86,7 +86,7 @@ class TempoArtistWidget : GlanceAppWidget() {
                 Box(
                     modifier = GlanceModifier
                         .appWidgetBackground()
-                        .clickable(actionStartActivity<MainActivity>()),
+                        .clickable(WidgetNavigation.openStats(context)),
                     contentAlignment = Alignment.Center
                 ) {
                     Image(

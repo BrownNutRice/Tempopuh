@@ -3,13 +3,20 @@ package me.avinas.tempo.widget.utils
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
+import androidx.glance.ExperimentalGlanceApi
+import androidx.glance.action.Action
+import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import androidx.glance.appwidget.action.actionStartActivity
+import me.avinas.tempo.MainActivity
+import me.avinas.tempo.TempoApplication
+import me.avinas.tempo.data.stats.TimeRange
+import me.avinas.tempo.widget.*
 import androidx.compose.ui.unit.dp
 import androidx.glance.GlanceModifier
 import androidx.glance.appwidget.cornerRadius
-import androidx.glance.layout.Alignment
-import androidx.glance.layout.Box
 import androidx.glance.layout.fillMaxSize
-import androidx.glance.layout.padding
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
@@ -17,57 +24,28 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.PeriodicWorkRequest
 import androidx.work.WorkManager
 import me.avinas.tempo.utils.MAX_SAFE_BITMAP_EDGE_PX
-import me.avinas.tempo.widget.TempoAppWidget
-import me.avinas.tempo.widget.TempoArtistWidget
-import me.avinas.tempo.widget.TempoDashboardWidget
-import me.avinas.tempo.widget.TempoDiscoveryWidget
-import me.avinas.tempo.widget.TempoHeatmapWidget
-import me.avinas.tempo.widget.TempoMilestoneWidget
-import me.avinas.tempo.widget.TempoMixWidget
-import me.avinas.tempo.widget.WidgetWorker
 import java.util.concurrent.TimeUnit
 
 object WidgetHub {
-    // Shared constants
     val CornerRadius = 24.dp
-    val InnerPadding = 16.dp
-    val SmallPadding = 8.dp
-    
-    const val PREF_WEEKLY_HOURS = "weekly_hours"
-    const val PREF_WEEKLY_GROWTH = "weekly_growth" // e.g. "+9%"
+
+    const val PREF_WEEKLY_TIME = "weekly_time_ms"
+    const val PREF_WEEKLY_PLAYS = "weekly_plays"
     const val PREF_WEEKLY_CHART_DATA = "weekly_chart_data"
-    const val PREF_WEEKLY_INSIGHT = "weekly_insight" // e.g. "Most active on Fridays"
-    
-    // Today's Stats
-    const val PREF_TODAY_HOURS = "today_hours"
-    const val PREF_TODAY_GROWTH = "today_growth" // vs yesterday
-    const val PREF_TODAY_CHART_DATA = "today_chart_data" // hourly
-    
+    const val PREF_TODAY_TIME = "today_time_ms"
+    const val PREF_TODAY_PLAYS = "today_plays"
+    const val PREF_TODAY_TRACKS = "today_tracks"
     const val PREF_TOP_ARTIST_NAME = "top_artist_name"
     const val PREF_TOP_ARTIST_IMAGE = "top_artist_image"
     const val PREF_TOP_ARTIST_HOURS = "top_artist_hours"
-    
-    const val PREF_TOP_GENRES_JSON = "top_genres_json" // List<Pair<String, Int>>
-    
-    const val PREF_MILESTONE_TITLE = "milestone_title" // e.g., "100th Stream"
-    const val PREF_MILESTONE_SUBTITLE = "milestone_subtitle" // e.g., "Feeling You - Raftaar"
+    const val PREF_TOP_GENRES_JSON = "top_genres_json"
     const val PREF_MILESTONE_IMAGE = "milestone_image"
     const val PREF_MILESTONE_TRACK_NAME = "milestone_track_name"
     const val PREF_MILESTONE_ARTIST_NAME = "milestone_artist_name"
     const val PREF_MILESTONE_PLAY_COUNT = "milestone_play_count"
-    const val PREF_MILESTONE_BADGE = "milestone_badge" // e.g. "#1 Most Played This Week"
-    
-    const val PREF_DISCOVERY_TEXT = "discovery_text" // "You've explored King's entire catalog."
-    const val PREF_DISCOVERY_ARTIST_NAME = "discovery_artist_name"
-    const val PREF_DISCOVERY_TRACKS_COUNT = "discovery_tracks_count"
-    const val PREF_DISCOVERY_HOURS = "discovery_hours"
-    const val PREF_DISCOVERY_PERCENTILE = "discovery_percentile"
-
-    const val PREF_MIX_TITLE = "mix_title"
-    const val PREF_MIX_ARTIST = "mix_artist"
-    const val PREF_MIX_CHART_DATA = "mix_chart_data" // audio bar heights
-    
-    const val PREF_TOP_ARTIST_TRACKS = "top_artist_tracks" // unique tracks count
+    const val PREF_DISCOVERY_NEW_TRACKS = "discovery_new_tracks"
+    const val PREF_DISCOVERY_NEW_ARTISTS = "discovery_new_artists"
+    const val PREF_MIX_CHART_DATA = "mix_chart_data"
 }
 
 fun GlanceModifier.appWidgetBackground(): GlanceModifier {
@@ -77,48 +55,55 @@ fun GlanceModifier.appWidgetBackground(): GlanceModifier {
 
 private const val PERIODIC_WORK_NAME = "TempoWidgetPeriodicWork"
 
-/**
- * One-time refresh work, coalesced under a single name.
- *
- * Every widget receiver calls [scheduleImmediateWidgetUpdate] from `onUpdate`, and Android
- * delivers `APPWIDGET_UPDATE` to all placed widgets at once (boot, config change, launcher
- * refresh). With the old fire-and-forget `enqueue`, a user with several widgets placed started
- * that many independent workers, each of which runs the same stats queries and then calls
- * `updateAll` on *all seven* widget types. `KEEP` on a unique name collapses such a burst into
- * a single run that still renders every widget.
- */
+// Launcher broadcasts can arrive together for multiple widget providers.
 private const val IMMEDIATE_WORK_NAME = "TempoWidgetImmediateWork"
+private const val HISTORY_WORK_NAME = "TempoWidgetHistoryWork"
 
-/**
- * Every widget provider this app registers, used to answer "is any Tempo widget still placed?".
- *
- * Kept as one list because the periodic work is shared by all of them (a single
- * [PERIODIC_WORK_NAME]); a helper that only knew about its own provider could not tell whether
- * removing one widget should cancel the shared work.
- */
-private val ALL_WIDGET_PROVIDERS =
-    listOf(
-        TempoAppWidget::class.java,
-        TempoArtistWidget::class.java,
-        TempoDashboardWidget::class.java,
-        TempoDiscoveryWidget::class.java,
-        TempoHeatmapWidget::class.java,
-        TempoMilestoneWidget::class.java,
-        TempoMixWidget::class.java,
-    )
+internal enum class WidgetType(
+    val receiver: Class<out GlanceAppWidgetReceiver>,
+    val createWidget: () -> GlanceAppWidget,
+) {
+    WEEKLY(TempoWidgetReceiver::class.java, ::TempoAppWidget),
+    ARTIST(TempoArtistWidgetReceiver::class.java, ::TempoArtistWidget),
+    DASHBOARD(TempoDashboardWidgetReceiver::class.java, ::TempoDashboardWidget),
+    DISCOVERY(TempoDiscoveryWidgetReceiver::class.java, ::TempoDiscoveryWidget),
+    HEATMAP(TempoHeatmapWidgetReceiver::class.java, ::TempoHeatmapWidget),
+    MILESTONE(TempoMilestoneWidgetReceiver::class.java, ::TempoMilestoneWidget),
+    MIX(TempoMixWidgetReceiver::class.java, ::TempoMixWidget),
+}
 
-/**
- * Whether at least one Tempo widget is currently placed on a home screen.
- *
- * [AppWidgetManager.getAppWidgetIds] is a binder call that returns only *this* provider type's
- * placed ids, so a non-empty result for any provider means widget refresh work is still wanted.
- * Unbound widgets return an empty array rather than throwing, so this needs no try/catch.
- */
-private fun hasAnyWidgetPlaced(context: Context): Boolean {
-    val manager = AppWidgetManager.getInstance(context) ?: return false
-    return ALL_WIDGET_PROVIDERS.any { provider ->
-        manager.getAppWidgetIds(ComponentName(context, provider)).isNotEmpty()
+internal fun placedWidgets(context: Context): Map<WidgetType, IntArray> {
+    val manager = AppWidgetManager.getInstance(context) ?: return emptyMap()
+    return WidgetType.entries.associateWith { manager.getAppWidgetIds(ComponentName(context, it.receiver)) }
+        .filterValues { it.isNotEmpty() }
+}
+
+internal object WidgetNavigation {
+    private const val TODAY_STATS = "widget_today_stats"
+    private const val WEEKLY_STATS = "widget_weekly_stats"
+
+    fun periodFor(destination: String?): TimeRange? = when (destination) {
+        TODAY_STATS -> TimeRange.TODAY
+        WEEKLY_STATS -> TimeRange.THIS_WEEK
+        else -> null
     }
+
+    @OptIn(ExperimentalGlanceApi::class)
+    fun openStats(context: Context, today: Boolean = false): Action {
+        val destination = if (today) TODAY_STATS else WEEKLY_STATS
+        val intent = Intent(context, MainActivity::class.java)
+            .setAction("${context.packageName}.$destination")
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            .putExtra("navigate_to", destination)
+        return actionStartActivity(intent)
+    }
+}
+
+internal fun scheduleWidgetUpdateAfterHistoryChange(context: Context) {
+    val work = OneTimeWorkRequest.Builder(WidgetWorker::class.java)
+        .setInitialDelay(30, TimeUnit.SECONDS)
+        .build()
+    WorkManager.getInstance(context).enqueueUniqueWork(HISTORY_WORK_NAME, ExistingWorkPolicy.KEEP, work)
 }
 
 fun scheduleImmediateWidgetUpdate(context: Context) {
@@ -134,6 +119,7 @@ fun scheduleImmediateWidgetUpdate(context: Context) {
 }
 
 fun schedulePeriodicWidgetUpdate(context: Context) {
+    (context.applicationContext as? TempoApplication)?.syncWidgetRefreshObserver()
     val constraints = Constraints.Builder()
         .setRequiresBatteryNotLow(true)
         .build()
@@ -161,8 +147,12 @@ fun schedulePeriodicWidgetUpdate(context: Context) {
  * this rather than `cancelUniqueWork` directly.
  */
 fun cancelPeriodicWidgetUpdateIfUnused(context: Context) {
-    if (hasAnyWidgetPlaced(context)) return
-    WorkManager.getInstance(context).cancelUniqueWork(PERIODIC_WORK_NAME)
+    (context.applicationContext as? TempoApplication)?.syncWidgetRefreshObserver()
+    if (placedWidgets(context).isNotEmpty()) return
+    WorkManager.getInstance(context).apply {
+        cancelUniqueWork(PERIODIC_WORK_NAME)
+        cancelUniqueWork(HISTORY_WORK_NAME)
+    }
 }
 
     /**

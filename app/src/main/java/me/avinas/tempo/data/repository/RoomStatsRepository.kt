@@ -37,6 +37,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.concurrent.ConcurrentHashMap
@@ -608,23 +610,22 @@ class RoomStatsRepository @Inject constructor(
     ): PaginatedResult<TopTrack> {
         // Get user content filtering preferences for cache key
         val prefs = userPreferencesDao.getSync() ?: me.avinas.tempo.data.local.entities.UserPreferences()
-        val key = "top_tracks_${timeRange.name}_${sortBy.name}_${page}_${pageSize}_pod${if (prefs.filterPodcasts) 1 else 0}_audio${if (prefs.filterAudiobooks) 1 else 0}_leeway${if (withLeeway) 1 else 0}"
+        val (startTime, endTime) = getTimeRangeBounds(timeRange, withLeeway)
+        val key = "top_tracks_${timeRange.name}_${startTime}_${sortBy.name}_${page}_${pageSize}_pod${if (prefs.filterPodcasts) 1 else 0}_audio${if (prefs.filterAudiobooks) 1 else 0}_leeway${if (withLeeway) 1 else 0}"
         return getCached(key) {
-            computeTopTracks(timeRange, sortBy, page, pageSize, prefs.filterPodcasts, prefs.filterAudiobooks, withLeeway)
+            computeTopTracks(startTime, endTime, sortBy, page, pageSize, prefs.filterPodcasts, prefs.filterAudiobooks)
         }
     }
 
     private suspend fun computeTopTracks(
-        timeRange: TimeRange,
+        startTime: Long,
+        endTime: Long,
         sortBy: SortBy,
         page: Int,
         pageSize: Int,
         filterPodcasts: Boolean,
         filterAudiobooks: Boolean,
-        withLeeway: Boolean
     ): PaginatedResult<TopTrack> {
-        val startTime = timeRange.getStartTimestamp(withLeeway = withLeeway)
-        val endTime = timeRange.getEndTimestamp(withLeeway = withLeeway)
         val offset = page * pageSize
         
         val items = when (sortBy) {
@@ -653,23 +654,22 @@ class RoomStatsRepository @Inject constructor(
     ): PaginatedResult<TopArtist> {
         // Get user content filtering preferences for cache key
         val prefs = userPreferencesDao.getSync() ?: me.avinas.tempo.data.local.entities.UserPreferences()
-        val key = "top_artists_${timeRange.name}_${sortBy.name}_${page}_${pageSize}_pod${if (prefs.filterPodcasts) 1 else 0}_audio${if (prefs.filterAudiobooks) 1 else 0}_leeway${if (withLeeway) 1 else 0}"
+        val (startTime, endTime) = getTimeRangeBounds(timeRange, withLeeway)
+        val key = "top_artists_${timeRange.name}_${startTime}_${sortBy.name}_${page}_${pageSize}_pod${if (prefs.filterPodcasts) 1 else 0}_audio${if (prefs.filterAudiobooks) 1 else 0}_leeway${if (withLeeway) 1 else 0}"
         return getCached(key) {
-            computeTopArtists(timeRange, sortBy, page, pageSize, prefs.filterPodcasts, prefs.filterAudiobooks, withLeeway)
+            computeTopArtists(startTime, endTime, sortBy, page, pageSize, prefs.filterPodcasts, prefs.filterAudiobooks)
         }
     }
 
     private suspend fun computeTopArtists(
-        timeRange: TimeRange,
+        startTime: Long,
+        endTime: Long,
         sortBy: SortBy,
         page: Int,
         pageSize: Int,
         filterPodcasts: Boolean,
         filterAudiobooks: Boolean,
-        withLeeway: Boolean
     ): PaginatedResult<TopArtist> {
-        val startTime = timeRange.getStartTimestamp(withLeeway = withLeeway)
-        val endTime = timeRange.getEndTimestamp(withLeeway = withLeeway)
         val offset = page * pageSize
         
         // Get raw artist stats from database with content filtering
@@ -1042,10 +1042,9 @@ class RoomStatsRepository @Inject constructor(
         val prefs = userPreferencesDao.getSync() ?: me.avinas.tempo.data.local.entities.UserPreferences()
         val filterPodcasts = prefs.filterPodcasts
         val filterAudiobooks = prefs.filterAudiobooks
-        val key = "top_albums_${timeRange.name}_${sortBy.name}_${page}_${pageSize}_pod${if (filterPodcasts) 1 else 0}_audio${if (filterAudiobooks) 1 else 0}_leeway${if (withLeeway) 1 else 0}"
+        val (startTime, endTime) = getTimeRangeBounds(timeRange, withLeeway)
+        val key = "top_albums_${timeRange.name}_${startTime}_${sortBy.name}_${page}_${pageSize}_pod${if (filterPodcasts) 1 else 0}_audio${if (filterAudiobooks) 1 else 0}_leeway${if (withLeeway) 1 else 0}"
         return getCached(key) {
-            val startTime = timeRange.getStartTimestamp(withLeeway = withLeeway)
-            val endTime = timeRange.getEndTimestamp(withLeeway = withLeeway)
             val offset = page * pageSize
 
             val items = when (sortBy) {
@@ -1065,11 +1064,10 @@ class RoomStatsRepository @Inject constructor(
         }
     }
 
-    override suspend fun getTopGenres(timeRange: TimeRange, limit: Int): List<TopGenre> {
-        val key = "top_genres_${timeRange.name}_$limit"
+    override suspend fun getTopGenres(timeRange: TimeRange, limit: Int, withLeeway: Boolean): List<TopGenre> {
+        val (startTime, endTime) = getTimeRangeBounds(timeRange, withLeeway)
+        val key = "top_genres_${timeRange.name}_${startTime}_${limit}_leeway$withLeeway"
         return getCached(key) {
-            val startTime = timeRange.getStartTimestamp()
-            val endTime = timeRange.getEndTimestamp()
             
             // Get raw genre data (from both genres and tags fields in enriched_metadata)
             val rawGenres = statsDao.getTopGenresRaw(startTime, endTime, limit * 3)
@@ -1261,12 +1259,12 @@ class RoomStatsRepository @Inject constructor(
     }
 
     override suspend fun getDailyListening(timeRange: TimeRange, limit: Int, withLeeway: Boolean): List<DailyListening> {
-        val key = "daily_${timeRange.name}_${limit}_leeway${if (withLeeway) 1 else 0}"
+        val preferences = getCachedUserPrefs()
+        val (startTime, endTime) = getTimeRangeBounds(timeRange, withLeeway)
+        val key = "daily_${timeRange.name}_${startTime}_${limit}_pod${preferences.filterPodcasts}_audio${preferences.filterAudiobooks}_leeway$withLeeway"
         return getCached(key) {
             statsDao.getDailyListening(
-                timeRange.getStartTimestamp(withLeeway = withLeeway),
-                timeRange.getEndTimestamp(withLeeway = withLeeway),
-                limit
+                startTime, endTime, limit, preferences.filterPodcasts, preferences.filterAudiobooks,
             )
         }
     }
@@ -1408,15 +1406,14 @@ class RoomStatsRepository @Inject constructor(
     // Discovery Metrics
 
     override suspend fun getDiscoveryStats(timeRange: TimeRange, withLeeway: Boolean): DiscoveryStats {
-        val key = "discovery_${timeRange.name}_leeway${if (withLeeway) 1 else 0}"
+        val (startTime, endTime) = getTimeRangeBounds(timeRange, withLeeway)
+        val key = "discovery_${timeRange.name}_${startTime}_leeway$withLeeway"
         return getCached(key) {
-            computeDiscoveryStats(timeRange, withLeeway)
+            computeDiscoveryStats(timeRange, startTime, endTime)
         }
     }
 
-    private suspend fun computeDiscoveryStats(timeRange: TimeRange, withLeeway: Boolean = true): DiscoveryStats {
-        val startTime = timeRange.getStartTimestamp(withLeeway = withLeeway)
-        val endTime = timeRange.getEndTimestamp(withLeeway = withLeeway)
+    private suspend fun computeDiscoveryStats(timeRange: TimeRange, startTime: Long, endTime: Long): DiscoveryStats {
 
         val newArtists = statsDao.getNewArtistsCount(startTime, endTime)
         val newTracks = statsDao.getNewTracksCount(startTime, endTime)
@@ -2530,7 +2527,9 @@ class RoomStatsRepository @Inject constructor(
     }
 
     private fun getTimeRangeBounds(timeRange: TimeRange, withLeeway: Boolean = true): Pair<Long, Long> {
-        return Pair(timeRange.getStartTimestamp(withLeeway = withLeeway), timeRange.getEndTimestamp(withLeeway = withLeeway))
+        val zone = ZoneId.systemDefault()
+        val now = LocalDateTime.now(zone)
+        return timeRange.getStartTimestamp(now, zone, withLeeway) to timeRange.getEndTimestamp(now, zone, withLeeway)
     }
 
     override suspend fun getArtistRankPercentile(playCount: Int, timeRange: TimeRange): Double {
