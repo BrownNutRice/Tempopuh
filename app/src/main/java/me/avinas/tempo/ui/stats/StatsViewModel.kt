@@ -3,6 +3,7 @@ package me.avinas.tempo.ui.stats
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import me.avinas.tempo.data.repository.SortBy
 import me.avinas.tempo.data.repository.StatsRepository
+import me.avinas.tempo.data.stats.CombinedBasicStats
 import me.avinas.tempo.data.stats.StatItem
 import me.avinas.tempo.data.stats.TimeRange
 import me.avinas.tempo.data.stats.TopAlbum
@@ -38,9 +40,6 @@ class StatsViewModel
         private val _uiState = MutableStateFlow(StatsUiState())
         val uiState: StateFlow<StatsUiState> = _uiState.asStateFlow()
 
-        // Track last loaded analytics time range to skip redundant reloads
-        // Analytics is time-range dependent, not tab-dependent
-        private var lastAnalyticsTimeRange: TimeRange? = null
         private var loadJob: Job? = null
         private var visibleScope: CoroutineScope? = null
         private var loadMoreJob: Job? = null
@@ -83,12 +82,13 @@ class StatsViewModel
             try {
                 coroutineScope {
                     visibleScope = this
+                    var initialLoad = true
                     merge(statsRepository.observeListeningStatsChanges(), statsRepository.observeMetadataUpdates())
-                        .debounce(300)
+                        .debounce { if (initialLoad) 0L else 300L }
                         .collect {
-                            statsRepository.invalidateCache(_uiState.value.selectedTimeRange)
+                            initialLoad = false
+                            searchJob?.cancel()
                             invalidateInFlightQueries()
-                            lastAnalyticsTimeRange = null
                             loadJob = loadData()
                         }
                 }
@@ -113,7 +113,10 @@ class StatsViewModel
             if (_uiState.value.selectedTimeRange == timeRange && _uiState.value.items.isNotEmpty()) return
             searchJob?.cancel()
             invalidateInFlightQueries()
-            _uiState.update { it.copy(selectedTimeRange = timeRange, isLoading = true, items = emptyList(), page = 0, hasMore = true) }
+            _uiState.update { it.copy(
+                selectedTimeRange = timeRange, shareTotals = null,
+                isLoading = true, items = emptyList(), page = 0, hasMore = true,
+            ) }
             loadJob = loadData()
         }
 
@@ -138,7 +141,7 @@ class StatsViewModel
             _uiState.update { it.copy(searchQuery = query) }
             searchJob =
                 visibleScope?.launch {
-                    delay(300) // Debounce keystrokes
+                    if (query.isNotBlank()) delay(300) // Debounce typing, but clear immediately.
                     _uiState.update { it.copy(isLoading = true, items = emptyList(), page = 0, hasMore = false) }
                     loadJob = loadData()
                 }
@@ -147,7 +150,7 @@ class StatsViewModel
         fun loadMore() {
             if (visibleScope == null) return
             val state = _uiState.value
-            if (state.isLoading || state.isLoadingMore || !state.hasMore) return
+            if (state.isLoading || state.isLoadingMore || state.isRefreshing || state.error != null || !state.hasMore) return
             if (state.searchQuery.isNotBlank()) return // Search results are not paginated
             _uiState.update { it.copy(isLoadingMore = true) }
             loadMoreJob = loadData(isLoadMore = true)
@@ -165,186 +168,91 @@ class StatsViewModel
             val generation = resultGeneration
             return visibleScope?.launch {
                 try {
-                    val currentState = _uiState.value
-                    val page = if (isLoadMore) currentState.page + 1 else 0
-                    val timeRange = currentState.selectedTimeRange
-                    val sortBy = currentState.selectedSortBy
-                    val searchQuery = currentState.searchQuery.takeIf { it.isNotBlank() }
+                    val current = _uiState.value
+                    val page = if (isLoadMore) current.page + 1 else 0
+                    val timeRange = current.selectedTimeRange
+                    val sortBy = current.selectedSortBy
+                    val query = current.searchQuery
 
-                    val result: List<StatItem> =
-                        if (searchQuery != null) {
-                            // Search mode: matches with global ranks, capped, no pagination
-                            when (currentState.selectedTab) {
-                                StatsTab.TOP_SONGS -> statsRepository.searchTopTracks(timeRange, sortBy, searchQuery, withLeeway = false)
-                                StatsTab.TOP_ARTISTS -> statsRepository.searchTopArtists(timeRange, sortBy, searchQuery, withLeeway = false)
-                                StatsTab.TOP_ALBUMS -> statsRepository.searchTopAlbums(timeRange, sortBy, searchQuery, withLeeway = false)
-                            }
-                        } else {
-                            when (currentState.selectedTab) {
-                                StatsTab.TOP_SONGS -> {
-                                    val res = statsRepository.getTopTracks(timeRange, sortBy, page, withLeeway = false)
-                                    res.items
-                                }
-
-                                StatsTab.TOP_ARTISTS -> {
-                                    val res = statsRepository.getTopArtists(timeRange, sortBy, page, withLeeway = false)
-                                    res.items
-                                }
-
-                                StatsTab.TOP_ALBUMS -> {
-                                    val res = statsRepository.getTopAlbums(timeRange, sortBy, page, withLeeway = false)
-                                    res.items
-                                }
-                            }
+                    val items: List<StatItem>
+                    val hasMore: Boolean
+                    if (query.isNotBlank()) {
+                        items = when (current.selectedTab) {
+                            StatsTab.TOP_SONGS -> statsRepository.searchTopTracks(timeRange, sortBy, query, withLeeway = false)
+                            StatsTab.TOP_ARTISTS -> statsRepository.searchTopArtists(timeRange, sortBy, query, withLeeway = false)
+                            StatsTab.TOP_ALBUMS -> statsRepository.searchTopAlbums(timeRange, sortBy, query, withLeeway = false)
                         }
+                        hasMore = false
+                    } else {
+                        val result = when (current.selectedTab) {
+                            StatsTab.TOP_SONGS -> statsRepository.getTopTracks(timeRange, sortBy, page, withLeeway = false)
+                            StatsTab.TOP_ARTISTS -> statsRepository.getTopArtists(timeRange, sortBy, page, withLeeway = false)
+                            StatsTab.TOP_ALBUMS -> statsRepository.getTopAlbums(timeRange, sortBy, page, withLeeway = false)
+                        }
+                        items = result.items
+                        hasMore = result.hasMore && items.isNotEmpty()
+                    }
 
-                    val hasMore = searchQuery == null && result.isNotEmpty() // Simplified check, ideally use totalCount from PaginatedResult
                     if (generation != resultGeneration) return@launch
-
                     _uiState.update { state ->
-                        if (generation != resultGeneration) return@update state
-                        val newItems =
-                            if (isLoadMore) {
-                                (state.items + result).distinctBy { item ->
-                                    when (item) {
-                                        is TopTrack -> "track_${item.trackId}"
-                                        is TopArtist -> "artist_${item.artistId ?: item.artist}"
-                                        is TopAlbum -> "album_${item.album}_${item.artist}"
-                                    }
+                        val newItems = if (isLoadMore) {
+                            (state.items + items).distinctBy { item ->
+                                when (item) {
+                                    is TopTrack -> "track_${item.trackId}"
+                                    is TopArtist -> "artist_${item.artistId ?: item.artist}"
+                                    is TopAlbum -> "album_${item.album}_${item.artist}"
                                 }
-                            } else {
-                                result
                             }
+                        } else items
                         state.copy(
                             items = newItems,
                             isLoading = false,
                             isLoadingMore = false,
+                            isRefreshing = false,
                             page = page,
                             hasMore = hasMore,
                             error = null,
                         )
                     }
 
-                    // Fetch listening overview only if time range changed (needed for share dialog)
-                    if (page == 0 && timeRange != lastAnalyticsTimeRange && generation == resultGeneration) {
-                        loadAnalyticsData(timeRange, generation)
-                    }
-                } catch (e: Exception) {
-                    if (e is kotlinx.coroutines.CancellationException) throw e
+                    if (page == 0 && items.isNotEmpty()) updateShareTotals(timeRange, generation)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (failure: Exception) {
                     if (generation == resultGeneration) {
-                        _uiState.update { it.copy(isLoading = false, isLoadingMore = false, error = e.message) }
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                isLoadingMore = false,
+                                isRefreshing = false,
+                                error = failure.localizedMessage ?: failure.javaClass.simpleName,
+                            )
+                        }
                     }
                 }
             }
         }
 
-        private suspend fun loadAnalyticsData(timeRange: TimeRange, generation: Long) {
+        private suspend fun updateShareTotals(timeRange: TimeRange, generation: Long) {
             try {
-                val overview = statsRepository.getListeningOverview(timeRange, withLeeway = false)
-                if (generation != resultGeneration) return
-                _uiState.update {
-                    if (generation != resultGeneration) return@update it
-                    lastAnalyticsTimeRange = timeRange
-                    it.copy(
-                        analyticsData =
-                            AnalyticsUiData(
-                                overview = overview,
-                                hourlyDistribution = emptyList(),
-                                insightCards = emptyList(),
-                            ),
-                    )
-                }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                // Non-fatal if overview loading fails
+                val totals = statsRepository.getListeningTotals(timeRange, withLeeway = false)
+                if (generation == resultGeneration) _uiState.update { it.copy(shareTotals = totals) }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                android.util.Log.w("StatsViewModel", "Could not load share totals", failure)
             }
         }
 
-        /** Pull-to-refresh handler. */
+        /** Refresh the rankings while leaving the previous results visible. */
         suspend fun refresh() {
-            visibleScope?.launch { refreshData() }?.join()
-        }
-
-        private suspend fun refreshData() {
+            if (visibleScope == null || _uiState.value.isRefreshing) return
             searchJob?.cancel()
             invalidateInFlightQueries()
-            val generation = resultGeneration
+            statsRepository.invalidateCache()
             _uiState.update { it.copy(isRefreshing = true) }
-            val startTime = System.currentTimeMillis()
-            try {
-                statsRepository.invalidateCache()
-                lastAnalyticsTimeRange = null // Force analytics reload on manual refresh
-                _uiState.update { it.copy(isLoading = true, items = emptyList(), page = 0, hasMore = true) }
-                // Fetch data directly (inline, awaitable) rather than via fire-and-forget loadData()
-                fetchDataForRefresh(generation)
-            } finally {
-                // Keep spinner visible for at least 600ms to prevent flicker
-                val elapsed = System.currentTimeMillis() - startTime
-                if (elapsed < 600) delay(600 - elapsed)
-                if (generation == resultGeneration) {
-                    _uiState.update { it.copy(isRefreshing = false) }
-                }
-            }
-        }
-
-        /** Awaitable version of data loading used by pull-to-refresh. */
-        private suspend fun fetchDataForRefresh(generation: Long) {
-            try {
-                val currentState = _uiState.value
-                val timeRange = currentState.selectedTimeRange
-                val sortBy = currentState.selectedSortBy
-                val searchQuery = currentState.searchQuery.takeIf { it.isNotBlank() }
-
-                val result: List<StatItem> =
-                    if (searchQuery != null) {
-                        when (currentState.selectedTab) {
-                            StatsTab.TOP_SONGS -> statsRepository.searchTopTracks(timeRange, sortBy, searchQuery, withLeeway = false)
-                            StatsTab.TOP_ARTISTS -> statsRepository.searchTopArtists(timeRange, sortBy, searchQuery, withLeeway = false)
-                            StatsTab.TOP_ALBUMS -> statsRepository.searchTopAlbums(timeRange, sortBy, searchQuery, withLeeway = false)
-                        }
-                    } else {
-                        when (currentState.selectedTab) {
-                            StatsTab.TOP_SONGS -> {
-                                val res = statsRepository.getTopTracks(timeRange, sortBy, 0, withLeeway = false)
-                                res.items
-                            }
-
-                            StatsTab.TOP_ARTISTS -> {
-                                val res = statsRepository.getTopArtists(timeRange, sortBy, 0, withLeeway = false)
-                                res.items
-                            }
-
-                            StatsTab.TOP_ALBUMS -> {
-                                val res = statsRepository.getTopAlbums(timeRange, sortBy, 0, withLeeway = false)
-                                res.items
-                            }
-                        }
-                    }
-
-                val hasMore = searchQuery == null && result.isNotEmpty()
-                if (generation != resultGeneration) return
-                _uiState.update { state ->
-                    if (generation != resultGeneration) return@update state
-                    state.copy(
-                        items = result,
-                        isLoading = false,
-                        isLoadingMore = false,
-                        page = 0,
-                        hasMore = hasMore,
-                    )
-                }
-
-                if (generation == resultGeneration) {
-                    lastAnalyticsTimeRange = null
-                    loadAnalyticsData(timeRange, generation)
-                }
-            } catch (e: Exception) {
-                if (e is kotlinx.coroutines.CancellationException) throw e
-                if (generation == resultGeneration) {
-                    _uiState.update { it.copy(isLoading = false, isLoadingMore = false, error = e.message) }
-                }
-            }
+            loadJob = loadData()
+            loadJob?.join()
         }
     }
 
@@ -367,7 +275,7 @@ data class StatsUiState(
     val searchQuery: String = "",
     val page: Int = 0,
     val hasMore: Boolean = true,
-    val analyticsData: AnalyticsUiData? = null,
+    val shareTotals: CombinedBasicStats? = null,
 )
 
 @Immutable

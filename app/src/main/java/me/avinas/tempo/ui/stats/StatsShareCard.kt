@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.avinas.tempo.R
-import me.avinas.tempo.data.stats.ListeningOverview
+import me.avinas.tempo.data.stats.CombinedBasicStats
 import me.avinas.tempo.data.stats.TimeRange
 import me.avinas.tempo.data.stats.TopAlbum
 import me.avinas.tempo.data.stats.TopArtist
@@ -115,7 +115,7 @@ fun StatsShareCard(
     tab: StatsTab,
     timeRange: TimeRange,
     items: List<Any>,
-    overview: ListeningOverview?,
+    totals: CombinedBasicStats?,
     config: StatsShareConfig = StatsShareConfig(),
     modifier: Modifier = Modifier,
 ) {
@@ -189,8 +189,8 @@ fun StatsShareCard(
                         }
                     }
 
-                    if (config.showSummary && overview != null) {
-                        SummaryCard(overview = overview, palette = palette)
+                    if (config.showSummary && totals != null) {
+                        SummaryCard(totals = totals, palette = palette)
                     }
 
                     if (ranked.isEmpty()) {
@@ -266,7 +266,7 @@ private fun StatsShareBackground(
 
 @Composable
 private fun SummaryCard(
-    overview: ListeningOverview,
+    totals: CombinedBasicStats,
     palette: ShareThemePalette,
 ) {
     GlassCard(
@@ -287,21 +287,21 @@ private fun SummaryCard(
         ) {
             SummaryStat(
                 label = stringResource(R.string.stats_share_stat_time),
-                value = formatListeningTime(overview.totalListeningTimeMs),
+                value = formatListeningTime(totals.totalTimeMs),
                 palette = palette,
                 modifier = Modifier.weight(1f),
             )
             SummaryDivider(palette)
             SummaryStat(
                 label = stringResource(R.string.stats_share_stat_plays),
-                value = overview.totalPlayCount.toString(),
+                value = totals.playCount.toString(),
                 palette = palette,
                 modifier = Modifier.weight(1f),
             )
             SummaryDivider(palette)
             SummaryStat(
                 label = stringResource(R.string.stats_share_stat_unique),
-                value = overview.uniqueTracksCount.toString(),
+                value = totals.uniqueTracks.toString(),
                 palette = palette,
                 modifier = Modifier.weight(1f),
             )

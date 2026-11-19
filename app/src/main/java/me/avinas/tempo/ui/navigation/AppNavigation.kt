@@ -1,5 +1,10 @@
 package me.avinas.tempo.ui.navigation
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,6 +38,7 @@ import me.avinas.tempo.ui.appearance.AppearanceScreen
 import me.avinas.tempo.ui.settings.SupportedAppsScreen
 import me.avinas.tempo.ui.settings.YourDataScreen
 import me.avinas.tempo.ui.spotlight.SpotlightScreen
+import me.avinas.tempo.ui.theme.rememberReducedMotion
 
 /**
  * Safe navigate that prevents double-click / rapid-tap navigation.
@@ -51,6 +57,7 @@ fun AppNavigation(
     navigationTrigger: String? = null,
 ) {
     val navController = rememberNavController()
+    val reducedMotion = rememberReducedMotion()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val currentDestination = navBackStackEntry?.destination
@@ -82,7 +89,8 @@ fun AppNavigation(
                 Screen.History.route,
             )
 
-    me.avinas.tempo.ui.components.DeepOceanBackground {
+    // The primary destinations share this backdrop during navigation.
+    DeepOceanBackground {
         me.avinas.tempo.ui.components.WalkthroughOverlay(
             controller = walkthroughController,
         ) {
@@ -91,6 +99,8 @@ fun AppNavigation(
                     navController = navController,
                     startDestination = Screen.Home.route,
                     modifier = Modifier.fillMaxSize(),
+                    enterTransition = { if (reducedMotion) EnterTransition.None else fadeIn(tween(120)) },
+                    exitTransition = { if (reducedMotion) ExitTransition.None else fadeOut(tween(120)) },
                 ) {
                     composable(Screen.Home.route) {
                         me.avinas.tempo.ui.home.HomeScreen(

@@ -112,24 +112,25 @@ class ProfileViewModel @Inject constructor(
     private fun CoroutineScope.observeData() {
         launch {
             gamificationRepository.observeUserLevel().collectProfile(ProfileProblem.LEVEL) { level ->
-                val uniqueArtists = gamificationRepository.getUniqueArtistCount()
-                val calculatedTitle = GamificationEngine.computeTitle(level?.currentLevel ?: 0, uniqueArtists)
                 val currentLevel = level ?: UserLevel()
+                val previousLevel = _uiState.value.userLevel.currentLevel
+                val shouldCelebrate = level != null && previousLevel > 0 && level.currentLevel > previousLevel
+                // Render the initial hero as soon as its level row arrives. Later
+                // level changes and celebrations publish together with their title.
+                if (!_uiState.value.levelLoaded) {
+                    _uiState.update { it.copy(userLevel = currentLevel, levelLoaded = true) }
+                }
+                val uniqueArtists = if (currentLevel.currentLevel >= 5) {
+                    gamificationRepository.getUniqueArtistCount()
+                } else 0
+                val calculatedTitle = GamificationEngine.computeTitle(currentLevel.currentLevel, uniqueArtists)
                 val streakZone = gamificationRepository.getStreakAnchorZone()
-
-                _uiState.update { state ->
-                    val challengeXpTotal = state.challenges.sumOf { it.xpReward }
-                    val shouldCelebrate = level != null &&
-                        level.currentLevel > state.userLevel.currentLevel &&
-                        state.userLevel.currentLevel > 0
-
-                    state.copy(
+                _uiState.update {
+                    it.copy(
                         userLevel = currentLevel,
-                        levelLoaded = true,
-                        showLevelUpCelebration = shouldCelebrate || state.showLevelUpCelebration,
                         userTitle = calculatedTitle,
                         streakAnchorZone = streakZone,
-                        challengeXpTotal = challengeXpTotal
+                        showLevelUpCelebration = shouldCelebrate || it.showLevelUpCelebration,
                     )
                 }
             }

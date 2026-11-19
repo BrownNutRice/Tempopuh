@@ -5,7 +5,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -15,6 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.IntSize
 import coil3.BitmapImage
 import coil3.imageLoader
 import coil3.request.ImageRequest
+import coil3.request.allowHardware
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.avinas.tempo.ui.theme.rememberReducedMotion
@@ -90,6 +91,7 @@ fun ArtAtmosphereLayer(
             ImageRequest.Builder(context)
                 .data(artUrl)
                 .size(64, 64)
+                .allowHardware(false)
                 .build(),
         )
         val bitmap = (result.image as? BitmapImage)?.bitmap
@@ -99,13 +101,8 @@ fun ArtAtmosphereLayer(
             reveal.snapTo(1f)
             return@LaunchedEffect
         }
-        val software = if (bitmap.config == android.graphics.Bitmap.Config.HARDWARE) {
-            bitmap.copy(android.graphics.Bitmap.Config.ARGB_8888, false)
-        } else {
-            bitmap
-        }
         val washed = withContext(Dispatchers.Default) {
-            gaussianWash(software).asImageBitmap()
+            gaussianWash(bitmap).asImageBitmap()
         }
         // Crossfade to new artwork or update current transition in flight
         if (overlay != null && base == null) {
@@ -128,76 +125,49 @@ fun ArtAtmosphereLayer(
         ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(1.12f) })
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = modifier.fillMaxSize().drawWithCache {
             val w = size.width
             val h = size.height
-            val hasArt = base != null || overlay != null
+            val background = appearancePalette.background
+            val scrim = Brush.verticalGradient(
+                listOf(
+                    background.copy(alpha = 0.80f),
+                    background.copy(alpha = 0.55f),
+                    background.copy(alpha = 0.74f),
+                    background.copy(alpha = 0.92f),
+                ),
+            )
+            val tintWash = Brush.radialGradient(
+                colors = listOf(tint.copy(alpha = 0.07f), Color.Transparent),
+                center = Offset(w / 2f, h * 0.32f),
+                radius = max(w, h),
+            )
+            val vignette = Brush.radialGradient(
+                colors = listOf(Color.Transparent, background.copy(alpha = 0.55f)),
+                center = Offset(w / 2f, h / 2f),
+                radius = max(w, h) * 0.85f,
+            )
 
-            if (hasArt) {
+            onDrawBehind {
+                if (base == null && overlay == null) return@onDrawBehind
                 val progress = reveal.value
                 val roomAlpha = if (base == null) progress else 1f
-
-                base?.let { art ->
-                    drawWashedArt(art, saturationFilter, alpha = 1f, extraZoom = 0f)
+                base?.let { drawWashedArt(it, saturationFilter, alpha = 1f, extraZoom = 0f) }
+                overlay?.let {
+                    drawWashedArt(it, saturationFilter, alpha = progress, extraZoom = ARRIVAL_ZOOM * (1f - progress))
                 }
-                overlay?.let { art ->
-                    drawWashedArt(
-                        art,
-                        saturationFilter,
-                        alpha = progress,
-                        extraZoom = ARRIVAL_ZOOM * (1f - progress),
-                    )
-                }
+                drawRect(brush = scrim, alpha = roomAlpha)
+                drawRect(brush = tintWash, alpha = roomAlpha)
+                drawRect(brush = vignette, alpha = roomAlpha)
 
-                // Vertical gradient scrim for content readability
-                drawRect(
-                    alpha = roomAlpha,
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            appearancePalette.background.copy(alpha = 0.80f),
-                            appearancePalette.background.copy(alpha = 0.55f),
-                            appearancePalette.background.copy(alpha = 0.74f),
-                            appearancePalette.background.copy(alpha = 0.92f),
-                        ),
-                        startY = 0f,
-                        endY = h,
-                    )
-                )
-
-                // Dominant color tint wash
-                drawRect(
-                    alpha = roomAlpha,
-                    brush = Brush.radialGradient(
-                        colors = listOf(tint.copy(alpha = 0.07f), Color.Transparent),
-                        center = Offset(w / 2f, h * 0.32f),
-                        radius = max(w, h),
-                    )
-                )
-
-                // Edge vignette
-                drawRect(
-                    alpha = roomAlpha,
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            appearancePalette.background.copy(alpha = 0.55f),
-                        ),
-                        center = Offset(w / 2f, h / 2f),
-                        radius = max(w, h) * 0.85f,
-                    )
-                )
-
-                // Monochrome film grain
                 val grainAlpha = grainPaint.alpha
                 grainPaint.alpha = (grainAlpha * roomAlpha).roundToInt().coerceIn(0, 255)
-                drawIntoCanvas { canvas ->
-                    canvas.nativeCanvas.drawPaint(grainPaint)
-                }
+                drawIntoCanvas { it.nativeCanvas.drawPaint(grainPaint) }
                 grainPaint.alpha = grainAlpha
             }
-        }
-    }
+        },
+    )
 }
 
 /**

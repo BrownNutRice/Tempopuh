@@ -71,6 +71,7 @@ import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -96,7 +97,6 @@ import me.avinas.tempo.data.stats.TopAlbum
 import me.avinas.tempo.data.stats.TopArtist
 import me.avinas.tempo.data.stats.TopTrack
 import me.avinas.tempo.data.stats.StatItem
-import me.avinas.tempo.ui.components.DeepOceanBackground
 import me.avinas.tempo.ui.components.GlassCard
 import me.avinas.tempo.ui.components.TimePeriodSelector
 import me.avinas.tempo.ui.theme.TempoSecondary
@@ -104,6 +104,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import me.avinas.tempo.R
+import me.avinas.tempo.ui.components.LoadErrorNotice
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -133,7 +134,7 @@ fun StatsScreen(
     val albumLookupFailed = stringResource(R.string.stats_error_title)
 
     // Search drawer state: closed = search icon only; open = field slides over the top.
-    var searchOpen by remember { mutableStateOf(false) }
+    var searchOpen by rememberSaveable { mutableStateOf(uiState.searchQuery.isNotBlank()) }
     val searchFocusRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
     val reducedMotion = rememberReducedMotion()
@@ -146,10 +147,12 @@ fun StatsScreen(
             keyboard?.show()
         }
     }
-    BackHandler(enabled = searchOpen) {
+    val closeSearch = {
         keyboard?.hide()
         searchOpen = false
+        viewModel.onSearchQueryChanged("")
     }
+    BackHandler(enabled = searchOpen, onBack = closeSearch)
 
     // NOTE: the old totalItemCount + scrollToItem workaround was removed: it
     // issued a scroll during flings, fighting remeasure and triggering the
@@ -171,7 +174,7 @@ fun StatsScreen(
         }
     }
 
-    LaunchedEffect(listState, isAtBottom) {
+    LaunchedEffect(listState, isAtBottom, uiState.isLoading, uiState.page) {
         if (isAtBottom) {
             viewModel.loadMore()
         }
@@ -201,7 +204,7 @@ fun StatsScreen(
         }
     }
 
-    DeepOceanBackground {
+    Box(Modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxSize()) {
             PullToRefreshBox(
                 isRefreshing = uiState.isRefreshing,
@@ -288,6 +291,15 @@ fun StatsScreen(
                         }
                     }
                 } else if (!uiState.isLoading && uiState.items.isNotEmpty()) {
+                    if (uiState.error != null) {
+                        item(key = "refresh_error") {
+                            LoadErrorNotice(
+                                message = stringResource(R.string.listen_refresh_failed),
+                                onRetry = { scope.launch { viewModel.refresh() } },
+                            )
+                        }
+                    }
+
                     // In search mode there is no hero: every match is shown with its
                     // global ranking position, which is the point of the search.
                     val isSearching = uiState.searchQuery.isNotBlank()
@@ -295,7 +307,6 @@ fun StatsScreen(
                     val remainingItems = if (isSearching) uiState.items else uiState.items.drop(1)
 
 
-                    // Rank 1 Hero
                     // Rank 1 Hero
                     if (firstItem != null) {
                         item(key = "hero_item") {
@@ -409,10 +420,7 @@ fun StatsScreen(
                         ),
                         modifier = Modifier.fillMaxWidth(),
                         focusRequester = searchFocusRequester,
-                        onClose = {
-                            keyboard?.hide()
-                            searchOpen = false
-                        }
+                        onClose = closeSearch
                     )
                 }
             }
@@ -436,7 +444,7 @@ fun StatsScreen(
                 tab = uiState.selectedTab,
                 timeRange = uiState.selectedTimeRange,
                 items = uiState.items,
-                overview = uiState.analyticsData?.overview,
+                totals = uiState.shareTotals,
                 onDismiss = { showShareDialog = false }
             )
         }

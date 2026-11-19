@@ -36,7 +36,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import me.avinas.tempo.R
-import me.avinas.tempo.data.stats.ListeningOverview
+import me.avinas.tempo.data.stats.CombinedBasicStats
 import me.avinas.tempo.data.stats.TimeRange
 import me.avinas.tempo.ui.components.CaptureWrapper
 import me.avinas.tempo.ui.components.ShareTheme
@@ -53,7 +53,7 @@ fun StatsShareDialog(
     tab: StatsTab,
     timeRange: TimeRange,
     items: List<Any>,
-    overview: ListeningOverview?,
+    totals: CombinedBasicStats?,
     onDismiss: () -> Unit,
     // Optional subtle share nudge context (shown quietly above the share button).
     nudgeCaption: String? = null,
@@ -104,7 +104,7 @@ fun StatsShareDialog(
             tab = tab,
             timeRange = timeRange,
             items = items,
-            overview = overview,
+            totals = totals,
             config = config,
             modifier = Modifier.fillMaxSize(),
         )

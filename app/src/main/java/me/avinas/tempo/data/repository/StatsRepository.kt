@@ -6,6 +6,7 @@ import me.avinas.tempo.data.stats.AlbumDetails
 import me.avinas.tempo.data.stats.ArtistDetails
 import me.avinas.tempo.data.stats.ArtistLoyalty
 import me.avinas.tempo.data.stats.AudioFeaturesStats
+import me.avinas.tempo.data.stats.CombinedBasicStats
 import me.avinas.tempo.data.stats.DailyListening
 import me.avinas.tempo.data.stats.DayOfWeekDistribution
 import me.avinas.tempo.data.stats.DiscoveryStats
@@ -49,6 +50,9 @@ interface StatsRepository {
         timeRange: TimeRange,
         withLeeway: Boolean = true,
     ): ListeningOverview
+
+    /** Aggregate listening totals without scanning individual sessions. */
+    suspend fun getListeningTotals(timeRange: TimeRange, withLeeway: Boolean = true): CombinedBasicStats
 
     /** Signals history or content-filter changes without calculating an overview. */
     fun observeListeningStatsChanges(): Flow<Unit>

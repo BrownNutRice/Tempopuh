@@ -92,6 +92,7 @@ enum class TimeRange {
 }
 
 // Combined Stats Models (for optimized single-query fetches)
+@Immutable
 data class CombinedBasicStats(
     @ColumnInfo(name = "total_time_ms") val totalTimeMs: Long,
     @ColumnInfo(name = "play_count") val playCount: Int,
@@ -119,6 +120,10 @@ data class ListeningOverview(
     val longestSessionMs: Long,
     val timeRange: TimeRange
 ) {
+    val totals: CombinedBasicStats
+        get() = CombinedBasicStats(
+            totalListeningTimeMs, totalPlayCount, uniqueTracksCount, uniqueArtistsCount, uniqueAlbumsCount,
+        )
     val totalListeningTimeMinutes: Long get() = totalListeningTimeMs / 60_000
     val totalListeningTimeHours: Double get() = totalListeningTimeMs / 3_600_000.0
     val averageTracksPerDay: Double get() = if (timeRange == TimeRange.ALL_TIME) 0.0 else totalPlayCount.toDouble() / timeRange.getDaysInRange()

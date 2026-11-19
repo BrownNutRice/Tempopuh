@@ -390,7 +390,7 @@ fun TodaysOverviewOverlay(
                 tab = if (topTracks.isNotEmpty()) StatsTab.TOP_SONGS else StatsTab.TOP_ARTISTS,
                 timeRange = TimeRange.TODAY,
                 items = if (topTracks.isNotEmpty()) topTracks else topArtists,
-                overview = overview,
+                totals = overview?.totals,
                 onDismiss = { showShareDialog = false }
             )
         }

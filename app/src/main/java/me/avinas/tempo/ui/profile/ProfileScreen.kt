@@ -88,7 +88,6 @@ import me.avinas.tempo.ui.components.ArtAtmosphereLayer
 import me.avinas.tempo.ui.components.BadgeShareCard
 import me.avinas.tempo.ui.components.CachedAsyncImage
 import me.avinas.tempo.ui.components.CelebrationParticlesCanvas
-import me.avinas.tempo.ui.components.DeepOceanBackground
 import me.avinas.tempo.ui.components.LiveNowPlayingCard
 import me.avinas.tempo.ui.components.FrostedIconButton
 import me.avinas.tempo.ui.components.GlassCard
@@ -666,7 +665,7 @@ fun ProfileScreen(
             getLevelTierAccent(uiState.userLevel.currentLevel)
         }
 
-    DeepOceanBackground {
+    Box(Modifier.fillMaxSize()) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val compact = maxWidth < 380.dp
             val expanded = maxWidth >= 600.dp
@@ -1933,23 +1932,6 @@ private fun SpotlightBadgeCard(
         label = "spotlightProgress",
     )
 
-    val reducedMotion = rememberReducedMotion()
-    val pulseAlpha by if (reducedMotion) {
-        remember { mutableFloatStateOf(0.35f) }
-    } else {
-        val transition = me.avinas.tempo.ui.theme.rememberMotionAwareInfiniteTransition(label = "spotlightPulse")
-        transition.animateFloat(
-            initialValue = 0.28f,
-            targetValue = 0.55f,
-            animationSpec =
-                infiniteRepeatable(
-                    animation = tween(1500, easing = FastOutSlowInEasing),
-                    repeatMode = RepeatMode.Reverse,
-                ),
-            label = "spotlightPulseAlpha",
-        )
-    }
-
     val haptic = LocalHapticFeedback.current
     GlassCard(
         modifier =
@@ -1964,7 +1946,7 @@ private fun SpotlightBadgeCard(
                 ),
         shape = RoundedCornerShape(20.dp),
         variant = GlassCardVariant.Obsidian,
-        borderColor = accent.copy(alpha = pulseAlpha),
+        borderColor = accent.copy(alpha = 0.42f),
         borderWidth = 0.8.dp,
         contentPadding = PaddingValues(18.dp),
     ) {

@@ -209,9 +209,12 @@ class RoomStatsRepository @Inject constructor(
                     // Compute new value
                     val value = compute()
 
-                    // Store in cache
+                    // Invalidating a key retires its leader. A computation started
+                    // before that change must not overwrite a newer cached result.
                     cacheMutex.withLock {
-                        cache.put(key, CachedValue(value, eventTimestamp = eventTimestamp))
+                        if (inFlight[key] === mine) {
+                            cache.put(key, CachedValue(value, eventTimestamp = eventTimestamp))
+                        }
                     }
 
                     // Log cache stats periodically
@@ -379,6 +382,15 @@ class RoomStatsRepository @Inject constructor(
     }
 
     // Overview Stats
+
+    override suspend fun getListeningTotals(timeRange: TimeRange, withLeeway: Boolean): CombinedBasicStats {
+        val prefs = getCachedUserPrefs()
+        val (startTime, endTime) = getTimeRangeBounds(timeRange, withLeeway)
+        val key = "totals_${timeRange.name}_${startTime}_pod${prefs.filterPodcasts}_audio${prefs.filterAudiobooks}_leeway$withLeeway"
+        return getCached(key) {
+            statsDao.getCombinedBasicStatsFiltered(startTime, endTime, prefs.filterPodcasts, prefs.filterAudiobooks)
+        }
+    }
 
     override suspend fun getListeningOverview(timeRange: TimeRange, withLeeway: Boolean): ListeningOverview {
         // Get user content filtering preferences for cache key
@@ -598,7 +610,7 @@ class RoomStatsRepository @Inject constructor(
         val prefs = userPreferencesDao.getSync() ?: me.avinas.tempo.data.local.entities.UserPreferences()
         val key = "top_tracks_${timeRange.name}_${sortBy.name}_${page}_${pageSize}_pod${if (prefs.filterPodcasts) 1 else 0}_audio${if (prefs.filterAudiobooks) 1 else 0}_leeway${if (withLeeway) 1 else 0}"
         return getCached(key) {
-            computeTopTracks(timeRange, sortBy, page, pageSize, withLeeway)
+            computeTopTracks(timeRange, sortBy, page, pageSize, prefs.filterPodcasts, prefs.filterAudiobooks, withLeeway)
         }
     }
 
@@ -607,17 +619,14 @@ class RoomStatsRepository @Inject constructor(
         sortBy: SortBy,
         page: Int,
         pageSize: Int,
-        withLeeway: Boolean = true
+        filterPodcasts: Boolean,
+        filterAudiobooks: Boolean,
+        withLeeway: Boolean
     ): PaginatedResult<TopTrack> {
         val startTime = timeRange.getStartTimestamp(withLeeway = withLeeway)
         val endTime = timeRange.getEndTimestamp(withLeeway = withLeeway)
         val offset = page * pageSize
         
-        // Get user content filtering preferences
-        val prefs = userPreferencesDao.getSync() ?: me.avinas.tempo.data.local.entities.UserPreferences()
-        val filterPodcasts = prefs.filterPodcasts
-        val filterAudiobooks = prefs.filterAudiobooks
-
         val items = when (sortBy) {
             SortBy.PLAY_COUNT -> statsDao.getTopTracksByPlayCountFiltered(startTime, endTime, filterPodcasts, filterAudiobooks, pageSize, offset)
             SortBy.TOTAL_TIME -> statsDao.getTopTracksByTimeFiltered(startTime, endTime, filterPodcasts, filterAudiobooks, pageSize, offset)
@@ -646,7 +655,7 @@ class RoomStatsRepository @Inject constructor(
         val prefs = userPreferencesDao.getSync() ?: me.avinas.tempo.data.local.entities.UserPreferences()
         val key = "top_artists_${timeRange.name}_${sortBy.name}_${page}_${pageSize}_pod${if (prefs.filterPodcasts) 1 else 0}_audio${if (prefs.filterAudiobooks) 1 else 0}_leeway${if (withLeeway) 1 else 0}"
         return getCached(key) {
-            computeTopArtists(timeRange, sortBy, page, pageSize, withLeeway)
+            computeTopArtists(timeRange, sortBy, page, pageSize, prefs.filterPodcasts, prefs.filterAudiobooks, withLeeway)
         }
     }
 
@@ -655,17 +664,14 @@ class RoomStatsRepository @Inject constructor(
         sortBy: SortBy,
         page: Int,
         pageSize: Int,
-        withLeeway: Boolean = true
+        filterPodcasts: Boolean,
+        filterAudiobooks: Boolean,
+        withLeeway: Boolean
     ): PaginatedResult<TopArtist> {
         val startTime = timeRange.getStartTimestamp(withLeeway = withLeeway)
         val endTime = timeRange.getEndTimestamp(withLeeway = withLeeway)
         val offset = page * pageSize
         
-        // Get user content filtering preferences
-        val prefs = userPreferencesDao.getSync() ?: me.avinas.tempo.data.local.entities.UserPreferences()
-        val filterPodcasts = prefs.filterPodcasts
-        val filterAudiobooks = prefs.filterAudiobooks
-
         // Get raw artist stats from database with content filtering
         // Limit to top 100 artists by raw play count - users rarely scroll past this
         // This significantly reduces memory and CPU usage during aggregation

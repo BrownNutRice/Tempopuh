@@ -153,7 +153,7 @@ fun HistoryScreen(
         }
     }
 
-    DeepOceanBackground {
+    Box(Modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxSize()) {
             PullToRefreshBox(
                 isRefreshing = uiState.isRefreshing,

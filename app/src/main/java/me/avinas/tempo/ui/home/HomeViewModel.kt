@@ -124,9 +124,13 @@ class HomeViewModel @Inject constructor(
     private fun CoroutineScope.observeDataChanges() {
         // History and metadata changes share a debounce before loading the dashboard.
         launch {
+            var initialLoad = true
             reactiveReload
-                .debounce(350)
-                .collect { loadData() }
+                .debounce { if (initialLoad) 0L else 350L }
+                .collect {
+                    initialLoad = false
+                    loadData()
+                }
         }
 
         launch {
@@ -220,7 +224,7 @@ class HomeViewModel @Inject constructor(
 
             // Parallel fetch for dashboard metrics
             coroutineScope {
-                val overviewDeferred = async { dbSemaphore.withPermit { statsRepository.getListeningOverview(timeRange, withLeeway = false) } }
+                val totalsDeferred = async { dbSemaphore.withPermit { statsRepository.getListeningTotals(timeRange, withLeeway = false) } }
                 val periodComparisonDeferred = async { dbSemaphore.withPermit { statsRepository.getPeriodComparison(timeRange, withLeeway = false) } }
                 // Point limit by time range for chart display
                 val dataLimit = when (timeRange) {
@@ -273,7 +277,7 @@ class HomeViewModel @Inject constructor(
                     }
                 } else null
                 
-                val overview = overviewDeferred.await()
+                val totals = totalsDeferred.await()
                 val periodComparison = periodComparisonDeferred.await()
                 val rawDailyListening = rawDailyListeningDeferred.await()
                 val topTracks = topTracksDeferred?.await()
@@ -341,10 +345,10 @@ class HomeViewModel @Inject constructor(
                     }
                 }
 
-                val totalListeningMinutes = overview.totalListeningTimeMs / 1000 / 60
+                val totalListeningMinutes = totals.totalTimeMs / 60_000
                 val dailyAvgMinutes = if (activeDaysCount > 0) totalListeningMinutes / activeDaysCount else 0L
 
-                val hasData = overview.totalPlayCount > 0
+                val hasData = totals.playCount > 0
                 val isNewUser = earliestTimestamp == null
                 
                 // Hoist the suspend rate-app check out of the state-update lambda, and
@@ -354,7 +358,7 @@ class HomeViewModel @Inject constructor(
 
                 _uiState.update {
                     it.copy(
-                        listeningOverview = overview,
+                        totalListeningTimeMs = totals.totalTimeMs,
                         periodComparison = periodComparison,
                         chartLabels = chartLabels,
                         dailyListening = dailyListening,
@@ -760,8 +764,8 @@ class HomeViewModel @Inject constructor(
                     withLeeway = false
                 ).items
                 if (artists.isEmpty()) return@launch
-                val overview = statsRepository.getListeningOverview(timeRange, withLeeway = false)
-                if (overview.totalPlayCount <= 0) return@launch
+                val totals = statsRepository.getListeningTotals(timeRange, withLeeway = false)
+                if (totals.playCount <= 0) return@launch
 
                 // Mark shown immediately so re-entry can't double-fire.
                 context.dataStore.edit { prefs ->
@@ -773,7 +777,7 @@ class HomeViewModel @Inject constructor(
                         showShareNudge = true,
                         shareNudgeTimeRange = timeRange,
                         shareNudgeArtists = artists,
-                        shareNudgeOverview = overview
+                        shareNudgeTotals = totals
                     )
                 }
             } catch (cancelled: CancellationException) {
@@ -792,7 +796,7 @@ class HomeViewModel @Inject constructor(
                 showShareNudge = false,
                 shareNudgeTimeRange = null,
                 shareNudgeArtists = emptyList(),
-                shareNudgeOverview = null
+                shareNudgeTotals = null
             )
         }
         viewModelScope.launch {
@@ -813,7 +817,7 @@ class HomeViewModel @Inject constructor(
                 showShareNudge = false,
                 shareNudgeTimeRange = null,
                 shareNudgeArtists = emptyList(),
-                shareNudgeOverview = null
+                shareNudgeTotals = null
             )
         }
         viewModelScope.launch {
@@ -844,9 +848,9 @@ class HomeViewModel @Inject constructor(
             val isLastDayOfMonth = today.dayOfMonth == today.lengthOfMonth()
             if (isLastDayOfMonth && preferences.lastMonthlyReminderShown != todayString) {
                 android.util.Log.d("HomeViewModel", "Is last day of month, checking data availability...")
-                val overview = statsRepository.getListeningOverview(TimeRange.THIS_MONTH)
-                android.util.Log.d("HomeViewModel", "Monthly data: totalPlayCount=${overview.totalPlayCount}")
-                if (overview.totalPlayCount > 0) {
+                val totals = statsRepository.getListeningTotals(TimeRange.THIS_MONTH)
+                android.util.Log.d("HomeViewModel", "Monthly data: totalPlayCount=${totals.playCount}")
+                if (totals.playCount > 0) {
                     android.util.Log.i("HomeViewModel", "✅ Showing MONTHLY Spotlight reminder")
                     _flagsState.update {
                         it.copy(
@@ -867,9 +871,9 @@ class HomeViewModel @Inject constructor(
             val isDecemberFirst = today.monthValue == 12 && today.dayOfMonth == 1
             if (isDecemberFirst && preferences.lastYearlyReminderShown != todayString) {
                 android.util.Log.d("HomeViewModel", "Is December 1st, checking data availability...")
-                val overview = statsRepository.getListeningOverview(TimeRange.THIS_YEAR)
-                android.util.Log.d("HomeViewModel", "Yearly data: totalPlayCount=${overview.totalPlayCount}")
-                if (overview.totalPlayCount > 0) {
+                val totals = statsRepository.getListeningTotals(TimeRange.THIS_YEAR)
+                android.util.Log.d("HomeViewModel", "Yearly data: totalPlayCount=${totals.playCount}")
+                if (totals.playCount > 0) {
                     android.util.Log.i("HomeViewModel", "✅ Showing YEARLY Spotlight reminder")
                     _flagsState.update {
                         it.copy(
@@ -890,9 +894,9 @@ class HomeViewModel @Inject constructor(
             val isSunday = today.dayOfWeek == java.time.DayOfWeek.SUNDAY
             if (isSunday && preferences.lastWeeklyReminderShown != todayString) {
                 android.util.Log.d("HomeViewModel", "Is Sunday, checking data availability...")
-                val overview = statsRepository.getListeningOverview(TimeRange.THIS_WEEK)
-                android.util.Log.d("HomeViewModel", "Weekly data: totalPlayCount=${overview.totalPlayCount}")
-                if (overview.totalPlayCount > 0) {
+                val totals = statsRepository.getListeningTotals(TimeRange.THIS_WEEK)
+                android.util.Log.d("HomeViewModel", "Weekly data: totalPlayCount=${totals.playCount}")
+                if (totals.playCount > 0) {
                     android.util.Log.i("HomeViewModel", "✅ Showing WEEKLY Spotlight reminder")
                     _flagsState.update {
                         it.copy(
@@ -963,7 +967,7 @@ data class HomeUiState(
     val isGamificationEnabled: Boolean = true,
     
     // Data fields
-    val listeningOverview: me.avinas.tempo.data.stats.ListeningOverview? = null,
+    val totalListeningTimeMs: Long = 0,
     val periodComparison: me.avinas.tempo.data.stats.PeriodComparison? = null,
     val dailyListening: List<me.avinas.tempo.data.stats.DailyListening> = emptyList(),
     val chartLabels: List<String> = emptyList(),
@@ -1006,7 +1010,7 @@ data class HomeFlags(
     val showShareNudge: Boolean = false,
     val shareNudgeTimeRange: TimeRange? = null,
     val shareNudgeArtists: List<me.avinas.tempo.data.stats.TopArtist> = emptyList(),
-    val shareNudgeOverview: me.avinas.tempo.data.stats.ListeningOverview? = null,
+    val shareNudgeTotals: me.avinas.tempo.data.stats.CombinedBasicStats? = null,
     val showSpotlightReminder: Boolean = false,
     val reminderTimeRange: TimeRange? = null,
     val reminderType: me.avinas.tempo.ui.components.SpotlightReminderType? = null,

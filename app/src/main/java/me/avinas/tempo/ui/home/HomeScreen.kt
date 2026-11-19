@@ -21,7 +21,6 @@ import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,7 +41,6 @@ import java.time.LocalDate
 import me.avinas.tempo.data.repository.observeClockChanges
 import java.time.ZoneId
 import kotlinx.coroutines.launch
-import me.avinas.tempo.ui.components.DeepOceanBackground
 import me.avinas.tempo.ui.components.LiveNowPlayingCard
 import me.avinas.tempo.service.SpotifyBroadcastPresence
 import me.avinas.tempo.ui.components.TimePeriodSelector
@@ -78,13 +76,13 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val flags by viewModel.flagsState.collectAsStateWithLifecycle()
-    val analyticsDisclosure by analyticsDisclosureViewModel.uiState.collectAsState()
+    val analyticsDisclosure by analyticsDisclosureViewModel.uiState.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var isLaunchingReview by remember { mutableStateOf(false) }
     var showTodaysOverview by remember { mutableStateOf(false) }
     // Saved in DataStore so a compact or expanded Home remains your choice.
-    val showExtendedInsights by viewModel.expandedInsights.collectAsState()
+    val showExtendedInsights by viewModel.expandedInsights.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val lazyListState = rememberLazyListState()
 
@@ -115,7 +113,8 @@ fun HomeScreen(
     
     // Gamification state
     val gamificationRepo = viewModel.gamificationRepository
-    val userLevel by gamificationRepo.observeUserLevel().collectAsState(initial = null)
+    val userLevelFlow = remember(gamificationRepo) { gamificationRepo.observeUserLevel() }
+    val userLevel by userLevelFlow.collectAsStateWithLifecycle(initialValue = null)
     
     // Level-up detection
     var lastKnownLevel by remember { mutableStateOf(-1) }
@@ -138,7 +137,7 @@ fun HomeScreen(
         !showTodaysOverview && !(uiState.isGamificationEnabled && showLevelUp)
 
     val appearance = LocalTempoAppearance.current
-    DeepOceanBackground {
+    Box(Modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxSize()) {
             PullToRefreshBox(
                 isRefreshing = flags.isRefreshing,
@@ -232,8 +231,8 @@ fun HomeScreen(
                         when (section) {
                             AppearanceHomeSection.SUMMARY -> if (uiState.hasData) { item(key = "hero") {
                             
-                            val timeString = remember(uiState.listeningOverview?.totalListeningTimeMs) {
-                                val totalMs = uiState.listeningOverview?.totalListeningTimeMs ?: 0
+                            val timeString = remember(uiState.totalListeningTimeMs) {
+                                val totalMs = uiState.totalListeningTimeMs
                                 val totalMinutes = totalMs / 1000 / 60
                                 val hours = totalMinutes / 60
                                 val minutes = totalMinutes % 60
@@ -455,7 +454,7 @@ item(key = "insights_feed") {
                 tab = StatsTab.TOP_ARTISTS,
                 timeRange = nudgeRange,
                 items = flags.shareNudgeArtists,
-                overview = flags.shareNudgeOverview,
+                totals = flags.shareNudgeTotals,
                 nudgeCaption = stringResource(
                     if (nudgeRange == TimeRange.THIS_MONTH) R.string.share_nudge_caption_monthly
                     else R.string.share_nudge_caption_weekly

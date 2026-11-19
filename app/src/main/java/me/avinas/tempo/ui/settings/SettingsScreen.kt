@@ -42,10 +42,12 @@ import androidx.core.os.LocaleListCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 import me.avinas.tempo.R
 import me.avinas.tempo.service.SpotifyBroadcastPresence
@@ -55,7 +57,6 @@ import me.avinas.tempo.data.importexport.ImportConflictStrategy
 import me.avinas.tempo.data.importexport.ImportExportResult
 import me.avinas.tempo.data.local.entities.AlbumArtSource
 import me.avinas.tempo.data.drive.BackupStatus
-import me.avinas.tempo.ui.components.DeepOceanBackground
 import me.avinas.tempo.ui.components.GlassCard
 import me.avinas.tempo.ui.components.SettingsOption
 import me.avinas.tempo.ui.components.SettingsSectionHeader
@@ -94,9 +95,9 @@ fun SettingsScreen(
     onNavigateToAppearance: (() -> Unit)? = null,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val historyQuality by viewModel.historyQuality.collectAsState()
-    val backupOverview by viewModel.backupOverview.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val historyQuality by viewModel.historyQuality.collectAsStateWithLifecycle()
+    val backupOverview by viewModel.backupOverview.collectAsStateWithLifecycle()
     var showHistoryAuditDialog by remember { mutableStateOf(false) }
     var historyBackupConfirmed by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -104,26 +105,24 @@ fun SettingsScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     // Settings home is intentionally a small category navigator.
     var settingsCategory by rememberSaveable { mutableStateOf("overview") }
-    val settingsScrollState = rememberScrollState()
+    val settingsScrollState = key(settingsCategory) { rememberScrollState() }
     BackHandler(enabled = settingsCategory != "overview") {
         settingsCategory = "overview"
     }
-    LaunchedEffect(settingsCategory) {
-        settingsScrollState.scrollTo(0)
-    }
     val scope = rememberCoroutineScope()
-    var notificationListenerGranted by remember {
-        mutableStateOf(NotificationManagerCompat.getEnabledListenerPackages(context).contains(context.packageName))
-    }
-    var trackingHeartbeat by remember { mutableStateOf(TrackingServiceHeartbeat.snapshot(context)) }
+    var notificationListenerGranted by remember { mutableStateOf(false) }
+    var trackingHeartbeat by remember { mutableStateOf<TrackingServiceHeartbeat.Snapshot?>(null) }
     var trackingStatusCheckedAt by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(settingsCategory, lifecycleOwner) {
         if (settingsCategory == "overview") {
-            lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 while (true) {
-                    notificationListenerGranted = NotificationManagerCompat
-                        .getEnabledListenerPackages(context).contains(context.packageName)
-                    trackingHeartbeat = TrackingServiceHeartbeat.snapshot(context)
+                    val (granted, heartbeat) = withContext(Dispatchers.IO) {
+                        NotificationManagerCompat.getEnabledListenerPackages(context)
+                            .contains(context.packageName) to TrackingServiceHeartbeat.snapshot(context)
+                    }
+                    notificationListenerGranted = granted
+                    trackingHeartbeat = heartbeat
                     trackingStatusCheckedAt = System.currentTimeMillis()
                     delay(30_000L)
                 }
@@ -134,52 +133,34 @@ fun SettingsScreen(
     var spotifyConnected by remember { mutableStateOf(false) }
     var spotifyClientId by remember { mutableStateOf("") }
     var spotifyAccountLoaded by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        val (connected, id) = viewModel.spotifyAccountInfo()
-        spotifyConnected = connected
-        spotifyClientId = id
-        spotifyAccountLoaded = true
-    }
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                scope.launch {
-                    val (connected, id) = viewModel.spotifyAccountInfo()
-                    val newlyConnected = connected && !spotifyConnected
-                    spotifyConnected = connected
-                    if (!connected) spotifyClientId = id
-                    if (newlyConnected && uiState.spotifyApiOnlyMode) {
-                        me.avinas.tempo.worker.SpotifyPollingWorker.syncNow(context)
-                    }
-                }
+    LaunchedEffect(lifecycleOwner, viewModel) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            val (connected, id) = viewModel.spotifyAccountInfo()
+            val newlyConnected = spotifyAccountLoaded && connected && !spotifyConnected
+            if (!spotifyAccountLoaded || !connected) spotifyClientId = id
+            spotifyConnected = connected
+            spotifyAccountLoaded = true
+            if (newlyConnected && uiState.spotifyApiOnlyMode) {
+                me.avinas.tempo.worker.SpotifyPollingWorker.syncNow(context)
             }
         }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
-    val versionName =
-        remember {
-            try {
-                context.packageManager.getPackageInfo(context.packageName, 0).versionName
-            } catch (e: Exception) {
-                "Unknown"
-            }
-        }
+    val versionName = me.avinas.tempo.BuildConfig.VERSION_NAME
     var showClearDataDialog by rememberSaveable { mutableStateOf(false) }
-    val resetState by viewModel.resetState.collectAsState()
+    val resetState by viewModel.resetState.collectAsStateWithLifecycle()
     val resetInProgress = resetState == AppResetState.Requesting || resetState == AppResetState.Requested
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Import/Export states
-    val importExportProgress by viewModel.importExportProgress.collectAsState()
-    val importExportResult by viewModel.importExportResult.collectAsState()
-    val conflictDialogUri by viewModel.showConflictDialog.collectAsState()
-    val profileImageMessage by viewModel.profileImageMessage.collectAsState()
+    val importExportProgress by viewModel.importExportProgress.collectAsStateWithLifecycle()
+    val importExportResult by viewModel.importExportResult.collectAsStateWithLifecycle()
+    val conflictDialogUri by viewModel.showConflictDialog.collectAsStateWithLifecycle()
+    val profileImageMessage by viewModel.profileImageMessage.collectAsStateWithLifecycle()
     val analyticsIdResetMessage = stringResource(R.string.settings_analytics_reset_id_done)
 
     // OEM detection for Background Protection
     val isXiaomiDevice = remember { OemBackgroundHelper.isXiaomiDevice() }
-    var autostartState by remember { mutableStateOf(OemBackgroundHelper.getAutostartState(context)) }
+    var autostartState by remember { mutableStateOf(OemBackgroundHelper.AutostartState.UNKNOWN) }
 
     // Language selector state
     var showLanguageDialog by remember { mutableStateOf(false) }
@@ -207,44 +188,25 @@ fun SettingsScreen(
         languages.firstOrNull { it.first == currentLocale }?.second
             ?: stringResource(R.string.settings_language_english)
 
-    // Battery status monitoring for Desktop Sync
-    var batteryLevel by remember { mutableStateOf(BatteryUtils.getBatteryLevel(context)) }
-    var isBatteryCritical by remember { mutableStateOf(BatteryUtils.isCriticalBattery(context)) }
-    var isLowBattery by remember { mutableStateOf(BatteryUtils.isLowBattery(context)) }
-
-    // Battery percentage is only shown in tracking/desktop settings.
-    // Don't poll every 30 seconds while browsing language, privacy or the
-    // settings overview.
-    LaunchedEffect(settingsCategory) {
+    // These readings are only used by the tracking and connections categories.
+    var batteryLevel by remember { mutableIntStateOf(100) }
+    val isBatteryCritical = batteryLevel <= BatteryUtils.CRITICAL_BATTERY_LEVEL
+    val isLowBattery = batteryLevel <= BatteryUtils.LOW_BATTERY_LEVEL
+    LaunchedEffect(settingsCategory, lifecycleOwner) {
         if (settingsCategory == "tracking" || settingsCategory == "connections") {
-            batteryLevel = BatteryUtils.getBatteryLevel(context)
-            isBatteryCritical = BatteryUtils.isCriticalBattery(context)
-            isLowBattery = BatteryUtils.isLowBattery(context)
-            while (true) {
-                delay(30_000L)
-                batteryLevel = BatteryUtils.getBatteryLevel(context)
-                isBatteryCritical = BatteryUtils.isCriticalBattery(context)
-                isLowBattery = BatteryUtils.isLowBattery(context)
-            }
-        }
-    }
-
-    // Refresh autostart state when returning from BackgroundProtectionScreen
-    DisposableEffect(lifecycleOwner) {
-        val observer =
-            androidx.lifecycle.LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_RESUME) {
-                    autostartState = OemBackgroundHelper.getAutostartState(context)
-                    notificationListenerGranted =
-                        NotificationManagerCompat.getEnabledListenerPackages(context)
-                            .contains(context.packageName)
-                    trackingHeartbeat = TrackingServiceHeartbeat.snapshot(context)
-                    trackingStatusCheckedAt = System.currentTimeMillis()
+            lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                if (settingsCategory == "tracking" && isXiaomiDevice) {
+                    launch {
+                        autostartState = withContext(Dispatchers.IO) {
+                            OemBackgroundHelper.getAutostartState(context)
+                        }
+                    }
+                }
+                while (true) {
+                    batteryLevel = withContext(Dispatchers.IO) { BatteryUtils.getBatteryLevel(context) }
+                    delay(30_000L)
                 }
             }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
@@ -361,7 +323,7 @@ fun SettingsScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) { TempoSnackbar(it) } },
     ) { padding ->
-        DeepOceanBackground {
+        Box(Modifier.fillMaxSize()) {
             Column(
                 modifier =
                     Modifier
@@ -372,14 +334,16 @@ fun SettingsScreen(
             ) {
                 if (settingsCategory == "overview") {
                     SettingsSectionHeader(stringResource(R.string.settings_tracking_access_status))
-                    val trackingHealth = evaluateTrackingHealth(
-                        permissionGranted = notificationListenerGranted,
-                        listenerConnected = trackingHeartbeat.listenerConnected,
-                        lastHeartbeatAtMs = trackingHeartbeat.lastServiceAliveAt,
-                        lastNotificationCallbackAtMs = trackingHeartbeat.lastNotificationCallbackAt,
-                        lastMediaSessionCallbackAtMs = trackingHeartbeat.lastMediaSessionCallbackAt,
-                        nowMs = trackingStatusCheckedAt,
-                    )
+                    val trackingHealth = trackingHeartbeat?.let { heartbeat ->
+                        evaluateTrackingHealth(
+                            permissionGranted = notificationListenerGranted,
+                            listenerConnected = heartbeat.listenerConnected,
+                            lastHeartbeatAtMs = heartbeat.lastServiceAliveAt,
+                            lastNotificationCallbackAtMs = heartbeat.lastNotificationCallbackAt,
+                            lastMediaSessionCallbackAtMs = heartbeat.lastMediaSessionCallbackAt,
+                            nowMs = trackingStatusCheckedAt,
+                        )
+                    }
                     GlassCard(
                         contentPadding = PaddingValues(0.dp),
                         variant = me.avinas.tempo.ui.components.GlassCardVariant.LowProminence,
@@ -388,8 +352,11 @@ fun SettingsScreen(
                             SettingsOption(
                                 title = stringResource(R.string.settings_tracking_access_title),
                                 subtitle = stringResource(
-                                    if (notificationListenerGranted) R.string.settings_tracking_access_granted
-                                    else R.string.settings_tracking_access_missing
+                                    when {
+                                        trackingHealth == null -> R.string.ui_loading
+                                        notificationListenerGranted -> R.string.settings_tracking_access_granted
+                                        else -> R.string.settings_tracking_access_missing
+                                    }
                                 ),
                                 onClick = {
                                     try {
@@ -407,7 +374,8 @@ fun SettingsScreen(
                             SettingsOption(
                                 title = stringResource(R.string.settings_health_listener),
                                 subtitle = stringResource(
-                                    when (trackingHealth.listenerState) {
+                                    when (trackingHealth?.listenerState) {
+                                        null -> R.string.ui_loading
                                         TrackingListenerState.PERMISSION_REQUIRED ->
                                             R.string.settings_health_permission_required
                                         TrackingListenerState.WAITING ->
@@ -423,11 +391,11 @@ fun SettingsScreen(
                             HorizontalDivider(color = GlassBorderSoft)
                             SettingsOption(
                                 title = stringResource(R.string.settings_health_last_signal),
-                                subtitle = trackingHealth.lastPlayerSignalAgeMs?.let {
+                                subtitle = trackingHealth?.lastPlayerSignalAgeMs?.let {
                                     val minutes = it / 60_000L
                                     if (minutes < 1L) stringResource(R.string.settings_health_just_now)
                                     else stringResource(R.string.settings_health_minutes_ago, minutes)
-                                } ?: stringResource(R.string.settings_health_no_signal),
+                                } ?: stringResource(if (trackingHealth == null) R.string.ui_loading else R.string.settings_health_no_signal),
                                 onClick = {
                                     if (onNavigateToYourData != null) onNavigateToYourData()
                                     else settingsCategory = "tracking"
