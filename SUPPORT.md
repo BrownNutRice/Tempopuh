@@ -17,10 +17,10 @@ Review diagnostics before sharing. Never post an OAuth token, signing key, pairi
 - **Light text is unreadable:** report the screen/preset/tone; full Light support remains in the audit backlog.
 - **Import count differs:** review export limitations and [history quality](docs/HISTORY_DATA_QUALITY.md).
 
-Release notes and open issues describe known beta limitations. A successful build is not evidence that every device scenario passes.
+Release notes and open issues describe known limitations. A successful build does not cover every device scenario.
 
 ## Full local reset
 
 Current main’s **Clear all data** action asks Android to clear Tempo’s app data and close the app. Reopen it for setup, reconnect integrations and pair devices again. Save any backup you need outside Tempo’s app-specific storage first. Cloud backups, files saved elsewhere and provider/companion data remain separate.
 
-A rejected request shows an error and permits retry or use of Android’s app-storage settings. Tempo does not report deletion complete merely because the request was accepted. Published `4.9.0-beta.1` APKs still use the older partial-clear implementation; this source change requires a future build.
+A rejected request shows an error and permits retry or use of Android’s app-storage settings. Tempo does not report deletion complete merely because the request was accepted. Version 4.9.0 includes the full reset; `4.9.0-beta.1` used the earlier partial-clear implementation.

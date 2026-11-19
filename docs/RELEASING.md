@@ -11,13 +11,13 @@ Android versionCode increases for each new installable build. Do not change pack
 1. Resolve the intended scope against `main`; distinguish fixes from open proposals.
 2. Update the display version/versionCode, `Changelog.md`, the versioned note under `docs/releases/`, and workflow version/artifact expectations together.
 3. Document source commit, minimum Android version, APK type, signing continuity, upgrade steps, checks actually performed and remaining device limitations.
-4. Configure the existing stable keystore in GitHub Actions secrets `TEMPO_DEBUG_KEYSTORE_BASE64`, `TEMPO_DEBUG_STORE_PASSWORD`, `TEMPO_DEBUG_KEY_ALIAS`, and `TEMPO_DEBUG_KEY_PASSWORD`. Set the Actions variable `TEMPO_BETA_SIGNER_SHA256` to the public certificate fingerprint from a trusted, previously distributed beta APK. Obtain it with `apksigner verify --print-certs trusted-beta.apk`. Use 64 hexadecimal digits, with optional colon separators.
+4. Configure the established keystore in GitHub Actions secrets `TEMPO_DEBUG_KEYSTORE_BASE64`, `TEMPO_DEBUG_STORE_PASSWORD`, `TEMPO_DEBUG_KEY_ALIAS`, and `TEMPO_DEBUG_KEY_PASSWORD`. Obtain the expected public certificate fingerprint from a trusted previously distributed APK with `apksigner verify --print-certs trusted.apk`. The stable workflow pins that fingerprint. The beta workflow reads it from `TEMPO_BETA_SIGNER_SHA256`. Use 64 hexadecimal digits, with optional colon separators.
 
 ## Validate and publish
 
 Build/CI and publication require the relevant explicit request. Ordinary main commits run neither. Manually dispatch validation from main, inspect unit/lint/platform/extension results and keep test artifacts. Device visual, accessibility, tracking and battery checks are separate from green automation.
 
-Only publish after the requested checks succeed and publication is authorized. The beta workflow's `publish_beta` input controls publication; a validation-only request keeps it false. Publication requires the stable signing configuration and checks the single APK signer after assembly and again after downloading the artifact. For throwaway debug APKs use the separate **Build debug APK (manual)** workflow. Stable/store publication is a separate decision.
+Only publish after the requested checks succeed and publication is authorized. The stable workflow's `publish_stable` input and the beta workflow's `publish_beta` input control publication. Keep the relevant input false for validation only. Publication requires the established signing configuration and checks the single APK signer after assembly and again after downloading the artifact. For throwaway debug APKs use the separate **Build debug APK (manual)** workflow. Google Play publication is a separate decision.
 
 Create a new tag/release for changed binaries. Attach the APK and SHA-256 checksum, set prerelease status correctly and identify the matching source commit. Never move historical tags or replace published APK/checksum assets during a metadata cleanup.
 

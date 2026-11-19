@@ -13,7 +13,7 @@ on 18 November 2026 with the local XP query and test-fixture fixes in this chang
 | --- | --- | --- |
 | #77, #78 | `04aaaab` | Session aggregation reads 512-point pages; screen refresh producers follow destination visibility. Verify session results and navigation/background behavior on Android. |
 | #79, #80 | `9fe8cc5` | Home and Spotlight use a debounced data-change signal; periodic stats warming is retired. Verify invalidation, query counts and cancellation of previously scheduled work. |
-| #81, #82 | `9fe8cc5` | Immediate gamification jobs are coalesced and offline recovery avoids repeated batch writes. Freshness across completed jobs and incremental staging of new offline plays remain open. |
+| #81, #82 | `9fe8cc5`, `d44e113`, `5d173cd` | Gamification refreshes use durable freshness tracking. Offline plays use incremental staging and checkpoints; startup still loads pending rows into memory. |
 | #83 | `3706768` | Browser sync drains bounded pages with page-level acknowledgement. A 100,000-row Chromium IndexedDB fixture resumed after closing the page, capped pages at 50 records and retained a late arrival. Extension service-worker lifecycle and memory profiling remain open. |
 | #84 | `89256bd` | Single-track enrichment avoids global artist repair; background repair has bounded passes. Verify latency, import contention and restart on Android. |
 
@@ -48,7 +48,7 @@ These closed UI issues still have manual verification pending.
 
 The broader plans in #5, #16, #28, #68, #74, #85 and #90 still include
 unfinished implementation or validation. #7 still needs its phone-side
-WebSocket counterpart. Issues #75, #76 and #86–#89 also remain open.
+WebSocket counterpart. Issues #75, #76, #87 and #89 remain open.
 
 Room's first database open now runs the pre-migration file snapshot before
 SQLite touches the database (#75). Constructing the database and DAOs during

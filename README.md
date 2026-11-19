@@ -8,9 +8,9 @@ This repository is a maintained fork of [avinaxhroy/Tempo](https://github.com/av
 
 ## Download
 
-[Tempo 4.9.0 Beta 1](https://github.com/matchalattewithbanana/Tempo/releases/tag/v4.9.0-beta.1) · Android 8.0+ · prerelease debug APK
+[Tempo 4.9.0](https://github.com/matchalattewithbanana/Tempo/releases/tag/v4.9.0) · Android 8.0+ · signed debug-variant APK
 
-Export a backup before upgrading. An in-place update requires the same signing certificate as the installed app. Light/System appearance, background tracking and device performance still have open validation work; a beta is not a stable release.
+Export a backup before upgrading. An in-place update requires the same signing certificate as the installed app. Light/System appearance, background tracking and device performance still have open device-validation work.
 
 See the [release catalog](docs/releases/README.md) for versions, checksums and upgrade guidance. Historical tags and APKs are retained.
 
@@ -47,7 +47,7 @@ Build and validation workflows are manual. Ordinary commits do not build or publ
 | [Changelog](Changelog.md) | Fork releases and unreleased changes |
 | [Current audit backlog](https://github.com/matchalattewithbanana/Tempo/issues) | Confirmed findings and proposed work |
 
-Repository screenshots are illustrative historical assets; they are not proof of the current beta's visual or device-test status.
+Repository screenshots are illustrative historical assets. See the release notes for current validation.
 
 ## Attribution and license
 

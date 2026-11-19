@@ -1,11 +1,11 @@
 # Release catalog
 
-**Reviewed:** 18 November 2026. Stable release 4.9.0 is prepared for GitHub publication; its availability depends on the release workflow.
+**Reviewed:** 19 November 2026. Version 4.9.0 is the current stable GitHub release.
 
 | Version | Android code | Published | Purpose | Source / notes |
 | --- | --- | --- | --- | --- |
-| [4.9.0](https://github.com/matchalattewithbanana/Tempo/releases/tag/v4.9.0) | 4819 | 18 Nov 2026, if published | First stable GitHub release | [notes](v4.9.0.md) |
-| [4.9.0-beta.1](https://github.com/matchalattewithbanana/Tempo/releases/tag/v4.9.0-beta.1) | 4818 | 17 Nov 2026 | Current beta: reliability and import hardening | `289fcd0` · [notes](v4.9.0-beta.1.md) |
+| [4.9.0](https://github.com/matchalattewithbanana/Tempo/releases/tag/v4.9.0) | 4819 | 19 Nov 2026 IST | First stable GitHub release | `e0887af` · [notes](v4.9.0.md) |
+| [4.9.0-beta.1](https://github.com/matchalattewithbanana/Tempo/releases/tag/v4.9.0-beta.1) | 4818 | 17 Nov 2026 | Historical beta: reliability and import hardening | `289fcd0` · [notes](v4.9.0-beta.1.md) |
 | [4.8.16-fork.2-beta.1](https://github.com/matchalattewithbanana/Tempo/releases/tag/v4.8.16-fork.2-beta.1) | 4817 | 17 Nov 2026 | Historical Appearance Studio beta | `f99c502` · [notes](v4.8.16-fork.2-beta.1.md) |
 | [4.8.16-fork.1](https://github.com/matchalattewithbanana/Tempo/releases/tag/v4.8.16-fork.1) | 4816 | 16 Nov 2026 | Historical first fork preview | `11000a1` · [notes](v4.8.16-fork.1.md) |
 
@@ -21,6 +21,4 @@ Version labels/tags identify the actual binary source. Current documentation and
 
 Metadata corrections may improve titles/notes but do not move tags or replace APK/checksum assets. The [release procedure](../RELEASING.md) describes future versioning and publication.
 
-## Metadata synchronization
-
-The catalog and checked-in notes define the canonical titles and descriptions. Live GitHub release titles/bodies still need synchronization by a maintainer with release-edit access. The connected API exposes release reads only, and the available browser is signed out. Keep existing tags, APKs and checksums unchanged when applying those metadata edits.
+Release metadata corrections must preserve existing tags, APKs and checksums.

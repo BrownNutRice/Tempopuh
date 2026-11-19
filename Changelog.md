@@ -4,7 +4,10 @@ Fork-specific changes. Published tags and artifacts are listed in the [release c
 
 ## Unreleased
 
-## [4.9.0] — 2026-11-18
+## [4.9.0] — 2026-11-19
+
+First stable GitHub release. Android version code 4819; source commit
+`e0887afed227bee245e468325b7f61c6264b0c08`.
 
 ### Fixed
 
@@ -13,21 +16,13 @@ Fork-specific changes. Published tags and artifacts are listed in the [release c
 - Checkpointed offline listening events incrementally and surfaced quarantined records in diagnostics.
 - Routed GitHub build feedback to the maintained fork, reduced redundant statistics and gamification work, and improved screen lifecycle handling.
 - Preserved local data during restore, reset, account disconnect and backup retention operations.
-
-### Validation
-
-- The release workflow records Android unit, lint, emulator and browser companion checks for the release source.
-- Physical-device visual, accessibility, tracking and battery checks remain to be completed.
-
-### Fixed
-
 - Clear all data now requests Android’s full app-data reset, replacing partial database/preference deletion while producers remain alive. Confirmation explains closure and scope in all six locales; rejected requests show an error without navigating to onboarding.
-
 - Backup export stages database JSON in one Room transaction, validates references and copies images/compresses the ZIP after releasing the database transaction.
 - Spotify disconnect, new login and client-ID changes invalidate pending token operations; cancelled or stale responses cannot restore credentials or overwrite newer auth state.
-
 - Automatic local backup retention now records per-document creation order and always protects the verified destination. Undated legacy files are retained conservatively instead of sorted by random UUID.
 - Backup restore stages artwork privately, validates the archive before promotion and uses a unique destination namespace. Rejected archives and transaction-body failures cannot overwrite existing artwork.
+- Improved recoverable Home, History and Profile errors, guarded restore and editor exits, and preserved Share Canvas drafts.
+- Improved Profile contrast and modal behavior, chart accessibility, Spotlight lifecycle handling and responsive dialogs.
 
 ### Maintenance
 
@@ -36,7 +31,11 @@ Fork-specific changes. Published tags and artifacts are listed in the [release c
 - Added architecture guidance, contribution/report templates and a release catalog.
 - Restored manual-only beta workflow triggers and repaired the companion build-all command.
 
-Audit proposals remain open issues; they are not listed as shipped fixes. No APK is built or published by this maintenance entry.
+### Validation
+
+- [Release workflow 44372248786](https://github.com/matchalattewithbanana/Tempo/actions/runs/44372248786) passed Android unit tests, lint, APK assembly, emulator tests and browser companion checks.
+- The published APK checksum and signing certificate were verified. The signer matches 4.9.0 Beta 1.
+- Physical-device visual, accessibility, tracking and battery checks remain to be completed.
 
 ## [4.9.0-beta.1] — 2026-11-17
 
